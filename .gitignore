@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code / 내부 문서 (커밋 제외)
+CLAUDE.md
+docs/
+.claude/
