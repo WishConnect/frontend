@@ -9,6 +9,9 @@ import Final from '../../assets/icons/Final.svg';
 import PdfIcon from '../../assets/icons/Pdf.svg';
 import DownloadIcon from '../../assets/icons/Download.svg';
 import PosterImage from '../../assets/images/poster.png';
+import { useNavigate } from 'react-router-dom';
+import Header from '../../components/common/Header/Header';
+import LeftSidebar from '../../components/LeftSidebar';
 
 const scholarshipDetail = {
   id: 1,
@@ -120,12 +123,22 @@ export default function Detail() {
     { label: '지원기간', value: scholarshipDetail.summary.applicationPeriod },
     { label: '제출방법', value: scholarshipDetail.summary.submissionMethod },
   ];
+  const navigate = useNavigate();
   return (
     <div className="h-[1024px] w-[1440px] bg-white font-['Pretendard']">
-      <header className="h-[80px]">{/* 공통 Header */}</header>
+      <Header
+        searchPlaceholder="장학금 찾아보기"
+        isLoggedIn={false}
+        isSearchMode={false}
+        onSearch={(query) => {
+          navigate(`/curation?keyword=${query}`);
+        }}
+      />
 
       <div className="flex">
-        <aside className="w-[237px]">{/* 공통 Sidebar */}</aside>
+        <div className="ml-[64px]">
+          <LeftSidebar />
+        </div>
 
         <main className="flex w-[1139px] flex-col gap-[52px] pl-[32px] pr-[64px]">
           <div className="w-[1043px] flex-col ">

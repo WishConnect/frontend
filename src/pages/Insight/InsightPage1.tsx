@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import Button from '../../components/Button/Button';
-import LightIcon from '../assets/icons/light.svg';
-import Right from '../assets/icons/Right.svg';
+import LightIcon from '../../assets/icons/light.svg';
+import Right from '../../assets/icons/Right.svg';
+import LeftSidebar from '../../components/LeftSidebar';
+import Header from '../../components/common/Header/Header';
+import Pagination from '../../components/common/Pagination/Pagination';
 
 const categories = [
   { label: '전체', width: '57px' },
@@ -70,56 +73,79 @@ const tags = ['생활비 지원', '자기소개서', '면접후기', '리더십'
 export default function InsightPage1() {
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredPosts =
-    selectedCategory === '전체'
-      ? posts
-      : posts.filter((post) => post.category === selectedCategory);
+  const filteredPosts = posts.filter((post) => {
+    const matchCategory = selectedCategory === '전체' || post.category === selectedCategory;
+
+    const matchSearch =
+      searchQuery.trim() === '' ||
+      post.title.includes(searchQuery) ||
+      post.summary.includes(searchQuery) ||
+      post.source.includes(searchQuery) ||
+      post.category.includes(searchQuery);
+
+    return matchCategory && matchSearch;
+  });
 
   const POSTS_PER_PAGE = 5;
   const totalPages = Math.ceil(filteredPosts.length / POSTS_PER_PAGE);
 
   const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
   const currentPosts = filteredPosts.slice(startIndex, startIndex + POSTS_PER_PAGE);
-
   return (
     <div className="h-[1024px] w-[1440px] bg-white font-['Pretendard']">
-      <header className="h-[80px]">{/* Header */}</header>
+      <Header
+        searchPlaceholder="장학금 찾아보기"
+        isLoggedIn={true}
+        isSearchMode={false}
+        onSearch={(query) => {
+          setSearchQuery(query);
+          setCurrentPage(1);
+        }}
+        onNotificationClick={() => console.log('알림 클릭')}
+      />
 
       <div className="flex">
-        <aside className="w-[240px]">{/* Sidebar */}</aside>
+        <div className="ml-[64px]">
+          <LeftSidebar />
+        </div>
 
-        <main className="flex w-[1043px] gap-8">
+        <main className="ml-[32px] flex w-[1043px] gap-[32px]">
           <section className="w-[774px]">
             <section className="flex w-[774px] flex-col items-start text-left">
-              <h1 className="m-0 h-[52px] w-[416px] text-[40px] font-bold leading-[52px] text-[#10131A]">
-                장학금 인사이트
+              <h1 className="m-0 h-[52px] w-[774px] text-[40px] font-bold leading-[52px] text-[#10131A]">
+                {searchQuery ? `'${searchQuery}' 검색 결과` : '장학금 인사이트'}
               </h1>
 
               <p className="mt-2 text-[16px] font-medium leading-[24px] text-[#555964]">
-                다양한 출처의 장학금 관련 글과 합격 후기를 모아볼 수 있어요.
+                {searchQuery
+                  ? `총 ${filteredPosts.length}개의 결과를 찾았어요.`
+                  : '다양한 출처의 장학금 관련 글과 합격 후기를 모아볼 수 있어요.'}
               </p>
 
-              <div className="mt-3 flex gap-2">
-                {categories.map((category) => (
-                  <Button
-                    key={category.label}
-                    size="sm"
-                    width={category.width}
-                    variant={selectedCategory === category.label ? 'primary' : 'outline'}
-                    onClick={() => {
-                      setSelectedCategory(category.label);
-                      setCurrentPage(1);
-                    }}
-                  >
-                    {category.label}
-                  </Button>
-                ))}
-              </div>
+              {!searchQuery && (
+                <div className="mt-3 flex gap-2">
+                  {categories.map((category) => (
+                    <Button
+                      key={category.label}
+                      size="sm"
+                      width={category.width}
+                      variant={selectedCategory === category.label ? 'primary' : 'outline'}
+                      onClick={() => {
+                        setSelectedCategory(category.label);
+                        setCurrentPage(1);
+                      }}
+                    >
+                      {category.label}
+                    </Button>
+                  ))}
+                </div>
+              )}
             </section>
 
             <section className="mt-6 w-[774px]">
-              <div className="h-[656px] w-[774px] overflow-hidden rounded-xl border border-[#D9DDE7]">
+              <div className="w-[774px] overflow-hidden rounded-[16px] border border-[#D9DDE7]">
                 {currentPosts.map((post, index) => (
                   <article
                     key={index}
@@ -150,39 +176,15 @@ export default function InsightPage1() {
                 ))}
               </div>
 
-              <div className="mt-6 flex items-center justify-center gap-3">
-                <button
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((prev) => prev - 1)}
-                  className="text-[#6B7280] disabled:text-[#D9DDE7]"
-                >
-                  &lt;
-                </button>
-
-                {Array.from({ length: totalPages }).map((_, index) => {
-                  const page = index + 1;
-
-                  return (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`h-6 w-6 rounded text-[14px] ${
-                        currentPage === page ? 'bg-[#7962ED] text-white' : 'text-[#6B7280]'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  );
-                })}
-
-                <button
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((prev) => prev + 1)}
-                  className="text-[#6B7280] disabled:text-[#D9DDE7]"
-                >
-                  &gt;
-                </button>
-              </div>
+              {totalPages > 0 && (
+                <div className="mt-6 flex justify-center">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                  />
+                </div>
+              )}
             </section>
           </section>
 

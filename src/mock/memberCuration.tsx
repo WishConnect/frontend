@@ -58,7 +58,7 @@ export const memberCurationMock: MemberCurationData = {
     name: '김위시',
     university: 'OO대학교',
     profileProgress: 85,
-    isOnboarded: false,
+    isOnboarded: true,
   },
 
   recommendedScholarships: [

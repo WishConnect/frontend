@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import SortDropdown from '../../assets/icons/arrowdown.svg';
 import { scholarships } from '../../mock/scholarships';
+import { useNavigate } from 'react-router-dom';
+import Header from '../../components/common/Header/Header';
+import LeftSidebar from '../../components/LeftSidebar';
 
 const ITEMS_PER_PAGE = 9;
 
@@ -20,13 +23,22 @@ export default function GuestCurationPage() {
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE,
   );
-
+  const navigate = useNavigate();
   return (
     <div className="h-[1024px] w-[1440px] bg-white font-['Pretendard']">
-      <header className="h-[80px]">{/* 공통 Header */}</header>
+      <Header
+        searchPlaceholder="장학금 찾아보기"
+        isLoggedIn={false}
+        isSearchMode={false}
+        onSearch={(query) => {
+          navigate(`/curation?keyword=${query}`);
+        }}
+      />
 
       <div className="flex">
-        <aside className="w-[237px]">{/* 공통 Sidebar */}</aside>
+        <div className="ml-[64px]">
+          <LeftSidebar />
+        </div>
 
         <main className="mt-[16px] flex w-[1139px] flex-col pb-[64px] pl-[32px] pr-[64px]">
           {/* 제목 + 정렬 */}

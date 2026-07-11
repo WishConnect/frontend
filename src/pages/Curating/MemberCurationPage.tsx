@@ -4,8 +4,15 @@ import RecommendCard from '../../components/Curation/RecommendCard';
 import SchoolSection from '../../components/Curation/SchoolSection';
 import RecruitingSection from '../../components/Curation/RecruitingSection';
 import LockedSection from '../../components/Curation/Locked';
+import { useNavigate } from 'react-router-dom';
+import Header from '../../components/common/Header/Header';
+import LeftSidebar from '../../components/LeftSidebar';
 
-export default function MemberCurationPage() {
+interface MemberCurationPageProps {
+  isLoggedIn: boolean;
+}
+
+export default function MemberCurationPage({ isLoggedIn }: MemberCurationPageProps) {
   const { member, recommendedScholarships, schoolScholarships, recruitingScholarships } =
     memberCurationMock;
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -18,13 +25,22 @@ export default function MemberCurationPage() {
   const handleNext = () => {
     setCurrentIndex((prev) => (prev === recommendedScholarships.length - 1 ? 0 : prev + 1));
   };
-
+  const navigate = useNavigate();
   return (
     <div className="h-[1024px] w-[1440px] bg-white font-['Pretendard']">
-      <header className="h-[80px]">{/* Header */}</header>
+      <Header
+        searchPlaceholder="장학금 찾아보기"
+        isLoggedIn={isLoggedIn}
+        isSearchMode={false}
+        onSearch={(query) => {
+          navigate(`/curation?keyword=${query}`);
+        }}
+      />
 
-      <div className="mt-[16px] flex">
-        <aside className="w-[237px]">{/* Sidebar */}</aside>
+      <div className="flex">
+        <div className="ml-[64px]">
+          <LeftSidebar />
+        </div>
 
         <main className="flex w-[1139px] flex-col gap-[52px] pl-[32px] pr-[64px] pb-[64px]">
           <div className="flex w-[1043px] flex-col gap-[32px]">
