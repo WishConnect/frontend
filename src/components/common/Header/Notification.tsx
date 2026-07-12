@@ -1,24 +1,18 @@
-import { useState } from 'react';
 import bellDefault from '../../../assets/bell-default.svg';
 import bellActive from '../../../assets/bell-active.svg';
 
 interface NotificationProps {
   onClick?: () => void;
+  isActive?: boolean;
   className?: string;
 }
 
-// 알림 벨 버튼 — 클릭 시 기본/활성 아이콘 토글
-export default function Notification({ onClick, className }: NotificationProps) {
-  const [isActive, setIsActive] = useState(false);
-
-  const handleClick = () => {
-    setIsActive((prev) => !prev);
-    onClick?.();
-  };
-
+// 알림 벨 버튼 — 안 읽은 알림이 있으면 active(bell-active), 없으면 default 아이콘
+export default function Notification({ onClick, isActive = false, className }: NotificationProps) {
   return (
     <button
-      onClick={handleClick}
+      type="button"
+      onClick={onClick}
       className={`w-[32px] h-[32px] flex items-center justify-center ${className ?? ''}`}
       aria-label="알림"
     >

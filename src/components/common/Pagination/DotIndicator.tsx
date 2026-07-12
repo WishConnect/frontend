@@ -10,6 +10,7 @@ export default function DotIndicator({ total, current, onDotClick }: DotIndicato
     <div className="flex items-center gap-[8px]">
       {Array.from({ length: total }, (_, i) => i + 1).map((index) => (
         <button
+          type="button"
           key={index}
           onClick={() => onDotClick?.(index)}
           aria-label={`${index}번째 슬라이드로 이동`}

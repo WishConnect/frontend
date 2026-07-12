@@ -1,0 +1,198 @@
+import type { Scholarship } from '../types/scholarship';
+import img01 from '../assets/archiving/scholarship-01.png';
+import img02 from '../assets/archiving/scholarship-02.png';
+import img03 from '../assets/archiving/scholarship-03.png';
+import img04 from '../assets/archiving/scholarship-04.png';
+import img05 from '../assets/archiving/scholarship-05.png';
+import img06 from '../assets/archiving/scholarship-06.png';
+import img07 from '../assets/archiving/scholarship-07.png';
+import img08 from '../assets/archiving/scholarship-08.png';
+import img09 from '../assets/archiving/scholarship-09.png';
+import img10 from '../assets/archiving/scholarship-10.png';
+import img11 from '../assets/archiving/scholarship-11.png';
+import img12 from '../assets/archiving/scholarship-12.png';
+import img13 from '../assets/archiving/scholarship-13.png';
+import img14 from '../assets/archiving/scholarship-14.png';
+import img15 from '../assets/archiving/scholarship-15.png';
+import img16 from '../assets/archiving/scholarship-16.png';
+
+// 아카이빙 페이지 mock 데이터 — Figma node 1393:6451/6474/6657/6859 기준
+// 백엔드 API 준비되면 이 배열 대신 fetch 결과로 교체
+export const mockScholarships: Scholarship[] = [
+  {
+    id: 'sch-01',
+    title: '삼성드림클래스 장학금',
+    imageUrl: img01,
+    deadline: '2026.06.30 (화) 15:00',
+    dDay: 27,
+    tags: ['#교육지원', '#성장', '#멘토링'],
+    status: 'before',
+    questionLabel: '지원서를 작성해 보세요.',
+    progressPercent: 0,
+  },
+  {
+    id: 'sch-02',
+    title: '교보생명 체육꿈나무 장학금',
+    imageUrl: img05,
+    deadline: '2026.06.06 (토) 13:00',
+    dDay: 3,
+    tags: ['#체육', '#도전', '#팀워크'],
+    status: 'before',
+    questionLabel: '지원서를 작성해 보세요.',
+    progressPercent: 0,
+  },
+  {
+    id: 'sch-03',
+    title: '청년미래 성장 장학금',
+    imageUrl: img07,
+    deadline: '2026.06.22 (월) 18:00',
+    dDay: 19,
+    tags: ['#자립', '#성장', '#미래'],
+    status: 'before',
+    questionLabel: '지원서를 작성해 보세요.',
+    progressPercent: 0,
+  },
+  {
+    id: 'sch-04',
+    title: '한국문화재단 예술인재 장학금',
+    imageUrl: img08,
+    deadline: '2026.07.02 (목) 23:59',
+    dDay: 29,
+    tags: ['#예술', '#창작', '#도전'],
+    status: 'before',
+    questionLabel: '지원서를 작성해 보세요.',
+    progressPercent: 0,
+  },
+  {
+    id: 'sch-05',
+    title: '글로벌 인재양성 장학금',
+    imageUrl: img09,
+    deadline: '2026.06.11 (목) 12:00',
+    dDay: 8,
+    tags: ['#글로벌', '#어학', '#도전'],
+    status: 'before',
+    questionLabel: '지원서를 작성해 보세요.',
+    progressPercent: 0,
+  },
+  {
+    id: 'sch-06',
+    title: '지역상생 희망 장학금',
+    imageUrl: img10,
+    deadline: '2026.06.14 (일) 23:59',
+    dDay: 11,
+    tags: ['#지역사회', '#상생', '#성장'],
+    status: 'before',
+    questionLabel: '지원서를 작성해 보세요.',
+    progressPercent: 0,
+  },
+  {
+    id: 'sch-07',
+    title: '2026 희망장학금',
+    imageUrl: img02,
+    deadline: '2026.06.15 (월) 23:59',
+    dDay: 12,
+    tags: ['#성장', '#리더쉽', '#멘토링'],
+    status: 'in-progress',
+    questionLabel: '3/5 문항 작성 중',
+    progressPercent: 70,
+  },
+  {
+    id: 'sch-08',
+    title: '하나금융그룹 장학금',
+    imageUrl: img04,
+    deadline: '2026.07.10 (금) 23:59',
+    dDay: 35,
+    tags: ['#금융', '#진로', '#미래'],
+    status: 'in-progress',
+    questionLabel: '3/5 문항 작성',
+    progressPercent: 70,
+  },
+  {
+    id: 'sch-09',
+    title: '미래인재 IT 장학금',
+    imageUrl: img11,
+    deadline: '2026.06.25 (목) 18:00',
+    dDay: 22,
+    tags: ['#IT', '#진로', '#도전'],
+    status: 'in-progress',
+    questionLabel: '2/5 문항 작성 중',
+    progressPercent: 40,
+  },
+  {
+    id: 'sch-10',
+    title: '푸른나무 복지재단 장학금',
+    imageUrl: img12,
+    deadline: '2026.06.09 (화) 23:59',
+    dDay: 6,
+    tags: ['#복지', '#자립', '#성장'],
+    status: 'in-progress',
+    questionLabel: '1/5 문항 작성 중',
+    progressPercent: 20,
+  },
+  {
+    id: 'sch-11',
+    title: '창업도전 스타트업 장학금',
+    imageUrl: img13,
+    deadline: '2026.06.28 (일) 23:59',
+    dDay: 25,
+    tags: ['#창업', '#도전', '#미래'],
+    status: 'in-progress',
+    questionLabel: '4/5 문항 작성 중',
+    progressPercent: 80,
+  },
+  {
+    id: 'sch-12',
+    title: '희망나눔 봉사장학금',
+    imageUrl: img14,
+    deadline: '2026.06.13 (토) 12:00',
+    dDay: 10,
+    tags: ['#봉사', '#나눔', '#성장'],
+    status: 'in-progress',
+    questionLabel: '2/5 문항 작성 중',
+    progressPercent: 40,
+  },
+  {
+    id: 'sch-13',
+    title: '한국장학재단 인재육성 장학금',
+    imageUrl: img03,
+    deadline: '2026.06.08 (월) 12:00',
+    dDay: 5,
+    tags: ['#학업', '#도전', '#목표'],
+    status: 'done',
+    questionLabel: '작성 완료!',
+    progressPercent: 100,
+  },
+  {
+    id: 'sch-14',
+    title: '서울희망 장학금',
+    imageUrl: img06,
+    deadline: '2026.06.19 (금) 23:59',
+    dDay: 16,
+    tags: ['#교육지원', '#성장', '#멘토링'],
+    status: 'done',
+    questionLabel: '작성 완료!',
+    progressPercent: 100,
+  },
+  {
+    id: 'sch-15',
+    title: '미래에셋 드림 장학금',
+    imageUrl: img15,
+    deadline: '2026.06.17 (수) 23:59',
+    dDay: 14,
+    tags: ['#금융', '#자립', '#목표'],
+    status: 'done',
+    questionLabel: '작성 완료!',
+    progressPercent: 100,
+  },
+  {
+    id: 'sch-16',
+    title: '따뜻한동행 나눔 장학금',
+    imageUrl: img16,
+    deadline: '2026.06.21 (일) 23:59',
+    dDay: 18,
+    tags: ['#나눔', '#동행', '#성장'],
+    status: 'done',
+    questionLabel: '작성 완료!',
+    progressPercent: 100,
+  },
+];

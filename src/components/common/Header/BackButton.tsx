@@ -8,6 +8,7 @@ interface BackButtonProps {
 export default function BackButton({ onClick }: BackButtonProps) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className="flex items-center gap-[8px]"
     >
