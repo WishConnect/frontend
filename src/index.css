@@ -1,3 +1,10 @@
+/*
+ * ⚠️ 팀 합의 사항 — 이 파일은 함부로 건드리지 않기
+ * index.css에 스타일이 늘어나면 다른 사람 페이지 스타일까지 영향을 받을 수 있어서,
+ * 기본 폰트 + 초기화(reset)만 최소로 유지하기로 합의함. 여백/세부 디자인은 각자 페이지 파일에서 관리.
+ * 초기화 코드는 반드시 @layer base 안에 둘 것 — 밖에 두면 Tailwind 여백 유틸리티가 씹히는 버그 재발함.
+ */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 @import 'tailwindcss';
 
 @layer base {

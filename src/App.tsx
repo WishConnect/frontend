@@ -1,16 +1,25 @@
-import { Routes, Route } from 'react-router-dom';
-
-import Home from './pages/Home/HomePage';
-import CurationPage from './pages/Curating/CurationPage';
-import Detail from './pages/Curating/Detail';
-import InsightPage1 from './pages/Insight/InsightPage1';
-import MoreInfoPage from './pages/Insight/MoreInfo';
+import { Route, Routes } from 'react-router-dom'
+import LoginPage from './pages/Login/LoginPage'
+import NotificationSettingsPage from './pages/NotificationSettings/NotificationSettingsPage'
+import ArchivingPage from './pages/Archiving/ArchivingPage'
+import SearchPage from './pages/Search/SearchPage'
+import Home from './pages/Home/HomePage'
+import CurationPage from './pages/Curating/CurationPage'
+import Detail from './pages/Curating/Detail'
+import InsightPage1 from './pages/Insight/InsightPage1'
+import MoreInfoPage from './pages/Insight/MoreInfo'
+import './App.css'
 
 function App() {
   return (
     <Routes>
       {/* 홈 */}
       <Route path="/" element={<Home />} />
+
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/notifications/settings" element={<NotificationSettingsPage />} />
+      <Route path="/archiving" element={<ArchivingPage />} />
+      <Route path="/search" element={<SearchPage />} />
 
       {/* 큐레이션 */}
       <Route path="/curation" element={<CurationPage />} />
@@ -24,7 +33,7 @@ function App() {
       {/* 참고하면 좋아요 */}
       <Route path="/insight/reference" element={<MoreInfoPage />} />
     </Routes>
-  );
+  )
 }
 
-export default App;
+export default App

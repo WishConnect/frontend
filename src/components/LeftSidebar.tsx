@@ -63,8 +63,12 @@ function SidebarItem({ item, isActive, onClick }: SidebarItemProps) {
     );
 }
 
-export default function LeftSidebar() {
-    const [activeId, setActiveId] = useState<MenuId>(MENU_ITEMS[0].id);
+interface LeftSidebarProps {
+    activeId?: MenuId;
+}
+
+export default function LeftSidebar({ activeId: initialActiveId }: LeftSidebarProps = {}) {
+    const [activeId, setActiveId] = useState<MenuId>(initialActiveId ?? MENU_ITEMS[0].id);
 
     return(
         <aside className='
