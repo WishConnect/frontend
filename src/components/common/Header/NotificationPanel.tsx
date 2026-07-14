@@ -8,7 +8,7 @@ import { useNotificationStore, type NotificationCategory } from '../../../store/
 
 const FILTERS: ('전체' | NotificationCategory)[] = ['전체', '맞춤 장학금', '일정', '작성', '기타'];
 
-// 헤더 벨 클릭 시 뜨는 알림센터 패널 — Figma node 1122:2842
+// 헤더 벨 클릭 시 뜨는 알림센터 패널: Figma node 1122:2842
 export default function NotificationPanel() {
   const navigate = useNavigate();
   const { items, isPanelOpen, togglePanel, markAsRead, removeItem, clearAll } = useNotificationStore();

@@ -4,7 +4,7 @@ interface DotIndicatorProps {
   onDotClick?: (index: number) => void;
 }
 
-// 점(dot) 인디케이터 — 배너/캐러셀 슬라이드 위치 표시에 사용
+// 점(dot) 인디케이터: 배너/캐러셀 슬라이드 위치 표시에 사용
 export default function DotIndicator({ total, current, onDotClick }: DotIndicatorProps) {
   return (
     <div className="flex items-center gap-[8px]">

@@ -1,4 +1,4 @@
-// 인기 검색어 mock — Figma node 1179:1941 예시 5건 그대로 시드
+// 인기 검색어 mock: Figma node 1179:1941 예시 5건 그대로 시드
 // 백엔드 API 준비되면 이 배열 대신 fetch 결과로 교체
 export const mockPopularSearches: string[] = [
   '국가 장학금',

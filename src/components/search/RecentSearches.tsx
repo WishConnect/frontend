@@ -5,7 +5,7 @@ interface RecentSearchesProps {
   onSelect: (term: string) => void;
 }
 
-// 최근 검색어 칩 목록 + 전체 삭제 — Figma node 1200:1723
+// 최근 검색어 칩 목록 + 전체 삭제: Figma node 1200:1723
 export default function RecentSearches({ onSelect }: RecentSearchesProps) {
   const items = useRecentSearchStore((state) => state.items);
   const removeSearch = useRecentSearchStore((state) => state.removeSearch);

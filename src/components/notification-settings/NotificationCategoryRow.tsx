@@ -9,7 +9,7 @@ interface NotificationCategoryRowProps {
   isFirst?: boolean;
 }
 
-// 알림 설정 페이지의 서비스별 설정 행 — 아이콘은 실제 글리프 미지정이라 색상 원만 표시
+// 알림 설정 페이지의 서비스별 설정 행: 아이콘은 실제 글리프 미지정이라 색상 원만 표시
 export default function NotificationCategoryRow({
   title,
   description,

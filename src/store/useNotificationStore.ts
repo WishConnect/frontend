@@ -22,7 +22,7 @@ interface NotificationState {
   clearAll: () => void;
 }
 
-// 헤더 알림 벨/알림센터 패널 상태 — Figma node 1122:2842 예시 3건 그대로 시드
+// 헤더 알림 벨/알림센터 패널 상태: Figma node 1122:2842 예시 3건 그대로 시드
 export const useNotificationStore = create<NotificationState>((set, get) => ({
   items: [
     {

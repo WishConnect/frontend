@@ -10,7 +10,7 @@ interface SearchBoxProps {
   onToggleFilter: () => void;
 }
 
-// 장학금 찾아보기 검색창 — Figma node 1200:1660(기본) / 1200:1985 + 1200:1919(필터 열림)
+// 장학금 찾아보기 검색창: Figma node 1200:1660(기본) / 1200:1985 + 1200:1919(필터 열림)
 // 필터 아이콘 클릭 시 최근 검색어 자리를 필터 패널(지원 기간/지원 금액/지역)로 교체
 export default function SearchBox({
   query,
@@ -74,7 +74,7 @@ export default function SearchBox({
               onClick={handleReset}
               className="flex items-center gap-1 text-base font-medium text-[#9DA1AC]"
             >
-              {/* 초기화 아이콘 자리 — SF 심볼이라 에셋 다운로드 불가, 디자인팀 확정되면 교체 */}
+              {/* 초기화 아이콘 자리: SF 심볼이라 에셋 다운로드 불가, 디자인팀 확정되면 교체 */}
               <span className="h-4 w-4" />
               초기화
             </button>
@@ -82,7 +82,7 @@ export default function SearchBox({
 
           <div className="flex flex-wrap items-center gap-14">
             <div className="flex items-center gap-4 rounded-[8px] border border-[#E6E7EB] bg-white px-4 py-3">
-              {/* 달력 아이콘 자리 — SF 심볼이라 에셋 다운로드 불가, 디자인팀 확정되면 교체 */}
+              {/* 달력 아이콘 자리: SF 심볼이라 에셋 다운로드 불가, 디자인팀 확정되면 교체 */}
               <span className="h-5 w-5 shrink-0" />
               <input
                 type="text"
@@ -121,7 +121,7 @@ export default function SearchBox({
             </div>
 
             <div className="flex items-center gap-4 rounded-[8px] border border-[#E6E7EB] bg-white px-4 py-3">
-              {/* 지역 핀 아이콘 자리 — SF 심볼이라 에셋 다운로드 불가, 디자인팀 확정되면 교체 */}
+              {/* 지역 핀 아이콘 자리: SF 심볼이라 에셋 다운로드 불가, 디자인팀 확정되면 교체 */}
               <span className="h-5 w-5 shrink-0" />
               <input
                 type="text"

@@ -4,7 +4,7 @@ interface ToggleProps {
   ariaLabel?: string;
 }
 
-// 온/오프 스위치 — 알림 패널/알림 설정 페이지 공용
+// 온/오프 스위치: 알림 패널/알림 설정 페이지 공용
 export default function Toggle({ checked, onChange, ariaLabel }: ToggleProps) {
   return (
     <button

@@ -14,7 +14,7 @@ interface NotificationSettingsState {
   toggleCategory: (key: keyof NotificationCategorySettings) => void;
 }
 
-// 알림 설정 페이지 상태 — Figma node 1428:4581 기준, mock이라 전부 기본 켜짐
+// 알림 설정 페이지 상태: Figma node 1428:4581 기준, mock이라 전부 기본 켜짐
 export const useNotificationSettingsStore = create<NotificationSettingsState>((set) => ({
   showBadge: true,
   categories: {

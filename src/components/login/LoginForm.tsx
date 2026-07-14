@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Button from '../Button/Button';
 import { useAuthStore } from '../../store/useAuthStore';
 
-// 로그인 폼 — 이메일/비밀번호 입력, 로그인 버튼, 계정 찾기/회원가입 링크
+// 로그인 폼: 이메일/비밀번호 입력, 로그인 버튼, 계정 찾기/회원가입 링크
 export default function LoginForm() {
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);

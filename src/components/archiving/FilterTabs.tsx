@@ -15,7 +15,7 @@ const FILTERS: { key: ArchivingFilter; label: string }[] = [
   { key: 'done', label: '완료' },
 ];
 
-// 아카이빙 상태 필터 탭 — 클릭 시 로컬에서 목록만 필터링 (서버 요청 없음)
+// 아카이빙 상태 필터 탭: 클릭 시 로컬에서 목록만 필터링 (서버 요청 없음)
 export default function FilterTabs({ active, onChange, counts }: FilterTabsProps) {
   return (
     <div className="flex items-center gap-2">

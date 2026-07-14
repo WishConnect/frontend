@@ -6,7 +6,7 @@ interface PaginationProps {
 
 const DOTS = '...';
 
-// 페이지 번호 목록 생성 — 현재 페이지 주변만 보여주고 멀리 떨어진 페이지는 '...'으로 생략
+// 페이지 번호 목록 생성: 현재 페이지 주변만 보여주고 멀리 떨어진 페이지는 '...'으로 생략
 // (숨기는 페이지가 1개뿐이면 생략하지 않고 그냥 보여줌 → 앞/뒤 끝에서는 5개씩 뭉쳐서 표시)
 function getPageNumbers(currentPage: number, totalPages: number): (number | typeof DOTS)[] {
   const siblingCount = 1;
@@ -40,7 +40,7 @@ function getPageNumbers(currentPage: number, totalPages: number): (number | type
   return pages;
 }
 
-// 화살표 아이콘 — direction="right"일 때 좌우 반전
+// 화살표 아이콘: direction="right"일 때 좌우 반전
 function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
   return (
     <svg
@@ -61,7 +61,7 @@ function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
   );
 }
 
-// 숫자 페이지네이션 — 리스트 하단 페이지 이동에 사용
+// 숫자 페이지네이션: 리스트 하단 페이지 이동에 사용
 export default function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
   const pages = getPageNumbers(currentPage, totalPages);
 

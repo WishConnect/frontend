@@ -8,13 +8,13 @@ import giftIcon from '../../assets/notification/gift.svg';
 import chevronRightIcon from '../../assets/notification/chevron-right.svg';
 import { useNotificationSettingsStore } from '../../store/useNotificationSettingsStore';
 
-// 알림 설정 페이지 — Figma node 1428:4581
+// 알림 설정 페이지: Figma node 1428:4581
 export default function NotificationSettingsPage() {
   const navigate = useNavigate();
   const { showBadge, categories, toggleBadge, toggleCategory } = useNotificationSettingsStore();
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen w-[1440px] bg-white">
       <Header isSearchMode onBack={() => navigate(-1)} />
 
       <div className="flex flex-col items-center gap-12 px-[109px] pt-8 pb-12">

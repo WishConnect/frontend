@@ -16,7 +16,7 @@ import img14 from '../assets/archiving/scholarship-14.png';
 import img15 from '../assets/archiving/scholarship-15.png';
 import img16 from '../assets/archiving/scholarship-16.png';
 
-// 아카이빙 페이지 mock 데이터 — Figma node 1393:6451/6474/6657/6859 기준
+// 아카이빙 페이지 mock 데이터: Figma node 1393:6451/6474/6657/6859 기준
 // 백엔드 API 준비되면 이 배열 대신 fetch 결과로 교체
 export const mockScholarships: Scholarship[] = [
   {

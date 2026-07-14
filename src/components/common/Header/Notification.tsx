@@ -7,7 +7,7 @@ interface NotificationProps {
   className?: string;
 }
 
-// 알림 벨 버튼 — 안 읽은 알림이 있으면 active(bell-active), 없으면 default 아이콘
+// 알림 벨 버튼: 안 읽은 알림이 있으면 active(bell-active), 없으면 default 아이콘
 export default function Notification({ onClick, isActive = false, className }: NotificationProps) {
   return (
     <button

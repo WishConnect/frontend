@@ -7,7 +7,7 @@ interface RecentSearchState {
   clearAll: () => void;
 }
 
-// 검색바 최근 검색어 드롭다운 — Figma node 1260:3015 예시 5건 그대로 시드
+// 검색바 최근 검색어 드롭다운: Figma node 1260:3015 예시 5건 그대로 시드
 // 백엔드 API 준비되면 addSearch 안에서 서버에도 반영하도록 교체
 export const useRecentSearchStore = create<RecentSearchState>((set) => ({
   items: [

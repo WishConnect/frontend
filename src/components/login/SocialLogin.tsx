@@ -8,7 +8,7 @@ const SOCIAL_PROVIDERS = [
   { name: '구글', icon: googleIcon },
 ];
 
-// 간편 로그인 — 구분선 + 카카오/네이버/구글 버튼
+// 간편 로그인: 구분선 + 카카오/네이버/구글 버튼
 export default function SocialLogin() {
   return (
     <div className="flex flex-col items-center gap-[48px]">

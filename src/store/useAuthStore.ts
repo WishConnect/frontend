@@ -13,7 +13,7 @@ interface AuthState {
   logout: () => void;
 }
 
-// 로그인 유저 상태 — 백엔드 연동 전이라 login()은 입력값을 그대로 mock 유저로 세팅
+// 로그인 유저 상태: 백엔드 연동 전이라 login()은 입력값을 그대로 mock 유저로 세팅
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isLoggedIn: false,

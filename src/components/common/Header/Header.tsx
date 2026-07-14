@@ -13,13 +13,14 @@ interface HeaderProps {
   isLoggedIn?: boolean;
   logoOnly?: boolean;
   onSearch?: (query: string) => void;
+  onQueryChange?: (query: string) => void;
   onBack?: () => void;
   onNotificationClick?: () => void;
   onLoginClick?: () => void;
   onSignupClick?: () => void;
 }
 
-// GNB 상단바 — 피그마 수치 기준 (1440px 기준 설계)
+// GNB 상단바: 피그마 수치 기준 (1440px 기준 설계)
 export default function Header({
   searchPlaceholder,
   searchInitialValue,
@@ -27,6 +28,7 @@ export default function Header({
   isLoggedIn = true,
   logoOnly = false,
   onSearch,
+  onQueryChange,
   onBack,
   onNotificationClick,
   onLoginClick,
@@ -41,7 +43,7 @@ export default function Header({
 
   if (!logoOnly) {
     if (!isLoggedIn) {
-      // 비로그인 상태 — 검색바 또는 뒤로가기 버튼 + 로그인/회원가입 버튼을 left: 333px ~ right: 64px 사이에 정렬
+      // 비로그인 상태: 검색바 또는 뒤로가기 버튼 + 로그인/회원가입 버튼을 left: 333px ~ right: 64px 사이에 정렬
       content = (
         <div
           className={`absolute left-[333px] right-[64px] top-1/2 -translate-y-1/2 flex items-center ${
@@ -55,6 +57,7 @@ export default function Header({
               placeholder={searchPlaceholder}
               initialValue={searchInitialValue}
               onSearch={onSearch}
+              onQueryChange={onQueryChange}
               className="flex-1 min-w-0"
             />
           )}
@@ -64,7 +67,7 @@ export default function Header({
     } else if (isSearchMode) {
       content = (
         <>
-          {/* 돌아가기 상태 — left: 333px, top: 30px */}
+          {/* 돌아가기 상태 (left: 333px, top: 30px) */}
           <div className="absolute left-[333px] top-[30px]">
             <BackButton onClick={onBack} />
           </div>
@@ -75,7 +78,7 @@ export default function Header({
         </>
       );
     } else {
-      // 기본 상태 — 검색바 + 벨을 left: 333px ~ right: 64px 사이에서 수직 중앙 정렬, 검색바는 남는 폭만큼 늘어남
+      // 기본 상태: 검색바 + 벨을 left: 333px ~ right: 64px 사이에서 수직 중앙 정렬, 검색바는 남는 폭만큼 늘어남
       content = (
         <>
           <div className="absolute left-[333px] right-[64px] top-1/2 -translate-y-1/2 flex items-center gap-[32px]">
@@ -83,6 +86,7 @@ export default function Header({
               placeholder={searchPlaceholder}
               initialValue={searchInitialValue}
               onSearch={onSearch}
+              onQueryChange={onQueryChange}
               className="flex-1 min-w-0"
             />
             <Notification onClick={handleNotificationClick} isActive={hasUnread} />
@@ -94,9 +98,9 @@ export default function Header({
   }
 
   return (
-    <header className="bg-white w-full h-[80px] relative">
+    <header className="bg-white w-full h-[80px] relative z-20">
 
-      {/* 로고 — left: 64px, top: 24px, h: 32px */}
+      {/* 로고 (left: 64px, top: 24px, h: 32px) */}
       <img
         src={logo}
         alt="WISHCONNECT"

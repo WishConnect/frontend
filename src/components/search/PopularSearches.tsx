@@ -5,7 +5,7 @@ interface PopularSearchesProps {
   onSelect: (term: string) => void;
 }
 
-// 인기 검색어 TOP5 — Figma node 1200:1667
+// 인기 검색어 TOP5: Figma node 1200:1667
 export default function PopularSearches({ onSelect }: PopularSearchesProps) {
   return (
     <section className="flex flex-col gap-5">

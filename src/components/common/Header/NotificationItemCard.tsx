@@ -12,7 +12,7 @@ interface NotificationItemCardProps {
   onCtaClick: () => void;
 }
 
-// 알림센터 패널의 개별 알림 카드 — 카테고리 아이콘은 실제 글리프 미지정이라 색상 원만 표시
+// 알림센터 패널의 개별 알림 카드: 카테고리 아이콘은 실제 글리프 미지정이라 색상 원만 표시
 export default function NotificationItemCard({
   category,
   timeAgo,

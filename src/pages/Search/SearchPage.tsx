@@ -7,7 +7,7 @@ import PopularSearches from '../../components/search/PopularSearches';
 import SearchTipBanner from '../../components/search/SearchTipBanner';
 import { useRecentSearchStore } from '../../store/useRecentSearchStore';
 
-// 장학금 찾아보기 검색 페이지 — Figma node 1179:1941(기본) / 1200:1767(필터 열림)
+// 장학금 찾아보기 검색 페이지: Figma node 1179:1941(기본) / 1200:1767(필터 열림)
 export default function SearchPage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
