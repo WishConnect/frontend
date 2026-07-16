@@ -8,6 +8,8 @@ import CurationPage from './pages/Curating/CurationPage'
 import Detail from './pages/Curating/Detail'
 import InsightPage1 from './pages/Insight/InsightPage1'
 import MoreInfoPage from './pages/Insight/MoreInfo'
+import WrtiePage from "./pages/WritePage/WritePage"
+import SignPage from "./pages/SignPage"
 import './App.css'
 
 function App() {
@@ -20,9 +22,11 @@ function App() {
       <Route path="/notifications/settings" element={<NotificationSettingsPage />} />
       <Route path="/archiving" element={<ArchivingPage />} />
       <Route path="/search" element={<SearchPage />} />
+      <Route path="/sign" element={<SignPage />} />
 
       {/* 큐레이션 */}
       <Route path="/curation" element={<CurationPage />} />
+      <Route path="/write" element={<WrtiePage />} />
 
       {/* 장학금 상세 */}
       <Route path="/curation/:id" element={<Detail />} />
