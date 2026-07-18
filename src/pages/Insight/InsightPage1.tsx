@@ -1,19 +1,13 @@
 import { useState } from 'react';
-import Button from '../../components/Button/Button';
+
 import LightIcon from '../../assets/icons/light.svg';
 import Right from '../../assets/icons/Right.svg';
 import LeftSidebar from '../../components/LeftSidebar';
 import Header from '../../components/common/Header/Header';
 import Pagination from '../../components/common/Pagination/Pagination';
-
-const categories = [
-  { label: '전체', width: '57px' },
-  { label: '합격 후기', width: '84px' },
-  { label: '장학금 정보', width: '96px' },
-  { label: '작성 팁', width: '72px' },
-  { label: '경험 공유', width: '84px' },
-  { label: 'Q&A', width: '62px' },
-];
+import { useNavigate } from 'react-router-dom';
+import Down from '../../assets/icons/CategoryDown.svg';
+import Up from '../../assets/icons/CategoryUp.svg';
 
 const posts = [
   {
@@ -70,13 +64,30 @@ const posts = [
 
 const tags = ['생활비 지원', '자기소개서', '면접후기', '리더십', '전공', '봉사활동', '해외교류'];
 
+const sourceOptions = ['출처 전체', ...Array.from(new Set(posts.map((post) => post.source)))];
+const categoryOptions = [
+  '카테고리 전체',
+  ...Array.from(new Set(posts.map((post) => post.category))),
+];
+const sortOptions = ['최신순', '오래된순'];
+
 export default function InsightPage1() {
-  const [selectedCategory, setSelectedCategory] = useState('전체');
+  const [selectedSource, setSelectedSource] = useState('출처 전체');
+  const [selectedCategory, setSelectedCategory] = useState('카테고리 전체');
+  const [sortOrder, setSortOrder] = useState('최신순');
+
+  const [isSourceOpen, setIsSourceOpen] = useState(false);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
 
   const filteredPosts = posts.filter((post) => {
-    const matchCategory = selectedCategory === '전체' || post.category === selectedCategory;
+    const matchSource = selectedSource === '출처 전체' || post.source === selectedSource;
+    const matchCategory =
+      selectedCategory === '카테고리 전체' || post.category === selectedCategory;
 
     const matchSearch =
       searchQuery.trim() === '' ||
@@ -85,14 +96,18 @@ export default function InsightPage1() {
       post.source.includes(searchQuery) ||
       post.category.includes(searchQuery);
 
-    return matchCategory && matchSearch;
+    return matchSource && matchCategory && matchSearch;
   });
 
+  const sortedPosts = [...filteredPosts].sort((a, b) =>
+    sortOrder === '최신순' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date),
+  );
+
   const POSTS_PER_PAGE = 5;
-  const totalPages = Math.ceil(filteredPosts.length / POSTS_PER_PAGE);
+  const totalPages = Math.ceil(sortedPosts.length / POSTS_PER_PAGE);
 
   const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
-  const currentPosts = filteredPosts.slice(startIndex, startIndex + POSTS_PER_PAGE);
+  const currentPosts = sortedPosts.slice(startIndex, startIndex + POSTS_PER_PAGE);
   return (
     <div className="h-[1024px] w-[1440px] bg-white font-['Pretendard']">
       <Header
@@ -107,8 +122,8 @@ export default function InsightPage1() {
       />
 
       <div className="flex">
-        <div className="ml-[64px]">
-          <LeftSidebar />
+        <div className="relative ml-[64px] h-[896px] w-[237px] shrink-0 self-start">
+          <LeftSidebar activeId="insight" />
         </div>
 
         <main className="ml-[32px] flex w-[1043px] gap-[32px]">
@@ -123,25 +138,6 @@ export default function InsightPage1() {
                   ? `총 ${filteredPosts.length}개의 결과를 찾았어요.`
                   : '다양한 출처의 장학금 관련 글과 합격 후기를 모아볼 수 있어요.'}
               </p>
-
-              {!searchQuery && (
-                <div className="mt-3 flex gap-2">
-                  {categories.map((category) => (
-                    <Button
-                      key={category.label}
-                      size="sm"
-                      width={category.width}
-                      variant={selectedCategory === category.label ? 'primary' : 'outline'}
-                      onClick={() => {
-                        setSelectedCategory(category.label);
-                        setCurrentPage(1);
-                      }}
-                    >
-                      {category.label}
-                    </Button>
-                  ))}
-                </div>
-              )}
             </section>
 
             <section className="mt-6 w-[774px]">
@@ -190,15 +186,125 @@ export default function InsightPage1() {
 
           <aside className="mt-[156px] w-[237px]">
             <section className="flex flex-col gap-3">
-              {['출처 전체', '카테고리 전체', '최신순'].map((label) => (
+              <div className="relative">
                 <button
-                  key={label}
+                  type="button"
+                  onClick={() => {
+                    setIsSourceOpen((prev) => !prev);
+                    setIsCategoryOpen(false);
+                    setIsSortOpen(false);
+                  }}
                   className="flex h-[35px] w-[237px] items-center justify-between rounded-lg bg-[#F9FAFC] px-4 text-[14px] font-medium text-[#747883]"
                 >
-                  <span>{label}</span>
-                  <span>⌄</span>
+                  <span>{selectedSource}</span>
+                  <img
+                    src={isSourceOpen ? Up : Down}
+                    alt={isSourceOpen ? '위 화살표' : '아래 화살표'}
+                    className="h-[16px] w-[16px]"
+                  />
                 </button>
-              ))}
+
+                {isSourceOpen && (
+                  <div className="absolute left-0 top-[43px] z-10 w-[237px] overflow-hidden rounded-[8px] border border-[#D2D4DA] bg-white shadow-[0px_4px_20px_0px_rgba(0,0,0,0.1)]">
+                    {sourceOptions
+                      .filter((option) => option !== selectedSource)
+                      .map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => {
+                            setSelectedSource(option);
+                            setIsSourceOpen(false);
+                            setCurrentPage(1);
+                          }}
+                          className="flex h-[40px] w-full items-center px-4 text-[14px] font-medium text-[#555964] hover:bg-[#F9FAFC]"
+                        >
+                          {option}
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCategoryOpen((prev) => !prev);
+                    setIsSourceOpen(false);
+                    setIsSortOpen(false);
+                  }}
+                  className="flex h-[35px] w-[237px] items-center justify-between rounded-lg bg-[#F9FAFC] px-4 text-[14px] font-medium text-[#747883]"
+                >
+                  <span>{selectedCategory}</span>
+                  <img
+                    src={isCategoryOpen ? Up : Down}
+                    alt={isCategoryOpen ? '위 화살표' : '아래 화살표'}
+                    className="h-[16px] w-[16px]"
+                  />
+                </button>
+
+                {isCategoryOpen && (
+                  <div className="absolute left-0 top-[43px] z-10 w-[237px] overflow-hidden rounded-[8px] border border-[#D2D4DA] bg-white shadow-[0px_4px_20px_0px_rgba(0,0,0,0.1)]">
+                    {categoryOptions
+                      .filter((option) => option !== selectedCategory)
+                      .map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => {
+                            setSelectedCategory(option);
+                            setIsCategoryOpen(false);
+                            setCurrentPage(1);
+                          }}
+                          className="flex h-[40px] w-full items-center px-4 text-[14px] font-medium text-[#555964] hover:bg-[#F9FAFC]"
+                        >
+                          {option}
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSortOpen((prev) => !prev);
+                    setIsSourceOpen(false);
+                    setIsCategoryOpen(false);
+                  }}
+                  className="flex h-[35px] w-[237px] items-center justify-between rounded-lg bg-[#F9FAFC] px-4 text-[14px] font-medium text-[#747883]"
+                >
+                  <span>{sortOrder}</span>
+                  <img
+                    src={isSortOpen ? Up : Down}
+                    alt={isSortOpen ? '위 화살표' : '아래 화살표'}
+                    className="h-[16px] w-[16px]"
+                  />
+                </button>
+
+                {isSortOpen && (
+                  <div className="absolute left-0 top-[43px] z-10 w-[237px] overflow-hidden rounded-[8px] border border-[#D2D4DA] bg-white shadow-[0px_4px_20px_0px_rgba(0,0,0,0.1)]">
+                    {sortOptions
+                      .filter((option) => option !== sortOrder)
+                      .map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => {
+                            setSortOrder(option);
+                            setIsSortOpen(false);
+                            setCurrentPage(1);
+                          }}
+                          className="flex h-[40px] w-full items-center px-4 text-[14px] font-medium text-[#555964] hover:bg-[#F9FAFC]"
+                        >
+                          {option}
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </div>
             </section>
 
             <section className="mt-[31px] h-[160px] w-[237px] rounded-2xl border border-[#D2D4DA]">
@@ -226,7 +332,12 @@ export default function InsightPage1() {
             <section className="mt-4 h-[128px] w-[237px] rounded-2xl border border-[#D2D4DA]">
               <div className="mt-[16px] ml-[21px] w-[237px] flex items-center gap-[61px] ">
                 <img src={LightIcon} alt="light" className="h-5 w-[127px]" />
-                <img src={Right} alt="right" className="w-[9px] h-[14px]" />
+                <img
+                  src={Right}
+                  alt="right"
+                  className="w-[9px] h-[14px]"
+                  onClick={() => navigate('/insight/reference')}
+                />
               </div>
               <div className="flex flex-col mt-[17px] pl-[21px] gap-[4px] text-[#747883] text-[12px] font-medium leading-[16px] ">
                 <span>• 장학금 자기소개서 문항 가이드</span>

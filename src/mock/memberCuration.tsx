@@ -14,8 +14,7 @@ export interface RecommendedScholarship {
   title: string;
   amount: string;
   deadline: string;
-  dDay: string;
-  deadlineStatus: string;
+  days: number; // D-day 계산용 (DdayStatus에 그대로 전달)
   description: string;
   image: string;
   tags: ScholarshipCategory[];
@@ -28,8 +27,7 @@ export interface SchoolScholarship {
   title: string;
   amount: string;
   deadline: string;
-  dDay: string;
-  deadlineStatus: string;
+  days: number;
   description: string;
 }
 
@@ -39,8 +37,7 @@ export interface RecruitingScholarship {
   category: ScholarshipCategory;
   amount: string;
   deadline: string;
-  dDay: string;
-  deadlineStatus: string;
+  days: number;
   tags: ScholarshipCategory[];
   requirements: string[];
   isScrapped: boolean;
@@ -67,8 +64,7 @@ export const memberCurationMock: MemberCurationData = {
       title: '서울인재 해외교환학생 장학금',
       amount: '최대 500만원',
       deadline: '2026.05.20',
-      dDay: 'D-5',
-      deadlineStatus: '마감 임박',
+      days: 5,
       description: '교환학생을 위한 미래인재 양성 장학금입니다.',
       image: ScholarshipImage,
       tags: ['생활비', '해외연수', '성적우수'],
@@ -80,8 +76,7 @@ export const memberCurationMock: MemberCurationData = {
       title: '글로벌 리더 장학금',
       amount: '최대 300만원',
       deadline: '2026.05.30',
-      dDay: 'D-15',
-      deadlineStatus: 'D-15',
+      days: 15,
       description: '글로벌 인재 양성을 위한 장학금입니다.',
       image: ScholarshipImage,
       tags: ['해외연수'],
@@ -93,8 +88,7 @@ export const memberCurationMock: MemberCurationData = {
       title: '성적우수 장학금',
       amount: '최대 200만원',
       deadline: '2026.06.02',
-      dDay: 'D-18',
-      deadlineStatus: 'D-18',
+      days: 18,
       description: '성적 우수 학생 장학금',
       image: ScholarshipImage,
       tags: ['성적우수'],
@@ -106,8 +100,7 @@ export const memberCurationMock: MemberCurationData = {
       title: '근로 장학금',
       amount: '최대 250만원',
       deadline: '2026.06.10',
-      dDay: 'D-26',
-      deadlineStatus: 'D-26',
+      days: 26,
       description: '교내 근로 장학금',
       image: ScholarshipImage,
       tags: ['생활비'],
@@ -119,8 +112,7 @@ export const memberCurationMock: MemberCurationData = {
       title: '창의인재 장학금',
       amount: '최대 400만원',
       deadline: '2026.06.20',
-      dDay: 'D-36',
-      deadlineStatus: 'D-36',
+      days: 36,
       description: '창의적 활동 학생 장학금',
       image: ScholarshipImage,
       tags: ['기타'],
@@ -135,8 +127,7 @@ export const memberCurationMock: MemberCurationData = {
       title: '교내 성적 우수 장학금',
       amount: '최대 200만원',
       deadline: '2026.05.20',
-      dDay: 'D-12',
-      deadlineStatus: 'D-12',
+      days: 12,
       description: 'OO대학교 교내 성적 우수 장학금',
     },
     {
@@ -144,8 +135,7 @@ export const memberCurationMock: MemberCurationData = {
       title: '근로 장학금',
       amount: '최대 200만원',
       deadline: '2026.05.20',
-      dDay: 'D-12',
-      deadlineStatus: 'D-12',
+      days: 12,
       description: 'OO대학교 근로 장학금',
     },
     {
@@ -153,8 +143,7 @@ export const memberCurationMock: MemberCurationData = {
       title: '학과 장학금',
       amount: '최대 200만원',
       deadline: '2026.05.20',
-      dDay: 'D-12',
-      deadlineStatus: 'D-12',
+      days: 12,
       description: 'OO대학교 학과 장학금',
     },
     {
@@ -162,8 +151,7 @@ export const memberCurationMock: MemberCurationData = {
       title: '신입생 장학금',
       amount: '최대 100만원',
       deadline: '2026.06.01',
-      dDay: 'D-24',
-      deadlineStatus: 'D-24',
+      days: 24,
       description: 'OO대학교 신입생 장학금',
     },
     {
@@ -171,8 +159,7 @@ export const memberCurationMock: MemberCurationData = {
       title: '봉사 장학금',
       amount: '최대 150만원',
       deadline: '2026.06.05',
-      dDay: 'D-28',
-      deadlineStatus: 'D-28',
+      days: 28,
       description: 'OO대학교 봉사 장학금',
     },
   ],
@@ -184,8 +171,7 @@ export const memberCurationMock: MemberCurationData = {
       category: '해외연수',
       amount: '최대 500만원',
       deadline: '2026.05.27',
-      dDay: 'D-12',
-      deadlineStatus: 'D-12',
+      days: 12,
       tags: ['해외연수'],
       requirements: ['해외 경험 필수', '어학 성적 필요'],
       isScrapped: false,
@@ -196,8 +182,7 @@ export const memberCurationMock: MemberCurationData = {
       category: '생활비',
       amount: '최대 300만원',
       deadline: '2026.05.30',
-      dDay: 'D-15',
-      deadlineStatus: 'D-15',
+      days: 15,
       tags: ['생활비'],
       requirements: ['소득 분위'],
       isScrapped: false,
@@ -208,8 +193,7 @@ export const memberCurationMock: MemberCurationData = {
       category: '전공/특기',
       amount: '최대 250만원',
       deadline: '2026.06.02',
-      dDay: 'D-18',
-      deadlineStatus: 'D-18',
+      days: 18,
       tags: ['전공/특기'],
       requirements: ['전공 수상'],
       isScrapped: true,
@@ -220,8 +204,7 @@ export const memberCurationMock: MemberCurationData = {
       category: '성적우수',
       amount: '최대 200만원',
       deadline: '2026.06.08',
-      dDay: 'D-24',
-      deadlineStatus: 'D-24',
+      days: 24,
       tags: ['성적우수'],
       requirements: ['평점 3.0 이상'],
       isScrapped: false,
@@ -232,8 +215,7 @@ export const memberCurationMock: MemberCurationData = {
       category: '해외연수',
       amount: '최대 400만원',
       deadline: '2026.06.15',
-      dDay: 'D-31',
-      deadlineStatus: 'D-31',
+      days: 31,
       tags: ['해외연수'],
       requirements: ['교환학생 예정'],
       isScrapped: false,

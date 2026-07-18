@@ -13,6 +13,7 @@ import SignPage from './pages/SignPage';
 import OnboardingAcademicInfo from './pages/OnBoarding/OnboardingAcademicInfo';
 import OnboardingHouseholdInfo from './pages/OnBoarding/OnboardingHouseholdInfo';
 import OnboardingComplete from './pages/OnBoarding/OnboardingComplete';
+import MyPage from './pages/MyPage';
 import './App.css';
 
 function App() {
@@ -44,6 +45,8 @@ function App() {
       <Route path="/onboarding" element={<OnboardingAcademicInfo />} />
       <Route path="/onboarding/household" element={<OnboardingHouseholdInfo />} />
       <Route path="/onboarding/complete" element={<OnboardingComplete />} />
+
+      <Route path="/mypage" element={<MyPage />} />
     </Routes>
   );
 }

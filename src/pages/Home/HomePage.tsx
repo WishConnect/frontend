@@ -8,7 +8,7 @@ import HomeSummaryCards from '../../components/Home/HomeSummary';
 import WishConnectInfo from '../../components/Home/WishConnectInfo';
 import MonthlySchedule, { type HomeSchedule } from '../../components/Home/MonthlySchedule';
 import QuickMenuSection from '../../components/Home/QuickMenu';
-
+import { useNavigate } from 'react-router-dom';
 import { scholarships } from '../../mock/scholarships';
 
 /**
@@ -22,7 +22,7 @@ function extractDates(text: string): string[] {
 }
 
 export default function HomePage() {
-  // 현재는 화면 테스트용
+  const navigate = useNavigate();
   const isLoggedIn = true;
   const isOnboarded = false;
 
@@ -30,12 +30,6 @@ export default function HomePage() {
     name: '김위시',
   };
 
-  /**
-   * 장학금 mock 데이터를 달력 일정 데이터로 변환
-   *
-   * applicationPeriod의 첫 번째 날짜 → 모집 시작
-   * deadline 또는 applicationPeriod의 마지막 날짜 → 마감
-   */
   const homeSchedules = useMemo<HomeSchedule[]>(() => {
     return scholarships.flatMap((scholarship) => {
       const convertedSchedules: HomeSchedule[] = [];
@@ -75,32 +69,29 @@ export default function HomePage() {
 
   const handleBannerClick = () => {
     if (!isLoggedIn) {
-      // TODO: 로그인 페이지가 합쳐지면 연결
-      // navigate('/login');
+      navigate('/login');
       console.log('로그인 페이지 이동');
       return;
     }
 
     if (!isOnboarded) {
-      // TODO: 온보딩 페이지가 합쳐지면 연결
-      // navigate('/onboarding');
+      navigate('/onboarding');
       console.log('온보딩 페이지 이동');
       return;
     }
 
-    // TODO: 큐레이팅 페이지가 합쳐지면 연결
-    // navigate('/curation');
+    navigate('/curation');
     console.log('큐레이팅 페이지 이동');
   };
 
   const handleLockedClick = () => {
     if (!isLoggedIn) {
-      // TODO: 로그인 페이지가 합쳐지면 연결
+      navigate('/login');
       console.log('로그인 페이지 이동');
       return;
     }
 
-    // TODO: 온보딩 페이지가 합쳐지면 연결
+    navigate('/onboarding');
     console.log('온보딩 페이지 이동');
   };
 
@@ -121,18 +112,6 @@ export default function HomePage() {
           />
         </div>
 
-        {/*
-          요약 카드
-
-          비로그인:
-          아예 렌더링하지 않음
-
-          로그인 + 온보딩 미완료:
-          블러 + 프로필 업데이트 안내
-
-          로그인 + 온보딩 완료:
-          정상 표시
-        */}
         {isLoggedIn && (
           <HomeSummaryCards isOnboarded={isOnboarded} onLockedClick={handleLockedClick} />
         )}

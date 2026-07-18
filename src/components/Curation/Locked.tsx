@@ -1,4 +1,5 @@
 import Button from '../Button/Button';
+import { useNavigate } from 'react-router-dom';
 
 interface LockedSectionProps {
   isLocked: boolean;
@@ -6,6 +7,7 @@ interface LockedSectionProps {
 }
 
 export default function LockedSection({ isLocked, children }: LockedSectionProps) {
+  const navigate = useNavigate();
   return (
     <div className="relative">
       <div className={isLocked ? 'pointer-events-none blur-[20px]' : ''}>{children}</div>
@@ -25,6 +27,7 @@ export default function LockedSection({ isLocked, children }: LockedSectionProps
               weight="semibold"
               width="242px"
               className="text-[18px] leading-[26px]"
+              onClick={() => navigate('/onboarding')}
             >
               프로필 업데이트하고 확인하기
             </Button>

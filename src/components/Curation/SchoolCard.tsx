@@ -19,7 +19,7 @@ export default function SchoolCard({ scholarship }: SchoolScholarshipCardProps) 
         weight="semibold"
         className="leading-[20px]"
       >
-        {scholarship.dDay}
+        D-{scholarship.days}
       </Button>
 
       <h3 className="mt-[16px] h-[40px] text-[28px] font-bold leading-[40px] text-[#10131A]">

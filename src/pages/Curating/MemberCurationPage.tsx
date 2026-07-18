@@ -7,6 +7,7 @@ import LockedSection from '../../components/Curation/Locked';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar';
+import UpdateRight from '../../assets/icons/UpdateRight.svg';
 
 interface MemberCurationPageProps {
   isLoggedIn: boolean;
@@ -26,6 +27,9 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
     setCurrentIndex((prev) => (prev === recommendedScholarships.length - 1 ? 0 : prev + 1));
   };
   const navigate = useNavigate();
+  const handleDetailClick = () => {
+    navigate(`/curation/${recommendedScholarships[currentIndex].id}`);
+  };
   return (
     <div className="h-[1024px] w-[1440px] bg-white font-['Pretendard']">
       <Header
@@ -38,8 +42,48 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
       />
 
       <div className="flex">
-        <div className="ml-[64px]">
-          <LeftSidebar />
+        <div className="relative ml-[64px] h-[896px] w-[237px] shrink-0 self-start">
+          <LeftSidebar activeId="curating" />
+
+          {!member.isOnboarded && (
+            <div className="absolute bottom-[16px] left-[14px] z-10 h-[224px] w-[208px] rounded-[16px] bg-white px-[20px] pt-[20px] pb-[16px] shadow-[0_1px_7px_0_rgba(0,0,0,0.08)]">
+              <p className="h-[16px] w-[105px] text-[12px] font-medium leading-[16px] text-[#555964]">
+                더 정확한 추천을 위해
+              </p>
+
+              <p className="h-[50px] w-[135px] text-[18px] font-bold leading-[24px] text-[#10131A]">
+                프로필을 업데이트
+                <br />
+                해보세요!
+              </p>
+
+              <div className="mt-[50px]">
+                <span className="block h-[16px] text-[12px] font-semibold leading-[16px] text-[#7962ED]">
+                  {member.profileProgress}%
+                </span>
+
+                <div className="mt-[4px] h-[4px] w-[168px] overflow-hidden rounded-[8px] bg-[#E6E7EB]">
+                  <div
+                    className="h-full rounded-[8px] bg-[#7962ED]"
+                    style={{
+                      width: `${member.profileProgress}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  navigate('/onboarding');
+                }}
+                className="absolute bottom-[16px] left-[20px] flex h-[32px] w-[168px] items-center justify-between rounded-[8px] bg-[#F3F4F6] px-[16px] text-[12px] font-medium leading-[16px] text-[#747883]"
+              >
+                <span className="leading-[16px]">프로필 업데이트</span>
+                <img src={UpdateRight} alt="오른쪽 화살표" />
+              </button>
+            </div>
+          )}
         </div>
 
         <main className="flex w-[1139px] flex-col gap-[52px] pl-[32px] pr-[64px] pb-[64px]">
@@ -61,6 +105,7 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
                 scholarship={recommendedScholarships[currentIndex]}
                 onPrev={handlePrev}
                 onNext={handleNext}
+                onDetailClick={handleDetailClick}
               />
 
               <div className="flex justify-center gap-[8px]">
