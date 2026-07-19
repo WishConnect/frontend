@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import Tag from '../Tag';
 import ToggleIcon from '../ToggleIcon';
 import ProgressRing from './ProgressRing';
@@ -25,6 +26,7 @@ const STATUS_BUTTON_LABEL: Record<Scholarship['status'], string> = {
 // scholarship 데이터는 지금은 mock, 나중에 백엔드 응답으로 그대로 교체 가능한 형태
 // 스크랩 해제 시 목록에서 실제로 빠지도록 스크랩 상태는 전역 스토어로 관리 (로컬 state 아님)
 export default function ScholarshipCard({ scholarship }: ScholarshipCardProps) {
+  const navigate = useNavigate();
   const isScrapped = useScrapStore((state) => state.isScrapped(scholarship.id));
   const toggleScrap = useScrapStore((state) => state.toggleScrap);
   const { id, title, imageUrl, deadline, dDay, tags, status, questionLabel, progressPercent } = scholarship;
@@ -83,9 +85,10 @@ export default function ScholarshipCard({ scholarship }: ScholarshipCardProps) {
               </div>
             </div>
 
-            {/* TODO: onClick 미구현. 자기소개서 작성/조회 페이지 라우트가 아직 없어서 비워둠. 라우트 생기면 연결 필요 */}
+            {/* 상태와 무관하게 자기소개서 작성 페이지(/write)로 이동. 작성 페이지는 아직 장학금별 id 파라미터가 없어 단일 라우트로 연결 (조회 전용 화면 생기면 done 분기 추가) */}
             <button
               type="button"
+              onClick={() => navigate('/write')}
               className={`flex h-9 items-center justify-center rounded-lg text-sm font-medium ${
                 status === 'before'
                   ? 'border border-[#9DA1AC] bg-white text-[#555964]'
