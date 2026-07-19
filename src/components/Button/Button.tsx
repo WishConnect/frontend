@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 type ButtonSize = 'sm' | 'md' | 'lg';
-type ButtonVariant = 'outline' | 'primary' | 'gradient' | 'disabled';
+type ButtonVariant = 'outline' | 'primary' | 'gradient' | 'disabled' | 'inactive';
 type ButtonWeight = 'medium' | 'semibold' | 'bold';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -27,6 +27,7 @@ const variantStyle = {
   outline: 'border border-[#9DA1AC] bg-white text-[#555964]',
   primary: 'bg-[#7962ED] text-white',
   gradient: 'bg-gradient-to-r from-[#7962ED] to-[#BDB9F9] text-white',
+  inactive: 'bg-[#F3F4F6] text-[#9DA1AC] cursor-pointer',
   disabled: 'bg-[#F3F4F6] text-[#9DA1AC] cursor-not-allowed',
 };
 
