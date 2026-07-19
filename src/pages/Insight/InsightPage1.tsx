@@ -14,6 +14,7 @@ const posts = [
     category: '합격 후기',
     source: '네이버 블로그',
     date: '2026.05.24',
+    views: 1250,
     title: '2026 상상장학재단 장학금 합격 후기',
     summary: '지원 동기와 성장 과정 작성 팁을 중심으로 작성한 합격 후기입니다.',
   },
@@ -21,6 +22,7 @@ const posts = [
     category: '합격 후기',
     source: '티스토리',
     date: '2026.05.24',
+    views: 120,
     title: '현대차 정몽구 재단 장학생으로 선정된 경험',
     summary: '지원 준비 과정과 면접 후기, 장학금 활용 계획을 공유합니다.',
   },
@@ -28,6 +30,7 @@ const posts = [
     category: '장학금 정보',
     source: '에브리타임',
     date: '2026.05.24',
+    views: 50,
     title: '2026 교내 장학금 종류 및 신청 일정 총정리',
     summary: '교내 장학금 종류와 신청 기간, 자격 요건을 정리해봤습니다.',
   },
@@ -35,6 +38,7 @@ const posts = [
     category: '작성 팁',
     source: '네이버 카페',
     date: '2026.05.24',
+    views: 1700,
     title: '장학금 자기소개서 작성할 때 꼭 들어가야 할 내용들',
     summary: '교내 장학금 종류와 신청 기간, 자격 요건을 정리해봤습니다.',
   },
@@ -42,6 +46,7 @@ const posts = [
     category: '합격 후기',
     source: '브런치',
     date: '2026.05.24',
+    views: 10,
     title: '장학금 덕분에 가능했던 해외 교류 프로그램 경험',
     summary: '교내 장학금 종류와 신청 기간, 자격 요건을 정리해봤습니다.',
   },
@@ -50,6 +55,7 @@ const posts = [
     category: 'Q&A',
     source: '에브리타임',
     date: '2026.05.25',
+    views: 1250,
     title: '장학금 질문 있습니다.',
     summary: '소득분위 관련 질문입니다.',
   },
@@ -57,6 +63,7 @@ const posts = [
     category: '경험 공유',
     source: '브런치',
     date: '2026.05.25',
+    views: 70,
     title: '국가장학금 신청 후기',
     summary: '신청하면서 느낀 점을 공유합니다.',
   },
@@ -65,19 +72,16 @@ const posts = [
 const tags = ['생활비 지원', '자기소개서', '면접후기', '리더십', '전공', '봉사활동', '해외교류'];
 
 const sourceOptions = ['출처 전체', ...Array.from(new Set(posts.map((post) => post.source)))];
-const categoryOptions = [
-  '카테고리 전체',
-  ...Array.from(new Set(posts.map((post) => post.category))),
-];
-const sortOptions = ['최신순', '오래된순'];
+
+const sortOptions = ['최신순', '조회순'] as const;
+
+type SortOrder = (typeof sortOptions)[number];
 
 export default function InsightPage1() {
   const [selectedSource, setSelectedSource] = useState('출처 전체');
-  const [selectedCategory, setSelectedCategory] = useState('카테고리 전체');
-  const [sortOrder, setSortOrder] = useState('최신순');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('최신순');
 
   const [isSourceOpen, setIsSourceOpen] = useState(false);
-  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -86,8 +90,6 @@ export default function InsightPage1() {
 
   const filteredPosts = posts.filter((post) => {
     const matchSource = selectedSource === '출처 전체' || post.source === selectedSource;
-    const matchCategory =
-      selectedCategory === '카테고리 전체' || post.category === selectedCategory;
 
     const matchSearch =
       searchQuery.trim() === '' ||
@@ -96,12 +98,16 @@ export default function InsightPage1() {
       post.source.includes(searchQuery) ||
       post.category.includes(searchQuery);
 
-    return matchSource && matchCategory && matchSearch;
+    return matchSource && matchSearch;
   });
 
-  const sortedPosts = [...filteredPosts].sort((a, b) =>
-    sortOrder === '최신순' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date),
-  );
+  const sortedPosts = [...filteredPosts].sort((a, b) => {
+    if (sortOrder === '조회순') {
+      return b.views - a.views;
+    }
+
+    return b.date.localeCompare(a.date);
+  });
 
   const POSTS_PER_PAGE = 5;
   const totalPages = Math.ceil(sortedPosts.length / POSTS_PER_PAGE);
@@ -109,7 +115,7 @@ export default function InsightPage1() {
   const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
   const currentPosts = sortedPosts.slice(startIndex, startIndex + POSTS_PER_PAGE);
   return (
-    <div className="h-[1024px] w-[1440px] bg-white font-['Pretendard']">
+    <div className="relative h-[1024px] w-[1440px] bg-white font-['Pretendard']">
       <Header
         searchPlaceholder="장학금 찾아보기"
         isLoggedIn={true}
@@ -140,16 +146,16 @@ export default function InsightPage1() {
               </p>
             </section>
 
-            <section className="mt-6 w-[774px]">
+            <section className=" mt-[28px] h-[748px] w-[774px]">
               <div className="w-[774px] overflow-hidden rounded-[16px] border border-[#D9DDE7]">
                 {currentPosts.map((post, index) => (
                   <article
                     key={index}
-                    className="flex h-[132px] w-full items-center justify-between border-b border-[#D9DDE7] px-8 last:border-b-0"
+                    className="flex h-[140px] w-full items-start justify-between border-b border-[#D9DDE7] pl-[29px] pr-[14px] pt-[28px] pb-[16px] last:border-b-0"
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="rounded-full border border-[#7962ED] px-3 py-1 text-[12px] font-semibold text-[#7962ED]">
+                        <span className="rounded-full border border-[#BDB9F9] bg-[#7962ED]/10 px-3 py-1 text-[12px] font-medium text-[#320095]">
                           {post.category}
                         </span>
 
@@ -160,9 +166,11 @@ export default function InsightPage1() {
                         <span className="text-[14px] text-[#6B7280]">{post.date}</span>
                       </div>
 
-                      <h2 className="mt-3 text-[20px] font-bold text-[#10131A]">{post.title}</h2>
+                      <h2 className="mt-[8px] text-[20px] font-bold text-[#10131A]">
+                        {post.title}
+                      </h2>
 
-                      <p className="mt-1 text-[14px] text-[#555964]">{post.summary}</p>
+                      <p className=" text-[14px] text-[#555964]">{post.summary}</p>
                     </div>
 
                     <button className="h-[36px] w-[81px] rounded-[8px] border border-[#9DA1AC] text-[14px] text-[#555964]">
@@ -173,7 +181,7 @@ export default function InsightPage1() {
               </div>
 
               {totalPages > 0 && (
-                <div className="mt-6 flex justify-center">
+                <div className="absolute left-[333px] top-[944px] flex h-[28px] w-[774px] justify-center">
                   <Pagination
                     currentPage={currentPage}
                     totalPages={totalPages}
@@ -184,14 +192,14 @@ export default function InsightPage1() {
             </section>
           </section>
 
-          <aside className="mt-[156px] w-[237px]">
+          <aside className="mt-[112px] w-[237px]">
             <section className="flex flex-col gap-3">
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => {
                     setIsSourceOpen((prev) => !prev);
-                    setIsCategoryOpen(false);
+
                     setIsSortOpen(false);
                   }}
                   className="flex h-[35px] w-[237px] items-center justify-between rounded-lg bg-[#F9FAFC] px-4 text-[14px] font-medium text-[#747883]"
@@ -230,49 +238,8 @@ export default function InsightPage1() {
                 <button
                   type="button"
                   onClick={() => {
-                    setIsCategoryOpen((prev) => !prev);
-                    setIsSourceOpen(false);
-                    setIsSortOpen(false);
-                  }}
-                  className="flex h-[35px] w-[237px] items-center justify-between rounded-lg bg-[#F9FAFC] px-4 text-[14px] font-medium text-[#747883]"
-                >
-                  <span>{selectedCategory}</span>
-                  <img
-                    src={isCategoryOpen ? Up : Down}
-                    alt={isCategoryOpen ? '위 화살표' : '아래 화살표'}
-                    className="h-[16px] w-[16px]"
-                  />
-                </button>
-
-                {isCategoryOpen && (
-                  <div className="absolute left-0 top-[43px] z-10 w-[237px] overflow-hidden rounded-[8px] border border-[#D2D4DA] bg-white shadow-[0px_4px_20px_0px_rgba(0,0,0,0.1)]">
-                    {categoryOptions
-                      .filter((option) => option !== selectedCategory)
-                      .map((option) => (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() => {
-                            setSelectedCategory(option);
-                            setIsCategoryOpen(false);
-                            setCurrentPage(1);
-                          }}
-                          className="flex h-[40px] w-full items-center px-4 text-[14px] font-medium text-[#555964] hover:bg-[#F9FAFC]"
-                        >
-                          {option}
-                        </button>
-                      ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
                     setIsSortOpen((prev) => !prev);
                     setIsSourceOpen(false);
-                    setIsCategoryOpen(false);
                   }}
                   className="flex h-[35px] w-[237px] items-center justify-between rounded-lg bg-[#F9FAFC] px-4 text-[14px] font-medium text-[#747883]"
                 >

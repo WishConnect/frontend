@@ -3,7 +3,8 @@ import type { RecruitingScholarship, ScholarshipCategory } from '../../mock/memb
 import Button from '../Button/Button';
 import ChevronDown from '../../assets/icons/ChevronDown.svg';
 import ChevronUp from '../../assets/icons/ChevronUp.svg';
-import Scrap from '../../assets/icons/ScrapDiasbled.svg';
+import ScrapDisable from '../../assets/icons/ScrapDiasbled.svg';
+import ScrapEnable from '../../assets/icons/ScrapEnable.svg';
 
 interface RecruitingSectionProps {
   scholarships: RecruitingScholarship[];
@@ -21,7 +22,16 @@ const categories: { label: '전체' | ScholarshipCategory; width: string }[] = [
 export default function RecruitingSection({ scholarships }: RecruitingSectionProps) {
   const [selectedCategory, setSelectedCategory] = useState<'전체' | ScholarshipCategory>('전체');
   const [isOpen, setIsOpen] = useState(false);
-
+  const [scrappedIds, setScrappedIds] = useState<number[]>(
+    scholarships
+      .filter((scholarship) => scholarship.isScrapped)
+      .map((scholarship) => scholarship.id),
+  );
+  const toggleScrap = (id: number) => {
+    setScrappedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
+  };
   const filteredScholarships =
     selectedCategory === '전체'
       ? scholarships
@@ -63,7 +73,17 @@ export default function RecruitingSection({ scholarships }: RecruitingSectionPro
             className="flex h-[64px] pt-[20px] pb-[20px] items-center border-b border-[#D2D4DA]"
           >
             <div className="flex w-[413px] items-center ">
-              <img src={Scrap} alt="스크랩" className="h-[20px] w-[20px] ml-[23px] mr-[20px]" />
+              <button
+                type="button"
+                onClick={() => toggleScrap(scholarship.id)}
+                className="ml-[23px] mr-[20px] flex h-[20px] w-[20px] items-center justify-center"
+              >
+                <img
+                  src={scrappedIds.includes(scholarship.id) ? ScrapEnable : ScrapDisable}
+                  alt="스크랩"
+                  className="h-[20px] w-[20px]"
+                />
+              </button>
 
               <span className="text-[16px] font-semibold leading-[24px] text-[#10131A] mr-[12px]">
                 {scholarship.title}

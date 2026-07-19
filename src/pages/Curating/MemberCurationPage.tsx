@@ -14,8 +14,11 @@ interface MemberCurationPageProps {
 }
 
 export default function MemberCurationPage({ isLoggedIn }: MemberCurationPageProps) {
-  const { member, recommendedScholarships, schoolScholarships, recruitingScholarships } =
-    memberCurationMock;
+  const { member, schoolScholarships, recruitingScholarships } = memberCurationMock;
+
+  const [recommendedScholarships, setRecommendedScholarships] = useState(
+    memberCurationMock.recommendedScholarships,
+  );
   const [currentIndex, setCurrentIndex] = useState(0);
   const isLocked = !member.isOnboarded;
 
@@ -25,6 +28,18 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
 
   const handleNext = () => {
     setCurrentIndex((prev) => (prev === recommendedScholarships.length - 1 ? 0 : prev + 1));
+  };
+  const handleScrapToggle = (id: number) => {
+    setRecommendedScholarships((prev) =>
+      prev.map((scholarship) =>
+        scholarship.id === id
+          ? {
+              ...scholarship,
+              isScrapped: !scholarship.isScrapped,
+            }
+          : scholarship,
+      ),
+    );
   };
   const navigate = useNavigate();
   const handleDetailClick = () => {
@@ -106,8 +121,8 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
                 onPrev={handlePrev}
                 onNext={handleNext}
                 onDetailClick={handleDetailClick}
+                onScrapToggle={handleScrapToggle}
               />
-
               <div className="flex justify-center gap-[8px]">
                 {recommendedScholarships.map((scholarship, index) => (
                   <button
