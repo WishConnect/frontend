@@ -1,4 +1,4 @@
-// import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import CurationIcon from '../../assets/icons/CurationIcon.svg';
 import WriteIcon from '../../assets/icons/WriteIcon.svg';
@@ -26,7 +26,7 @@ const quickMenus: QuickMenu[] = [
     id: 'application',
     title: '자기소개서 작성',
     description: 'AI 초안 생성으로 지원서를\n빠르고 쉽게 작성하세요.',
-    path: '/application',
+    path: '/write',
     icon: WriteIcon,
   },
   {
@@ -46,7 +46,7 @@ const quickMenus: QuickMenu[] = [
 ];
 
 export default function QuickMenuSection() {
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
 
   return (
     <section className=" w-full">
@@ -57,7 +57,7 @@ export default function QuickMenuSection() {
           <button
             key={menu.id}
             type="button"
-            // onClick={() => navigate(menu.path)}
+            onClick={() => navigate(menu.path)}
             className="group relative h-[160px] rounded-[8px] border border-[#E6E7EB] bg-[#F9FAFC] px-[36px] pt-[28px] pb-[28px] text-left shadow-[0_1px_7px_0_rgba(0,0,0,0.05)]"
           >
             {/* 아이콘 + 제목 */}

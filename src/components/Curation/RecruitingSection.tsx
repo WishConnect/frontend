@@ -86,7 +86,7 @@ export default function RecruitingSection({ scholarships }: RecruitingSectionPro
             </div>
 
             <div className="w-[180px] text-center text-[14px] font-medium leading-[20px] text-[#555964]">
-              {scholarship.deadline} ({scholarship.dDay})
+              {scholarship.deadline} (D-{scholarship.days})
             </div>
 
             <div className="flex w-[270px] justify-center gap-[8px]">

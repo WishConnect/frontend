@@ -3,14 +3,15 @@ import Search from '../../assets/icons/Search.svg';
 import Check from '../../assets/icons/Check.svg';
 import { referenceSections, checkListSection } from '../../data/referenceData';
 import FaqDropdown from '../../components/FAQ/FaqDropDown';
+import Header from '../../components/common/Header/Header';
 
 const faqSection = referenceSections[0];
 const guideSection = referenceSections[1];
 
 export default function MoreInfoPage() {
   return (
-    <div className="flex h-[1024px] w-[1440px] bg-white font-['Pretendard']">
-      <header className="h-[80px]">{/* Header */}</header>
+    <div className="flex min-h-screen w-full flex-col bg-white font-['Pretendard']">
+      <Header />
       <div className="mt-[32px] flex flex-col gap-[48px] w-[1440px] px-[109px] pb-[64px]">
         <div className="w-[486px] gap-[4px] flex flex-col">
           <span className="h-[48px] font-bold text-[36px] leading-[48px] text-[#10131A] ">

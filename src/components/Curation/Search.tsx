@@ -8,8 +8,7 @@ interface SearchScholarshipRowProps {
   scholarship: {
     id: number;
     title: string;
-    dDay: string;
-    deadlineStatus: string;
+    days: number; // dDay, deadlineStatus 대신
     deadline: string;
     tags: string[];
     isScrapped: boolean;
@@ -22,13 +21,11 @@ interface SearchScholarshipRowProps {
 }
 
 export default function SearchScholarshipRow({ scholarship }: SearchScholarshipRowProps) {
-  const dDayNumber = Number(scholarship.dDay.replace('D-', ''));
-
   return (
     <article className="flex h-[144px] w-full border-b border-[#D2D4DA] last:border-b-0">
       <div className="flex w-[600px] flex-col justify-center pl-[32px]">
         <div className="flex items-center gap-[8px]">
-          <DdayStatus days={dDayNumber} />
+          <DdayStatus days={scholarship.days} />
 
           <span className="text-[14px] font-medium text-[#747883]">•</span>
 
