@@ -11,6 +11,7 @@ interface RecommendCardProps {
   onPrev: () => void;
   onNext: () => void;
   onDetailClick: () => void;
+  onScrapToggle: (id: number) => void;
 }
 
 export default function RecommendCard({
@@ -18,6 +19,7 @@ export default function RecommendCard({
   onPrev,
   onNext,
   onDetailClick,
+  onScrapToggle,
 }: RecommendCardProps) {
   return (
     <div className="flex h-[528px] w-[1043px] gap-[32px] rounded-[16px] pl-[56px] shadow-[0px_4px_20px_0px_rgba(0,0,0,0.1)]">
@@ -81,7 +83,7 @@ export default function RecommendCard({
 
           <Button
             size="md"
-            variant={scholarship.isScrapped ? 'primary' : 'disabled'}
+            variant={scholarship.isScrapped ? 'primary' : 'inactive'}
             weight="medium"
             width="148px"
             paddingLeft="32px"
@@ -94,6 +96,10 @@ export default function RecommendCard({
                 className="w-[14px] h-[17px]"
               />
             }
+            onClick={(event) => {
+              event.stopPropagation();
+              onScrapToggle(scholarship.id);
+            }}
           >
             스크랩
           </Button>
