@@ -108,7 +108,7 @@ export default function InsightPage1() {
 
       <div className="flex">
         <div className="ml-[64px]">
-          <LeftSidebar />
+          <LeftSidebar activeId="insight" />
         </div>
 
         <main className="ml-[32px] flex w-[1043px] gap-[32px]">
