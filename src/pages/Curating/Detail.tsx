@@ -12,6 +12,11 @@ import PosterImage from '../../assets/images/poster.png';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar';
+import UpdateRight from '../../assets/icons/UpdateRight.svg';
+import DdayStatus from '../../components/DdayStatus';
+import Scrap from '../../assets/icons/ScrapCircle.svg';
+import ScrapDisable from '../../assets/icons/ScrapCircleDisable.svg';
+import Share from '../../assets/icons/ShareCircle.svg';
 
 const scholarshipDetail = {
   id: 1,
@@ -20,8 +25,7 @@ const scholarshipDetail = {
   tags: ['생활비 지원', '전공 우대', '성적 우수'],
   isScrapped: false,
 
-  dDay: 'D-5',
-  deadlineStatus: '마감 임박',
+  days: 5,
   deadline: '2026.05.20(화) 15:00 마감',
   homepageUrl: 'https://www.hissf.or.kr',
 
@@ -103,6 +107,8 @@ const scholarshipDetail = {
   ],
 };
 export default function Detail() {
+  const isOnboarded = true;
+  const profileProgress = 85;
   const isLoggedIn = true;
   const leftInfo = [
     { label: '지원대상', value: scholarshipDetail.summary.target },
@@ -128,7 +134,7 @@ export default function Detail() {
     <div className="h-[1024px] w-[1440px] bg-white font-['Pretendard']">
       <Header
         searchPlaceholder="장학금 찾아보기"
-        isLoggedIn={false}
+        isLoggedIn={isLoggedIn}
         isSearchMode={false}
         onSearch={(query) => {
           navigate(`/curation?keyword=${query}`);
@@ -136,11 +142,51 @@ export default function Detail() {
       />
 
       <div className="flex">
-        <div className="ml-[64px]">
-          <LeftSidebar />
+        <div className="relative ml-[64px] h-[896px] w-[237px] shrink-0 self-start">
+          <LeftSidebar activeId="curating" />
+
+          {isLoggedIn && !isOnboarded && (
+            <div className="absolute bottom-[16px] left-[14px] z-10 h-[224px] w-[208px] rounded-[16px] bg-white px-[20px] pt-[20px] pb-[16px] shadow-[0_1px_7px_0_rgba(0,0,0,0.08)]">
+              <p className="h-[16px] w-[105px] text-[12px] font-medium leading-[16px] text-[#555964]">
+                더 정확한 추천을 위해
+              </p>
+
+              <p className="h-[50px] w-[135px] text-[18px] font-bold leading-[24px] text-[#10131A]">
+                프로필을 업데이트
+                <br />
+                해보세요!
+              </p>
+
+              <div className="mt-[50px]">
+                <span className="block h-[16px] text-[12px] font-semibold leading-[16px] text-[#7962ED]">
+                  {profileProgress}%
+                </span>
+
+                <div className="mt-[4px] h-[4px] w-[168px] overflow-hidden rounded-[8px] bg-[#E6E7EB]">
+                  <div
+                    className="h-full rounded-[8px] bg-[#7962ED]"
+                    style={{
+                      width: `${profileProgress}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  navigate('/onboarding');
+                }}
+                className="absolute bottom-[16px] left-[20px] flex h-[32px] w-[168px] items-center justify-between rounded-[8px] bg-[#F3F4F6] px-[16px] text-[12px] font-medium leading-[16px] text-[#747883]"
+              >
+                <span className="leading-[16px]">프로필 업데이트</span>
+                <img src={UpdateRight} alt="오른쪽 화살표" />
+              </button>
+            </div>
+          )}
         </div>
 
-        <main className="flex w-[1139px] flex-col gap-[52px] pl-[32px] pr-[64px]">
+        <main className="flex w-[1139px] flex-col gap-[52px] pl-[32px] pr-[64px] pb-[64px]">
           <div className="w-[1043px] flex-col ">
             <div className="flex gap-[6.25px]">
               {scholarshipDetail.tags.map((tag) => (
@@ -157,25 +203,12 @@ export default function Detail() {
                 {scholarshipDetail.title}
               </h1>
 
-              {/* 임시 스크랩 버튼 */}
-              <div className="flex h-[24px] w-[24px] items-center justify-center rounded-full bg-[#8B5CF6] text-white">
-                ★
-              </div>
+              <img src={scholarshipDetail.isScrapped ? Scrap : ScrapDisable} alt="스크랩" />
 
-              {/* 임시 공유 버튼 */}
-              <div className="flex h-[24px] w-[24px] items-center justify-center rounded-full border border-[#D2D4DA]">
-                ↗
-              </div>
+              <img src={Share} />
             </div>
             <div className="mt-[12px] flex h-[32px] items-center gap-[8px]">
-              {/* 임시 D-Day Badge */}
-              <div className="flex h-[32px] items-center justify-center rounded-[8px] bg-[#FF5B64] px-[15px] text-[14px] font-bold leading-[20px] text-white">
-                {scholarshipDetail.dDay}
-              </div>
-
-              <span className="text-[16px] font-semibold text-[#FF5B64]">
-                {scholarshipDetail.deadlineStatus}
-              </span>
+              <DdayStatus days={scholarshipDetail.days} />
 
               <span className="text-[16px] text-[#555964]">•</span>
 
@@ -216,6 +249,13 @@ export default function Detail() {
                 paddingLeft="24px"
                 paddingRight="24px"
                 className="text-[16px] leading-[24px] "
+                onClick={() => {
+                  if (isLoggedIn) {
+                    navigate('/write');
+                  } else {
+                    navigate('/login');
+                  }
+                }}
               >
                 {isLoggedIn ? '지원서 작성 시작하기' : '로그인 하고 지원서 작성 시작하기'}
               </Button>

@@ -1,20 +1,36 @@
 import { useState } from 'react';
-import SortDropdown from '../../assets/icons/arrowdown.svg';
+import Down from '../../assets/icons/CategoryDown.svg';
+import Up from '../../assets/icons/CategoryUp.svg';
 import { scholarships } from '../../mock/scholarships';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar';
+import DdayStatus from '../../components/DdayStatus';
+import Pagination from '../../components/common/Pagination/Pagination';
 
 const ITEMS_PER_PAGE = 9;
 
+type SortOption = '마감 임박순' | '최신순' | '높은 금액순';
+
 export default function GuestCurationPage() {
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortOption, setSortOption] = useState<SortOption>('마감 임박순');
+  const [isSortOpen, setIsSortOpen] = useState(false);
+
+  const sortOptions: SortOption[] = ['마감 임박순', '최신순', '높은 금액순'];
 
   const sortedScholarships = [...scholarships].sort((a, b) => {
-    const aDay = Number(a.dDay.replace('D-', ''));
-    const bDay = Number(b.dDay.replace('D-', ''));
+    if (sortOption === '마감 임박순') {
+      return a.days - b.days;
+    }
 
-    return aDay - bDay;
+    if (sortOption === '높은 금액순') {
+      const aAmount = Number(a.summary.amount.replace(/[^0-9]/g, ''));
+      const bAmount = Number(b.summary.amount.replace(/[^0-9]/g, ''));
+      return bAmount - aAmount;
+    }
+
+    return 0;
   });
 
   const totalPages = Math.ceil(sortedScholarships.length / ITEMS_PER_PAGE);
@@ -36,8 +52,8 @@ export default function GuestCurationPage() {
       />
 
       <div className="flex">
-        <div className="ml-[64px]">
-          <LeftSidebar />
+        <div className="relative ml-[64px] h-[896px] w-[237px] shrink-0 self-start">
+          <LeftSidebar activeId="curating" />
         </div>
 
         <main className="mt-[16px] flex w-[1139px] flex-col pb-[64px] pl-[32px] pr-[64px]">
@@ -55,7 +71,37 @@ export default function GuestCurationPage() {
               </span>
             </div>
 
-            <img src={SortDropdown} alt="정렬" className="h-[48px] w-[164px] cursor-pointer" />
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsSortOpen((prev) => !prev)}
+                className="flex h-[48px] w-[164px] items-center justify-between rounded-[8px] bg-[#F9FAFC] px-[24px] text-[16px] font-medium text-[#555964]"
+              >
+                {sortOption}
+                <img src={isSortOpen ? Up : Down} alt={isSortOpen ? '위 화살표' : '아래 화살표'} />
+              </button>
+
+              {isSortOpen && (
+                <div className="absolute right-0 top-[56px] z-10 w-[164px] overflow-hidden rounded-[8px] border border-[#D2D4DA] bg-white shadow-[0px_4px_20px_0px_rgba(0,0,0,0.1)]">
+                  {sortOptions
+                    .filter((option) => option !== sortOption)
+                    .map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => {
+                          setSortOption(option);
+                          setIsSortOpen(false);
+                          setCurrentPage(1);
+                        }}
+                        className="flex h-[56px] w-full items-center px-[24px] text-[16px] font-medium text-[#555964] hover:bg-[#F9FAFC]"
+                      >
+                        {option}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* 카드 목록 */}
@@ -63,6 +109,7 @@ export default function GuestCurationPage() {
             {currentScholarships.map((scholarship) => (
               <article
                 key={scholarship.id}
+                onClick={() => navigate(`/curation/${scholarship.id}`)}
                 className="relative h-[460px] w-[326px] cursor-pointer overflow-hidden rounded-[16px] border border-[#E6E7EB]"
               >
                 <img
@@ -73,13 +120,7 @@ export default function GuestCurationPage() {
 
                 <div className="absolute bottom-0 left-0 h-[144px] w-full rounded-t-[16px] bg-white px-[24px] py-[24px]">
                   <div className="flex h-[32px] w-[278px] items-center gap-[8px]">
-                    <span
-                      className={`flex h-[32px] w-[55px] items-center justify-center whitespace-nowrap rounded-[8px] px-[15px] text-[14px] font-bold text-white ${
-                        scholarship.dDay === 'D-5' ? 'bg-[#FF5B64]' : 'bg-[#FFC940]'
-                      }`}
-                    >
-                      {scholarship.dDay}
-                    </span>
+                    <DdayStatus days={scholarship.days} />
 
                     <span className="text-[12px] font-medium leading-[16px] text-[#747883]">
                       {scholarship.deadline}
@@ -107,42 +148,12 @@ export default function GuestCurationPage() {
             ))}
           </div>
 
-          {/* Pagination (임시) */}
           <aside className="mt-[60px] flex items-center justify-center">
-            <div className="flex h-[24px] items-center">
-              <button
-                type="button"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((page) => page - 1)}
-                className="flex h-[24px] w-[24px] items-center justify-center text-[14px] text-[#7962ED] disabled:text-[#D2D4DA]"
-              >
-                {'<'}
-              </button>
-
-              {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-                <button
-                  key={page}
-                  type="button"
-                  onClick={() => setCurrentPage(page)}
-                  className={`flex h-[24px] w-[24px] items-center justify-center text-[14px] font-medium ${
-                    page === currentPage
-                      ? 'rounded-[4px] bg-[#7962ED] text-white'
-                      : 'text-[#555964]'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
-
-              <button
-                type="button"
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage((page) => page + 1)}
-                className="flex h-[24px] w-[24px] items-center justify-center text-[14px] text-[#7962ED] disabled:text-[#D2D4DA]"
-              >
-                {'>'}
-              </button>
-            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
           </aside>
         </main>
       </div>

@@ -9,6 +9,8 @@ interface NotificationItem {
   title: string;
   description: string;
   ctaLabel: string;
+  // CTA 클릭 시 이동할 라우트. 지금은 mock, API 붙으면 서버가 내려주는 딥링크로 교체
+  link: string;
   isRead: boolean;
 }
 
@@ -32,6 +34,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       title: '조건에 맞는 신규 장학금이 등록되었어요!',
       description: '김위시님 조건에 맞는 ‘OO장학재단 생활비 장학금’이 새로 모집을 시작했어요.',
       ctaLabel: '바로 보기 →',
+      link: '/curation',
       isRead: false,
     },
     {
@@ -41,6 +44,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       title: '스크랩한 ‘희망장학금’이 마감 임박이에요!',
       description: '마감까지 D-3 남았어요. 놓치지 말고 지원해 보세요.',
       ctaLabel: '지원서 이어쓰기 →',
+      link: '/write',
       isRead: false,
     },
     {
@@ -50,6 +54,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       title: '작성 중인 지원서가 있어요.',
       description: '‘희망장학금’ 2/5 문항까지 작성되었어요.',
       ctaLabel: '이어서 작성하기 →',
+      link: '/write',
       isRead: true,
     },
   ],

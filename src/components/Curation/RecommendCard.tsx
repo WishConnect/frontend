@@ -2,29 +2,32 @@ import type { RecommendedScholarship } from '../../mock/memberCuration';
 import Button from '../Button/Button';
 import ButtonGroup from '../Button/ButtonGroup';
 import ChevronRight from '../../assets/icons/ChevronRight';
-import Scrap from '../../assets/icons/ScrapDiasbled.svg';
+import ScrapDisable from '../../assets/icons/ScrapDiasbled.svg';
+import Scrap from '../../assets/icons/Scrap.svg';
+import DdayStatus from '../../components/DdayStatus';
 
 interface RecommendCardProps {
   scholarship: RecommendedScholarship;
   onPrev: () => void;
   onNext: () => void;
+  onDetailClick: () => void;
+  onScrapToggle: (id: number) => void;
 }
 
-export default function RecommendCard({ scholarship, onPrev, onNext }: RecommendCardProps) {
+export default function RecommendCard({
+  scholarship,
+  onPrev,
+  onNext,
+  onDetailClick,
+  onScrapToggle,
+}: RecommendCardProps) {
   return (
     <div className="flex h-[528px] w-[1043px] gap-[32px] rounded-[16px] pl-[56px] shadow-[0px_4px_20px_0px_rgba(0,0,0,0.1)]">
       <div
         onClick={onPrev}
         className="flex h-[528px] w-[410px] cursor-pointer flex-col pt-[48px] pb-[42px]"
       >
-        <div className="flex items-center gap-[8px]">
-          <span className="rounded-[8px] bg-[#FF5C66] px-[12px] py-[8px] text-[14px] font-bold leading-[20px] text-white">
-            {scholarship.dDay}
-          </span>
-          <span className="text-[16px] font-semibold leading-[24px] text-[#FF5C66]">
-            {scholarship.deadlineStatus}
-          </span>
-        </div>
+        <DdayStatus days={scholarship.days} />
 
         <h2 className="mt-[24px] text-[28px] font-bold leading-[36px] text-[#10131A]">
           {scholarship.title}
@@ -73,19 +76,30 @@ export default function RecommendCard({ scholarship, onPrev, onNext }: Recommend
             paddingLeft="32px"
             paddingRight="16px"
             rightIcon={<ChevronRight />}
+            onClick={onDetailClick}
           >
             상세보기
           </Button>
 
           <Button
             size="md"
-            variant="disabled"
+            variant={scholarship.isScrapped ? 'primary' : 'inactive'}
             weight="medium"
             width="148px"
             paddingLeft="32px"
             paddingRight="32px"
             iconGap={13}
-            leftIcon={<img src={Scrap} alt="스크랩" className="w-[14px] h-[17px]" />}
+            leftIcon={
+              <img
+                src={scholarship.isScrapped ? Scrap : ScrapDisable}
+                alt="스크랩"
+                className="w-[14px] h-[17px]"
+              />
+            }
+            onClick={(event) => {
+              event.stopPropagation();
+              onScrapToggle(scholarship.id);
+            }}
           >
             스크랩
           </Button>

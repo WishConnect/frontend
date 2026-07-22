@@ -23,7 +23,18 @@ export default function NotificationPanel() {
     navigate('/notifications/settings');
   };
 
+  // 알림 CTA: 읽음 처리 후 패널 닫고 대상 페이지로 이동 (link는 스토어 각 항목에 지정)
+  const handleCtaClick = (id: string, link: string) => {
+    markAsRead(id);
+    togglePanel();
+    navigate(link);
+  };
+
   return (
+    <>
+      {/* 패널 바깥 클릭 감지용 투명 오버레이: 클릭 시 패널 닫힘 (패널 본체는 z-50이라 안 닫힘) */}
+      <div className="fixed inset-0 z-40" onClick={togglePanel} />
+
     <div className="absolute right-[64px] top-[64px] w-[448px] bg-[#F9FAFC] border border-[#E6E7EB] rounded-2xl shadow-lg p-6 flex flex-col gap-4 z-50">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold text-[#181C25]">알림센터</h2>
@@ -64,7 +75,7 @@ export default function NotificationPanel() {
             description={item.description}
             ctaLabel={item.ctaLabel}
             onDismiss={() => removeItem(item.id)}
-            onCtaClick={() => markAsRead(item.id)}
+            onCtaClick={() => handleCtaClick(item.id, item.link)}
           />
         ))}
       </div>
@@ -74,5 +85,6 @@ export default function NotificationPanel() {
         <img src={chevronRightIcon} alt="" className="size-[18px]" />
       </button>
     </div>
+    </>
   );
 }

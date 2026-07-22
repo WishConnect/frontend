@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import { useRecentSearchStore } from '../../../store/useRecentSearchStore';
-import { useAuthStore } from '../../../store/useAuthStore';
+import { useUserStore } from '../../../store/user/user';
 import { mockPopularSearches } from '../../../data/mockPopularSearches';
 import recentIcon from '../../../assets/search/recent-icon.svg';
 
@@ -30,7 +30,7 @@ function highlightMatch(text: string, query: string) {
 export default function SearchDropdown({ query, onSelect }: SearchDropdownProps) {
   const recentSearches = useRecentSearchStore((state) => state.items);
   // 로그인 연동 전: 로그인 안 한 상태 기본값은 DEFAULT_USER_NAME, 로그인하면 실제 유저 이름으로 자동 대체
-  const userName = useAuthStore((state) => state.user?.name) ?? DEFAULT_USER_NAME;
+  const userName = useUserStore((state) => state.user?.name) ?? DEFAULT_USER_NAME;
   const trimmedQuery = query.trim();
 
   if (trimmedQuery) {

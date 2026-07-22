@@ -4,6 +4,8 @@ import LeftSidebar from '../../components/LeftSidebar';
 import { useNavigate } from 'react-router-dom';
 import SearchScholarshipRow from '../../components/Curation/Search';
 import { scholarships } from '../../mock/scholarships';
+import Down from '../../assets/icons/CategoryDown.svg';
+import Up from '../../assets/icons/CategoryUp.svg';
 
 type SortOption = '마감 임박순' | '최신순' | '높은 금액순' | '저장한 장학금';
 
@@ -47,11 +49,7 @@ export default function CurationSearchPage({ query, isLoggedIn }: CurationSearch
     const sorted = [...result];
 
     if (sortOption === '마감 임박순') {
-      sorted.sort((a, b) => {
-        const aDay = Number(a.dDay.replace('D-', ''));
-        const bDay = Number(b.dDay.replace('D-', ''));
-        return aDay - bDay;
-      });
+      sorted.sort((a, b) => a.days - b.days);
     }
 
     if (sortOption === '높은 금액순') {
@@ -74,17 +72,24 @@ export default function CurationSearchPage({ query, isLoggedIn }: CurationSearch
   return (
     <div className="h-[1024px] w-[1440px] bg-white font-['Pretendard']">
       <Header
-        searchPlaceholder={query}
+        searchPlaceholder={query || '장학금 찾아보기'}
         isLoggedIn={isLoggedIn}
         isSearchMode={false}
         onSearch={(nextQuery) => {
-          navigate(`/curation?keyword=${nextQuery}`);
+          const trimmedQuery = nextQuery.trim();
+
+          if (!trimmedQuery) {
+            navigate('/curation');
+            return;
+          }
+
+          navigate(`/curation?keyword=${encodeURIComponent(trimmedQuery)}`);
         }}
       />
 
       <div className="flex">
         <div className="ml-[64px]">
-          <LeftSidebar />
+          <LeftSidebar activeId="curating" />
         </div>
 
         <main className="ml-[32px] flex w-[1043px] flex-col">
@@ -107,7 +112,7 @@ export default function CurationSearchPage({ query, isLoggedIn }: CurationSearch
                 className="flex h-[48px] w-[164px] items-center justify-between rounded-[8px] bg-[#F9FAFC] px-[24px] text-[16px] font-medium text-[#555964]"
               >
                 {sortOption}
-                <span>{isSortOpen ? '⌃' : '⌄'}</span>
+                <img src={isSortOpen ? Up : Down} alt={isSortOpen ? '위 화살표' : '아래 화살표'} />
               </button>
 
               {isSortOpen && (
