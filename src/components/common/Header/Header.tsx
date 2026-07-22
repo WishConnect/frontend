@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import SearchBar from './SearchBar';
 import BackButton from './BackButton';
 import Notification from './Notification';
@@ -15,6 +16,7 @@ interface HeaderProps {
   onSearch?: (query: string) => void;
   onQueryChange?: (query: string) => void;
   onBack?: () => void;
+  onLogoClick?: () => void;
   onNotificationClick?: () => void;
   onLoginClick?: () => void;
   onSignupClick?: () => void;
@@ -30,13 +32,17 @@ export default function Header({
   onSearch,
   onQueryChange,
   onBack,
+  onLogoClick,
   onNotificationClick,
   onLoginClick,
   onSignupClick,
 }: HeaderProps) {
+  const navigate = useNavigate();
   const togglePanel = useNotificationStore((state) => state.togglePanel);
   const hasUnread = useNotificationStore((state) => state.unreadCount() > 0);
   const handleNotificationClick = onNotificationClick ?? togglePanel;
+  // 로고 클릭 시 기본은 홈(/)으로 이동, 페이지에서 onLogoClick으로 재정의 가능
+  const handleLogoClick = onLogoClick ?? (() => navigate('/'));
 
   // logoOnly / isLoggedIn / isSearchMode 조합에 따라 헤더 우측 영역 내용을 결정
   let content = null;
@@ -100,12 +106,15 @@ export default function Header({
   return (
     <header className="bg-white w-full h-[80px] relative z-20">
 
-      {/* 로고 (left: 64px, top: 24px, h: 32px) */}
-      <img
-        src={logo}
-        alt="WISHCONNECT"
-        className="absolute left-[64px] top-[24px] h-[32px]"
-      />
+      {/* 로고 (left: 64px, top: 24px, h: 32px), 클릭 시 홈 이동 */}
+      <button
+        type="button"
+        onClick={handleLogoClick}
+        aria-label="홈으로 이동"
+        className="absolute left-[64px] top-[24px] cursor-pointer"
+      >
+        <img src={logo} alt="WISHCONNECT" className="h-[32px]" />
+      </button>
 
       {content}
 
