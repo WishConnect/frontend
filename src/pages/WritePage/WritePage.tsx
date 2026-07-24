@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import LeftSidebar from "../../components/LeftSidebar";
 import Tag from "../../components/Tag";
 import Header from "../../components/common/Header/Header";
@@ -70,6 +71,7 @@ const questionCategories = [
 
 
 export default function WritePage() {
+    const navigate = useNavigate();
     const [currentStep, setCurrentStep] = useState(1);
     
     // 1단계 상태 관리
@@ -115,7 +117,7 @@ export default function WritePage() {
                 <Header 
                     isSearchMode={true}
                     onBack={() => {
-                        {/* 백 라우터 */}
+                        navigate(-1);
                     }}
                 />
             </header>
@@ -160,9 +162,9 @@ export default function WritePage() {
                         
                         <div className="flex gap-[11px] mr-[64px]">
                             {currentStep === 3 ? (
-                                // onClick에 돌아갈 페이지 설정
+                                // 작성 완료시 HomePage로 이동
                                 <button 
-                                    onClick={() => ""}
+                                    onClick={() => navigate('/')}
                                     className="flex justify-center items-center mt-[5px] w-[148px] h-[48px] rounded-[8px] bg-gradient-to-r from-[#7962ED] to-[#BDB9F9] text-white text-[18px] font-[600] transition-colors hover:bg-[#6049C4]"
                                 >
                                     완료
