@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom';
 
 type MenuId = 'curating' | 'archiving' | 'insight' | 'mypage';
 
@@ -69,6 +70,15 @@ interface LeftSidebarProps {
 
 export default function LeftSidebar({ activeId: initialActiveId }: LeftSidebarProps = {}) {
     const [activeId, setActiveId] = useState<MenuId>(initialActiveId ?? MENU_ITEMS[0].id);
+    const navigate = useNavigate();
+    const getPath = (id: MenuId) => {
+        switch (id) {
+            case 'curating' : return '/curation';
+            case 'archiving' : return '/archiving';
+            case 'insight' : return '/insight';
+            case 'mypage' : return '/mypage';
+        }
+    }
 
     return(
         <aside className='
@@ -81,7 +91,10 @@ export default function LeftSidebar({ activeId: initialActiveId }: LeftSidebarPr
                     key={item.id}
                     item={item}
                     isActive={item.id === activeId}
-                    onClick={() => setActiveId(item.id)}
+                    onClick={() => {
+                        setActiveId(item.id);
+                        navigate(getPath(item.id));
+                    }}
                 />
             ))}
         </aside>
