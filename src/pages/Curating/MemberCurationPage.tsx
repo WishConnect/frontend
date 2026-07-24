@@ -1,50 +1,138 @@
-import { useState } from 'react';
-import { memberCurationMock } from '../../mock/memberCuration';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import RecommendCard from '../../components/Curation/RecommendCard';
 import SchoolSection from '../../components/Curation/SchoolSection';
 import RecruitingSection from '../../components/Curation/RecruitingSection';
 import LockedSection from '../../components/Curation/Locked';
-import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar';
+
 import UpdateRight from '../../assets/icons/UpdateRight.svg';
+
+import { fetchCuratedScholarships } from '../../api/Curation/Curated';
+import { scrapScholarship, unscrapScholarship } from '../../api/Curation/Scrap';
+import { useUserStore } from '../../store/user/user';
+
+import type {
+  CuratedCampusScholarship,
+  CuratedFeaturedScholarship,
+  CuratedOtherScholarship,
+} from '../../types/Curation/Curated';
 
 interface MemberCurationPageProps {
   isLoggedIn: boolean;
 }
 
 export default function MemberCurationPage({ isLoggedIn }: MemberCurationPageProps) {
-  const { member, schoolScholarships, recruitingScholarships } = memberCurationMock;
-
-  const [recommendedScholarships, setRecommendedScholarships] = useState(
-    memberCurationMock.recommendedScholarships,
-  );
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const isLocked = !member.isOnboarded;
-
-  const handlePrev = () => {
-    setCurrentIndex((prev) => (prev === 0 ? recommendedScholarships.length - 1 : prev - 1));
-  };
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev === recommendedScholarships.length - 1 ? 0 : prev + 1));
-  };
-  const handleScrapToggle = (id: number) => {
-    setRecommendedScholarships((prev) =>
-      prev.map((scholarship) =>
-        scholarship.id === id
-          ? {
-              ...scholarship,
-              isScrapped: !scholarship.isScrapped,
-            }
-          : scholarship,
-      ),
-    );
-  };
   const navigate = useNavigate();
-  const handleDetailClick = () => {
-    navigate(`/curation/${recommendedScholarships[currentIndex].id}`);
+
+  const user = useUserStore((state) => state.user);
+
+  const [featured, setFeatured] = useState<CuratedFeaturedScholarship | null>(null);
+
+  const [profileCompletionRate, setProfileCompletionRate] = useState(0);
+
+  const [campusScholarships, setCampusScholarships] = useState<CuratedCampusScholarship[]>([]);
+
+  const [otherScholarships, setOtherScholarships] = useState<CuratedOtherScholarship[]>([]);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [isScrapLoading, setIsScrapLoading] = useState(false);
+
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const isOnboarded = Boolean(user?.onboardingCompleted);
+
+  const isLocked = !isOnboarded;
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const getCuratedScholarships = async () => {
+      try {
+        setIsLoading(true);
+        setErrorMessage('');
+
+        const data = await fetchCuratedScholarships({
+          category: '전체',
+          page: 1,
+          size: 10,
+        });
+
+        if (isCancelled) return;
+
+        setFeatured(data.featured);
+        setProfileCompletionRate(data.profileCompletionRate);
+        setCampusScholarships(data.campusScholarships ?? []);
+        setOtherScholarships(data.otherScholarships ?? []);
+      } catch (error) {
+        if (isCancelled) return;
+
+        console.error('맞춤 장학금 조회 실패:', error);
+
+        setFeatured(null);
+        setProfileCompletionRate(0);
+        setCampusScholarships([]);
+        setOtherScholarships([]);
+
+        setErrorMessage(
+          error instanceof Error ? error.message : '맞춤 장학금을 불러오지 못했습니다.',
+        );
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void getCuratedScholarships();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+  const handleScholarshipDetailClick = (scholarshipId: number) => {
+    navigate(`/curation/${scholarshipId}`, {
+      state: {
+        profileCompletionRate,
+      },
+    });
   };
+  const handleDetailClick = () => {
+    if (!featured) return;
+
+    handleScholarshipDetailClick(featured.scholarshipId);
+  };
+  const handleScrapClick = async (scholarshipId: number) => {
+    if (!featured || isScrapLoading) {
+      return;
+    }
+
+    try {
+      setIsScrapLoading(true);
+
+      const result = featured.isScrapped
+        ? await unscrapScholarship(scholarshipId)
+        : await scrapScholarship(scholarshipId);
+
+      setFeatured((prev) => {
+        if (!prev) return prev;
+
+        return {
+          ...prev,
+          isScrapped: result.scrapped,
+        };
+      });
+    } catch (error) {
+      console.error('추천 장학금 스크랩 변경 실패:', error);
+
+      alert(error instanceof Error ? error.message : '스크랩 상태 변경에 실패했습니다.');
+    } finally {
+      setIsScrapLoading(false);
+    }
+  };
+
   return (
     <div className="h-[1024px] w-[1440px] bg-white font-['Pretendard']">
       <Header
@@ -52,7 +140,11 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
         isLoggedIn={isLoggedIn}
         isSearchMode={false}
         onSearch={(query) => {
-          navigate(`/curation?keyword=${query}`);
+          const trimmedQuery = query.trim();
+
+          if (!trimmedQuery) return;
+
+          navigate(`/curation?keyword=${encodeURIComponent(trimmedQuery)}`);
         }}
       />
 
@@ -60,7 +152,7 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
         <div className="relative ml-[64px] h-[896px] w-[237px] shrink-0 self-start">
           <LeftSidebar activeId="curating" />
 
-          {!member.isOnboarded && (
+          {!isOnboarded && (
             <div className="absolute bottom-[16px] left-[14px] z-10 h-[224px] w-[208px] rounded-[16px] bg-white px-[20px] pt-[20px] pb-[16px] shadow-[0_1px_7px_0_rgba(0,0,0,0.08)]">
               <p className="h-[16px] w-[105px] text-[12px] font-medium leading-[16px] text-[#555964]">
                 더 정확한 추천을 위해
@@ -74,14 +166,14 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
 
               <div className="mt-[50px]">
                 <span className="block h-[16px] text-[12px] font-semibold leading-[16px] text-[#7962ED]">
-                  {member.profileProgress}%
+                  {profileCompletionRate}%
                 </span>
 
                 <div className="mt-[4px] h-[4px] w-[168px] overflow-hidden rounded-[8px] bg-[#E6E7EB]">
                   <div
                     className="h-full rounded-[8px] bg-[#7962ED]"
                     style={{
-                      width: `${member.profileProgress}%`,
+                      width: `${profileCompletionRate}%`,
                     }}
                   />
                 </div>
@@ -89,12 +181,11 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
 
               <button
                 type="button"
-                onClick={() => {
-                  navigate('/onboarding');
-                }}
+                onClick={() => navigate('/onboarding')}
                 className="absolute bottom-[16px] left-[20px] flex h-[32px] w-[168px] items-center justify-between rounded-[8px] bg-[#F3F4F6] px-[16px] text-[12px] font-medium leading-[16px] text-[#747883]"
               >
                 <span className="leading-[16px]">프로필 업데이트</span>
+
                 <img src={UpdateRight} alt="오른쪽 화살표" />
               </button>
             </div>
@@ -105,7 +196,8 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
           <div className="flex w-[1043px] flex-col gap-[32px]">
             <div className="flex w-[420px] flex-col gap-[4px]">
               <span className="h-[104px] text-[40px] font-bold leading-[52px] text-[#10131A]">
-                <span className="text-[#7962ED]">{member.name}님</span>, 지금 지원 가능한
+                <span className="text-[#7962ED]">{user?.name ?? '회원'}님</span>
+                , 지금 지원 가능한
                 <br />
                 장학금을 확인해보세요!
               </span>
@@ -115,30 +207,34 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
               </span>
             </div>
 
-            <div className="flex flex-col gap-[32px]">
-              <RecommendCard
-                scholarship={recommendedScholarships[currentIndex]}
-                onPrev={handlePrev}
-                onNext={handleNext}
-                onDetailClick={handleDetailClick}
-                onScrapToggle={handleScrapToggle}
-              />
-              <div className="flex justify-center gap-[8px]">
-                {recommendedScholarships.map((scholarship, index) => (
-                  <button
-                    key={scholarship.id}
-                    type="button"
-                    onClick={() => setCurrentIndex(index)}
-                    className={`h-[8px] w-[8px] rounded-full ${
-                      currentIndex === index ? 'bg-[#7962ED]' : 'bg-[#D2D4DA]'
-                    }`}
-                  />
-                ))}
+            {isLoading && (
+              <div className="flex h-[528px] items-center justify-center text-[16px] font-medium text-[#747883]">
+                맞춤 장학금을 불러오는 중이에요.
               </div>
-            </div>
+            )}
+
+            {!isLoading && errorMessage && (
+              <div className="flex h-[528px] items-center justify-center text-[16px] font-medium text-[#747883]">
+                {errorMessage}
+              </div>
+            )}
+
+            {!isLoading && !errorMessage && !featured && (
+              <div className="flex h-[528px] items-center justify-center text-[16px] font-medium text-[#747883]">
+                아직 추천할 장학금이 없어요.
+              </div>
+            )}
+
+            {!isLoading && !errorMessage && featured && (
+              <RecommendCard
+                scholarship={featured}
+                onDetailClick={handleDetailClick}
+                onScrapClick={handleScrapClick}
+                isScrapLoading={isScrapLoading}
+              />
+            )}
           </div>
 
-          {/* 우리 학교 장학금 */}
           <div className="flex w-[1043px] flex-col gap-[16px]">
             <div className="flex flex-col gap-[4px]">
               <h2 className="text-[32px] font-bold leading-[40px] text-[#10131A]">
@@ -146,16 +242,18 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
               </h2>
 
               <p className="text-[16px] font-medium leading-[24px] text-[#555964]">
-                {member.university} 학생을 위한 교내 장학금
+                나에게 맞는 교내 장학금
               </p>
             </div>
 
             <LockedSection isLocked={isLocked}>
-              <SchoolSection scholarships={schoolScholarships} />
+              <SchoolSection
+                scholarships={campusScholarships}
+                onDetailClick={handleScholarshipDetailClick}
+              />
             </LockedSection>
           </div>
 
-          {/* 현재 모집 중 장학금 */}
           <div className="flex w-[1043px] flex-col gap-[16px]">
             <div className="flex flex-col gap-[4px]">
               <h2 className="h-[40px] text-[28px] font-bold leading-[40px] text-[#10131A]">
@@ -168,7 +266,7 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
             </div>
 
             <LockedSection isLocked={isLocked}>
-              <RecruitingSection scholarships={recruitingScholarships} />
+              <RecruitingSection scholarships={otherScholarships} />
             </LockedSection>
           </div>
         </main>

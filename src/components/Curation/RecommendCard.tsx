@@ -1,55 +1,58 @@
-import type { RecommendedScholarship } from '../../mock/memberCuration';
 import Button from '../Button/Button';
 import ButtonGroup from '../Button/ButtonGroup';
 import ChevronRight from '../../assets/icons/ChevronRight';
 import ScrapDisable from '../../assets/icons/ScrapDiasbled.svg';
 import Scrap from '../../assets/icons/Scrap.svg';
-import DdayStatus from '../../components/DdayStatus';
+import DdayStatus from '../DdayStatus';
+
+import type { CuratedFeaturedScholarship } from '../../types/Curation/Curated';
 
 interface RecommendCardProps {
-  scholarship: RecommendedScholarship;
-  onPrev: () => void;
-  onNext: () => void;
+  scholarship: CuratedFeaturedScholarship;
   onDetailClick: () => void;
-  onScrapToggle: (id: number) => void;
+  onScrapClick: (scholarshipId: number) => void;
+  isScrapLoading?: boolean;
 }
 
 export default function RecommendCard({
   scholarship,
-  onPrev,
-  onNext,
   onDetailClick,
-  onScrapToggle,
+  onScrapClick,
+  isScrapLoading = false,
 }: RecommendCardProps) {
+  const isScrapped = scholarship.isScrapped ?? false;
+  const tags = scholarship.tags ?? [];
+  const matchReasons = scholarship.matchReasons ?? [];
+
   return (
     <div className="flex h-[528px] w-[1043px] gap-[32px] rounded-[16px] pl-[56px] shadow-[0px_4px_20px_0px_rgba(0,0,0,0.1)]">
-      <div
-        onClick={onPrev}
-        className="flex h-[528px] w-[410px] cursor-pointer flex-col pt-[48px] pb-[42px]"
-      >
-        <DdayStatus days={scholarship.days} />
+      <div className="flex h-[528px] w-[410px] flex-col pt-[48px] pb-[42px]">
+        <DdayStatus days={scholarship.dDay ?? 0} />
 
         <h2 className="mt-[24px] text-[28px] font-bold leading-[36px] text-[#10131A]">
           {scholarship.title}
         </h2>
 
-        <div className="mt-[12px] flex gap-[8px]">
-          {scholarship.tags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-[16px] px-[10px] py-[4px] text-[12px] font-medium leading-[16px] text-[#747883] shadow-[inset_0_0_0_0.781px_#9DA1AC]"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
+        {tags.length > 0 && (
+          <div className="mt-[12px] flex flex-wrap gap-[8px]">
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-[16px] px-[10px] py-[4px] text-[12px] font-medium leading-[16px] text-[#747883] shadow-[inset_0_0_0_0.781px_#9DA1AC]"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
 
         <p className="mt-[24px] text-[16px] font-semibold leading-[24px] text-[#555964]">
-          {scholarship.amount} | {scholarship.deadline} 마감
+          {scholarship.maxAmount ?? '금액 정보 없음'} |{' '}
+          {scholarship.deadline ? `${scholarship.deadline} 마감` : '마감일 정보 없음'}
         </p>
 
         <p className="mt-[4px] text-[16px] font-medium leading-[24px] text-[#555964]">
-          {scholarship.description}
+          {scholarship.organization}
         </p>
 
         <div className="mt-[20px] h-px w-full bg-[#D2D4DA]" />
@@ -59,11 +62,17 @@ export default function RecommendCard({
         </h3>
 
         <div className="mt-[12px] flex flex-col gap-[8px]">
-          {scholarship.recommendReasons.map((reason) => (
-            <span key={reason} className="text-[14px] font-medium leading-[20px] text-[#555964]">
-              ✓ {reason}
+          {matchReasons.length > 0 ? (
+            matchReasons.map((reason) => (
+              <span key={reason} className="text-[14px] font-medium leading-[20px] text-[#555964]">
+                ✓ {reason}
+              </span>
+            ))
+          ) : (
+            <span className="text-[14px] font-medium leading-[20px] text-[#747883]">
+              프로필 정보를 추가하면 더 정확한 추천 이유를 확인할 수 있어요.
             </span>
-          ))}
+          )}
         </div>
 
         <ButtonGroup className="mt-[32px]">
@@ -83,35 +92,36 @@ export default function RecommendCard({
 
           <Button
             size="md"
-            variant={scholarship.isScrapped ? 'primary' : 'inactive'}
+            variant={isScrapped ? 'primary' : 'inactive'}
             weight="medium"
             width="148px"
             paddingLeft="32px"
             paddingRight="32px"
             iconGap={13}
+            disabled={isScrapLoading}
             leftIcon={
-              <img
-                src={scholarship.isScrapped ? Scrap : ScrapDisable}
-                alt="스크랩"
-                className="w-[14px] h-[17px]"
-              />
+              <img src={isScrapped ? Scrap : ScrapDisable} alt="" className="h-[17px] w-[14px]" />
             }
-            onClick={(event) => {
-              event.stopPropagation();
-              onScrapToggle(scholarship.id);
+            onClick={() => {
+              onScrapClick(scholarship.scholarshipId);
             }}
           >
-            스크랩
+            {isScrapLoading ? '처리 중' : isScrapped ? '스크랩 완료' : '스크랩'}
           </Button>
         </ButtonGroup>
       </div>
 
-      <img
-        src={scholarship.image}
-        alt={scholarship.title}
-        onClick={onNext}
-        className="h-[528px] w-[545px] cursor-pointer object-cover"
-      />
+      {scholarship.thumbnailUrl ? (
+        <img
+          src={scholarship.thumbnailUrl}
+          alt={scholarship.title}
+          className="h-[528px] w-[545px] rounded-r-[16px] object-cover"
+        />
+      ) : (
+        <div className="flex h-[528px] w-[545px] items-center justify-center rounded-r-[16px] bg-[#F3F4F6] text-[16px] font-medium text-[#747883]">
+          등록된 이미지가 없습니다.
+        </div>
+      )}
     </div>
   );
 }
