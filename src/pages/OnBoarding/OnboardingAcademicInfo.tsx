@@ -1,9 +1,15 @@
 import { useState, type ReactNode, type ChangeEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.svg';
 import capIcon from '../../assets/onboarding/graduation-cap.svg';
 import helpIcon from '../../assets/onboarding/circle-question-mark.svg';
 import searchIcon from '../../assets/onboarding/magnifyingglass.svg';
 import clockIcon from '../../assets/onboarding/clock.svg';
+
+// 피그마(node-id 382-387) get_design_context 기준 실제 토큰
+// Text Colors/H1: #0A0C11 · H2: #555964 · H3: #747883 · Disabled: #9DA1AC
+// Sub Colors/accent_red: #FA5862 · Primary/purple: #7962ED · purple_deep: #320095
+// Gray/50: #F9FAFC · Gray/100: #F3F4F6 · Gray/200: #E6E7EB
 
 function CloseIcon() {
   return (
@@ -22,6 +28,9 @@ function CloseIcon() {
   );
 }
 
+// 도움말 모드에서 특정 필드를 가리키는 말풍선.
+// top/left/width 값은 피그마 절대좌표(1440px 기준) 그대로 사용 — 페이지 레이아웃이
+// 같은 좌표계를 따르도록 맞춰뒀기 때문에 그대로 넣으면 필드 위치에 맞게 배치돼요.
 function HelpBubble({
   top,
   left,
@@ -339,6 +348,7 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
 // 메인 컴포넌트
 // ------------------------------------------------------------------
 export default function OnboardingAcademicInfo() {
+  const navigate = useNavigate();
   const [form, setForm] = useState<AcademicForm>(DEFAULT_FORM);
   const [doubleMajor, setDoubleMajor] = useState(false);
   const [minorMajor, setMinorMajor] = useState(false);
@@ -350,13 +360,14 @@ export default function OnboardingAcademicInfo() {
     };
 
   const handlePrev = () => {
-    // TODO: 이전 온보딩 단계로 라우팅 (진입 페이지가 없다면 비활성 처리)
-    console.log('이전 단계로 이동');
+    // 진입 페이지라 이전 단계가 없음 — 필요 시 홈 등으로 변경
+    navigate(-1);
   };
 
   const handleNext = () => {
-    // TODO: STEP 2(가구 정보 & 관심사)로 라우팅 + 폼 유효성 검사
+    // TODO: 폼 유효성 검사
     console.log('학적 정보:', form, { doubleMajor, minorMajor });
+    navigate('/onboarding/household');
   };
 
   return (
