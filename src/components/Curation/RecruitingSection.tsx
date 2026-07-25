@@ -1,52 +1,48 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import ChevronDown from '../../assets/icons/ChevronDown.svg';
 import ChevronUp from '../../assets/icons/ChevronUp.svg';
 import ScrapDisable from '../../assets/icons/ScrapDiasbled.svg';
 import ScrapEnable from '../../assets/icons/ScrapEnable.svg';
-import type { CuratedOtherScholarship } from '../../types/Curation/Curated';
 
 import { scrapScholarship, unscrapScholarship } from '../../api/Curation/Scrap';
+
+import type { CuratedOtherScholarship } from '../../types/Curation/Curated';
 
 interface RecruitingSectionProps {
   scholarships: CuratedOtherScholarship[];
 }
 
 export default function RecruitingSection({ scholarships }: RecruitingSectionProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const [loadingId, setLoadingId] = useState<number | null>(null);
-  const [scrappedIds, setScrappedIds] = useState<number[]>(() =>
-    scholarships
-      .filter((scholarship) => scholarship.isScrapped === true)
-      .map((scholarship) => scholarship.scholarshipId),
-  );
   const navigate = useNavigate();
+
+  const [isOpen, setIsOpen] = useState(false);
+  const [loadingId, setLoadingId] = useState<number | null>(null);
+
+  // 사용자가 화면에서 변경한 스크랩 상태만 따로 저장
+  const [scrapOverrides, setScrapOverrides] = useState<Record<number, boolean>>({});
 
   const handleDetailClick = (scholarshipId: number) => {
     navigate(`/curation/${scholarshipId}`);
   };
-  const handleScrap = async (scholarshipId: number) => {
+
+  const handleScrap = async (scholarshipId: number, currentScrapped: boolean) => {
     if (loadingId !== null) {
       return;
     }
 
-    const isCurrentlyScrapped = scrappedIds.includes(scholarshipId);
-
     try {
       setLoadingId(scholarshipId);
 
-      const result = isCurrentlyScrapped
+      const result = currentScrapped
         ? await unscrapScholarship(scholarshipId)
         : await scrapScholarship(scholarshipId);
 
-      setScrappedIds((prev) => {
-        if (result.scrapped) {
-          return prev.includes(scholarshipId) ? prev : [...prev, scholarshipId];
-        }
-
-        return prev.filter((id) => id !== scholarshipId);
-      });
+      setScrapOverrides((prev) => ({
+        ...prev,
+        [scholarshipId]: result.scrapped,
+      }));
     } catch (error) {
       console.error('장학금 스크랩 상태 변경 실패:', error);
 
@@ -80,7 +76,7 @@ export default function RecruitingSection({ scholarships }: RecruitingSectionPro
 
       <div className="flex flex-col">
         {visibleScholarships.map((scholarship) => {
-          const isScrapped = scrappedIds.includes(scholarship.scholarshipId);
+          const isScrapped = scrapOverrides[scholarship.scholarshipId] ?? scholarship.isScrapped;
 
           const isLoading = loadingId === scholarship.scholarshipId;
 
@@ -109,7 +105,8 @@ export default function RecruitingSection({ scholarships }: RecruitingSectionPro
                   disabled={isLoading}
                   onClick={(event) => {
                     event.stopPropagation();
-                    void handleScrap(scholarship.scholarshipId);
+
+                    void handleScrap(scholarship.scholarshipId, isScrapped);
                   }}
                   className="ml-[23px] mr-[20px] flex h-[20px] w-[20px] items-center justify-center disabled:cursor-not-allowed"
                 >

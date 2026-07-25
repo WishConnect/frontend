@@ -20,7 +20,7 @@ export default function RecommendCard({
   onScrapClick,
   isScrapLoading = false,
 }: RecommendCardProps) {
-  const isScrapped = scholarship.isScrapped ?? false;
+  const isScrapped = scholarship.isScrapped;
   const tags = scholarship.tags ?? [];
   const matchReasons = scholarship.matchReasons ?? [];
 
