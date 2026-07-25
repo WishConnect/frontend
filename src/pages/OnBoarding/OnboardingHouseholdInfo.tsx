@@ -1,8 +1,14 @@
 import { useState, type ReactNode, type ChangeEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.svg';
 import heartIcon from '../../assets/onboarding/heart.svg';
 import helpIcon from '../../assets/onboarding/circle-question-mark.svg';
 import clockIcon from '../../assets/onboarding/clock.svg';
+
+// 피그마(node-id 415-421) get_design_context 기준 실제 토큰
+// Text Colors/H1: #0A0C11 · H2: #555964 · H3: #747883 · Disabled: #9DA1AC
+// Sub Colors/accent_red: #FA5862 · Primary/purple: #7962ED · purple_deep: #320095
+// Gray/50: #F9FAFC · Gray/100: #F3F4F6 · Gray/200: #E6E7EB
 
 function CloseIcon() {
   return (
@@ -21,6 +27,8 @@ function CloseIcon() {
   );
 }
 
+// 도움말 모드에서 특정 필드를 가리키는 말풍선.
+// top/left/width 값은 피그마 절대좌표(1440px 기준) 그대로 사용해요.
 function HelpBubble({
   top,
   left,
@@ -472,6 +480,7 @@ function MultiSelectSection({
 // 메인 컴포넌트
 // ------------------------------------------------------------------
 export default function OnboardingHouseholdInfo() {
+  const navigate = useNavigate();
   const [incomeLevel, setIncomeLevel] = useState('');
   const [incomeUnknown, setIncomeUnknown] = useState(false);
   const [householdSize, setHouseholdSize] = useState('');
@@ -493,12 +502,11 @@ export default function OnboardingHouseholdInfo() {
   };
 
   const handlePrev = () => {
-    // TODO: STEP 1(학적 정보)로 라우팅
-    console.log('이전 단계로 이동');
+    navigate('/onboarding');
   };
 
   const handleNext = () => {
-    // TODO: STEP 3(완료)로 라우팅 + 관심분야 필수값 검사
+    // TODO: 관심분야 필수값 검사
     console.log('가구 정보 & 관심사:', {
       incomeLevel,
       incomeUnknown,
@@ -509,6 +517,7 @@ export default function OnboardingHouseholdInfo() {
       interests,
       interestCustom,
     });
+    navigate('/onboarding/complete');
   };
 
   return (
