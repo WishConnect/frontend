@@ -10,11 +10,11 @@ export interface CuratedFeaturedScholarship {
   matchScore: number;
   matchReasons: string[];
   eligible: boolean;
+  isScrapped: boolean;
 
   // 실제 응답에는 현재 없음
   tags?: string[];
   thumbnailUrl?: string;
-  isScrapped?: boolean;
 }
 
 export interface CuratedCampusScholarship {
@@ -27,7 +27,7 @@ export interface CuratedCampusScholarship {
   matchScore: number;
   matchReasons: string[];
   eligible: boolean;
-  isScrapped?: boolean;
+  isScrapped: boolean;
 }
 
 export interface CuratedOtherScholarship {
@@ -40,7 +40,7 @@ export interface CuratedOtherScholarship {
   matchScore: number;
   matchReasons: string[];
   eligible: boolean;
-  isScrapped?: boolean;
+  isScrapped: boolean;
 }
 
 export interface Pagination {
