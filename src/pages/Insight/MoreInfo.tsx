@@ -1,5 +1,5 @@
 import { useState } from 'react';
-
+import { useNavigate } from 'react-router-dom';
 import QnA from '../../assets/icons/QnA.svg';
 import Search from '../../assets/icons/Search.svg';
 import Check from '../../assets/icons/Check.svg';
@@ -14,7 +14,7 @@ const guideSection = referenceSections[1];
 
 export default function MoreInfoPage() {
   const [checkedItems, setCheckedItems] = useState<number[]>([]);
-
+  const navigate = useNavigate();
   const handleCheck = (id: number) => {
     setCheckedItems((prev) =>
       prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id],
@@ -23,7 +23,7 @@ export default function MoreInfoPage() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-white font-['Pretendard']">
-      <Header />
+      <Header isSearchMode onBack={() => navigate(-1)} />
 
       <div className="mt-[32px] flex w-[1440px] flex-col gap-[48px] px-[109px] pb-[64px]">
         <div className="flex w-[486px] flex-col gap-[4px]">
