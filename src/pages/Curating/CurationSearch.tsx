@@ -1,78 +1,173 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import Header from '../../components/common/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar';
-import { useNavigate } from 'react-router-dom';
 import SearchScholarshipRow from '../../components/Curation/Search';
-import { scholarships } from '../../mock/scholarships';
+
 import Down from '../../assets/icons/CategoryDown.svg';
 import Up from '../../assets/icons/CategoryUp.svg';
 
-type SortOption = '마감 임박순' | '최신순' | '높은 금액순' | '저장한 장학금';
+import { fetchScholarshipSearch } from '../../api/Curation/Search';
+
+import type {
+  ScholarshipSearchItem,
+  SearchScholarshipRowData,
+  SortOption,
+  SortParam,
+} from '../../types/Curation/Search';
 
 interface CurationSearchPageProps {
   query: string;
   isLoggedIn: boolean;
 }
 
+const SORT_OPTIONS: SortOption[] = ['마감 임박순', '높은 금액순', '최신순', '저장한 장학금'];
+
+// sortOption → { sort, scrappedOnly } 매핑
+// '저장한 장학금'은 정렬이 아니라 필터라서 sort는 기본값(deadline)으로 두고 scrappedOnly만 true로 보냄
+const SORT_PARAM_MAP: Record<SortOption, { sort: SortParam; scrappedOnly: boolean }> = {
+  '마감 임박순': { sort: 'deadline', scrappedOnly: false },
+  최신순: { sort: 'latest', scrappedOnly: false },
+  '높은 금액순': { sort: 'amount', scrappedOnly: false },
+  '저장한 장학금': { sort: 'deadline', scrappedOnly: true },
+};
+
+const convertToRowData = (scholarship: ScholarshipSearchItem): SearchScholarshipRowData => {
+  return {
+    id: String(scholarship.scholarshipId),
+    title: scholarship.title,
+    days: scholarship.dDay,
+    deadline: scholarship.deadline,
+    recruitStatus: scholarship.recruitStatus,
+    tags: scholarship.tags,
+    isScrapped: scholarship.isScrapped,
+    summary: {
+      amount: scholarship.maxAmount,
+      organization: scholarship.organization,
+      applicationPeriod: scholarship.applicationPeriod,
+    },
+  };
+};
+
 export default function CurationSearchPage({ query, isLoggedIn }: CurationSearchPageProps) {
-  const [sortOption, setSortOption] = useState<SortOption>('마감 임박순');
-  const [isSortOpen, setIsSortOpen] = useState(false);
   const navigate = useNavigate();
 
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [sortOption, setSortOption] = useState<SortOption>('마감 임박순');
+  const [isSortOpen, setIsSortOpen] = useState(false);
+
+  const [scholarships, setScholarships] = useState<SearchScholarshipRowData[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const scrollRef = useRef<HTMLElement>(null);
   const [scrollRatio, setScrollRatio] = useState(0);
 
   const handleScroll = () => {
-    const el = scrollRef.current;
-    if (!el) return;
+    const element = scrollRef.current;
 
-    const maxScrollTop = el.scrollHeight - el.clientHeight;
+    if (!element) {
+      return;
+    }
+
+    const maxScrollTop = element.scrollHeight - element.clientHeight;
 
     if (maxScrollTop <= 0) {
       setScrollRatio(0);
       return;
     }
 
-    setScrollRatio(el.scrollTop / maxScrollTop);
+    setScrollRatio(element.scrollTop / maxScrollTop);
   };
-  const filteredScholarships = useMemo(() => {
-    const result = scholarships.filter((scholarship) => {
-      const keyword = query.trim();
 
-      return (
-        scholarship.title.includes(keyword) ||
-        scholarship.tags.some((tag) => tag.includes(keyword)) ||
-        scholarship.summary.organization.includes(keyword)
-      );
-    });
+  useEffect(() => {
+    let isCancelled = false;
 
-    const sorted = [...result];
+    const getScholarships = async () => {
+      const trimmedQuery = query.trim();
 
-    if (sortOption === '마감 임박순') {
-      sorted.sort((a, b) => a.days - b.days);
-    }
+      if (!trimmedQuery) {
+        setScholarships([]);
+        setTotalCount(0);
+        setErrorMessage('');
+        setIsLoading(false);
+        return;
+      }
 
-    if (sortOption === '높은 금액순') {
-      sorted.sort((a, b) => {
-        const aAmount = Number(a.summary.amount.replace(/[^0-9]/g, ''));
-        const bAmount = Number(b.summary.amount.replace(/[^0-9]/g, ''));
-        return bAmount - aAmount;
-      });
-    }
+      const { sort, scrappedOnly } = SORT_PARAM_MAP[sortOption];
 
-    if (sortOption === '저장한 장학금') {
-      return sorted.filter((scholarship) => scholarship.isScrapped);
-    }
+      // '저장한 장학금'인데 비로그인 상태면 서버가 401을 내려주지만,
+      // 굳이 요청 보내지 않고 프론트에서 먼저 막아주는 게 UX상 자연스러움
+      if (scrappedOnly && !isLoggedIn) {
+        setScholarships([]);
+        setTotalCount(0);
+        setErrorMessage('로그인 후 이용할 수 있어요.');
+        setIsLoading(false);
+        return;
+      }
 
-    return sorted;
-  }, [query, sortOption]);
+      try {
+        setIsLoading(true);
+        setErrorMessage('');
+        setScrollRatio(0);
 
-  const sortOptions: SortOption[] = ['마감 임박순', '최신순', '높은 금액순', '저장한 장학금'];
-  const hasScroll = filteredScholarships.length > 5;
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = 0;
+        }
+
+        const data = await fetchScholarshipSearch({
+          keyword: trimmedQuery,
+          sort,
+          scrappedOnly,
+          page: 1,
+          size: 20,
+        });
+
+        if (isCancelled) {
+          return;
+        }
+
+        const convertedScholarships = data.results.map(convertToRowData);
+
+        setScholarships(convertedScholarships);
+        setTotalCount(data.totalCount);
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        console.error('장학금 검색 실패:', error);
+
+        setScholarships([]);
+        setTotalCount(0);
+
+        if (error instanceof Error) {
+          setErrorMessage(error.message);
+        } else {
+          setErrorMessage('검색 결과를 불러오지 못했습니다.');
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void getScholarships();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [query, sortOption, isLoggedIn]);
+
+  const hasScroll = scholarships.length > 5;
+
   return (
     <div className="h-[1024px] w-[1440px] bg-white font-['Pretendard']">
       <Header
-        searchPlaceholder={query || '장학금 찾아보기'}
+        searchPlaceholder="장학금 찾아보기"
         isLoggedIn={isLoggedIn}
         isSearchMode={false}
         onSearch={(nextQuery) => {
@@ -100,8 +195,7 @@ export default function CurationSearchPage({ query, isLoggedIn }: CurationSearch
               </h1>
 
               <p className="mt-[4px] text-[16px] font-medium leading-[24px] text-[#555964]">
-                총 <span className="text-[#7962ED]">{filteredScholarships.length}개</span>의
-                장학금을 찾았어요.
+                총 <span className="text-[#7962ED]">{totalCount}개</span>의 장학금을 찾았어요.
               </p>
             </div>
 
@@ -111,28 +205,29 @@ export default function CurationSearchPage({ query, isLoggedIn }: CurationSearch
                 onClick={() => setIsSortOpen((prev) => !prev)}
                 className="flex h-[48px] w-[164px] items-center justify-between rounded-[8px] bg-[#F9FAFC] px-[24px] text-[16px] font-medium text-[#555964]"
               >
-                {sortOption}
-                <img src={isSortOpen ? Up : Down} alt={isSortOpen ? '위 화살표' : '아래 화살표'} />
+                <span>{sortOption}</span>
+
+                <img
+                  src={isSortOpen ? Up : Down}
+                  alt={isSortOpen ? '정렬 목록 닫기' : '정렬 목록 열기'}
+                />
               </button>
 
               {isSortOpen && (
                 <div className="absolute right-0 top-[56px] z-10 w-[164px] overflow-hidden rounded-[8px] border border-[#D2D4DA] bg-white shadow-[0px_4px_20px_0px_rgba(0,0,0,0.1)]">
-                  {sortOptions
-                    .filter((option) => option !== sortOption)
-                    .map((option) => (
-                      <button
-                        key={option}
-                        type="button"
-                        onClick={() => {
-                          setSortOption(option);
-
-                          setIsSortOpen(false);
-                        }}
-                        className="flex h-[56px] w-full items-center px-[24px] text-[16px] font-medium text-[#555964] hover:bg-[#F9FAFC]"
-                      >
-                        {option}
-                      </button>
-                    ))}
+                  {SORT_OPTIONS.filter((option) => option !== sortOption).map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => {
+                        setSortOption(option);
+                        setIsSortOpen(false);
+                      }}
+                      className="flex h-[56px] w-full items-center px-[24px] text-[16px] font-medium text-[#555964] hover:bg-[#F9FAFC]"
+                    >
+                      {option}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
@@ -146,12 +241,32 @@ export default function CurationSearchPage({ query, isLoggedIn }: CurationSearch
                 hasScroll ? 'h-[768px]' : 'h-auto'
               }`}
             >
-              {filteredScholarships.map((scholarship) => (
-                <SearchScholarshipRow key={scholarship.id} scholarship={scholarship} />
-              ))}
+              {isLoading && (
+                <div className="flex h-[300px] items-center justify-center text-[16px] font-medium text-[#747883]">
+                  검색 결과를 불러오는 중이에요.
+                </div>
+              )}
+
+              {!isLoading && errorMessage && (
+                <div className="flex h-[300px] items-center justify-center text-[16px] font-medium text-[#747883]">
+                  {errorMessage}
+                </div>
+              )}
+
+              {!isLoading && !errorMessage && scholarships.length === 0 && (
+                <div className="flex h-[300px] items-center justify-center text-[16px] font-medium text-[#747883]">
+                  검색 결과가 없어요.
+                </div>
+              )}
+
+              {!isLoading &&
+                !errorMessage &&
+                scholarships.map((scholarship) => (
+                  <SearchScholarshipRow key={scholarship.id} scholarship={scholarship} />
+                ))}
             </section>
 
-            {hasScroll && (
+            {hasScroll && !isLoading && !errorMessage && (
               <div className="relative h-[768px] w-[4px] rounded-full bg-[#E6E7EB]">
                 <div
                   className="absolute left-0 w-[4px] rounded-full bg-[#7962ED]"
