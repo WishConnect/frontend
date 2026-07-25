@@ -35,7 +35,7 @@ const SORT_PARAM_MAP: Record<SortOption, { sort: SortParam; scrappedOnly: boolea
 
 const convertToRowData = (scholarship: ScholarshipSearchItem): SearchScholarshipRowData => {
   return {
-    id: scholarship.scholarshipId,
+    id: String(scholarship.scholarshipId),
     title: scholarship.title,
     days: scholarship.dDay,
     deadline: scholarship.deadline,
@@ -167,7 +167,7 @@ export default function CurationSearchPage({ query, isLoggedIn }: CurationSearch
   return (
     <div className="h-[1024px] w-[1440px] bg-white font-['Pretendard']">
       <Header
-        searchPlaceholder={query || '장학금 찾아보기'}
+        searchPlaceholder="장학금 찾아보기"
         isLoggedIn={isLoggedIn}
         isSearchMode={false}
         onSearch={(nextQuery) => {

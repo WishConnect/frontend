@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+import { scrapScholarship, unscrapScholarship } from '../../api/Curation/Scrap';
 
 import DdayStatus from '../DdayStatus';
 import Tag from '../Tag';
@@ -15,11 +18,34 @@ interface SearchScholarshipRowProps {
 
 export default function SearchScholarshipRow({ scholarship }: SearchScholarshipRowProps) {
   const navigate = useNavigate();
-
+  const [isScrapped, setIsScrapped] = useState(scholarship.isScrapped);
+  const [isScrapLoading, setIsScrapLoading] = useState(false);
   const handleDetailClick = () => {
     navigate(`/curation/${scholarship.id}`);
   };
+  const handleScrapClick = async () => {
+    if (isScrapLoading) {
+      return;
+    }
 
+    try {
+      setIsScrapLoading(true);
+
+      if (isScrapped) {
+        await unscrapScholarship(scholarship.id);
+        setIsScrapped(false);
+      } else {
+        await scrapScholarship(scholarship.id);
+        setIsScrapped(true);
+      }
+    } catch (error) {
+      console.error('장학금 스크랩 변경 실패:', error);
+
+      alert(error instanceof Error ? error.message : '스크랩 상태 변경에 실패했습니다.');
+    } finally {
+      setIsScrapLoading(false);
+    }
+  };
   return (
     <article className="flex h-[144px] w-full border-b border-[#D2D4DA] last:border-b-0">
       <div className="flex w-[600px] flex-col justify-center pl-[32px]">
@@ -63,17 +89,21 @@ export default function SearchScholarshipRow({ scholarship }: SearchScholarshipR
       </div>
 
       <div className="flex flex-1 flex-col items-end justify-center pr-[32px]">
-        <img
-          src={scholarship.isScrapped ? Scrap : ScrapDisabled}
-          alt={scholarship.isScrapped ? '저장한 장학금' : '저장하지 않은 장학금'}
-          className="mb-[28px] h-[32px] w-[32px]"
-        />
+        <button
+          type="button"
+          onClick={handleScrapClick}
+          disabled={isScrapLoading}
+          aria-label={isScrapped ? '장학금 스크랩 해제' : '장학금 스크랩'}
+          className="mb-[28px] h-[32px] w-[32px] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <img src={isScrapped ? Scrap : ScrapDisabled} alt="" className="h-[32px] w-[32px]" />
+        </button>
 
         <Button
           size="sm"
           variant="primary"
           width="126px"
-          weight="semibold"
+          weight="medium"
           onClick={handleDetailClick}
         >
           장학금 상세보기

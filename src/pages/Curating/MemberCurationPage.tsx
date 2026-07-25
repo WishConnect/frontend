@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import RecommendCard from '../../components/Curation/RecommendCard';
 import SchoolSection from '../../components/Curation/SchoolSection';
@@ -26,6 +26,7 @@ interface MemberCurationPageProps {
 
 export default function MemberCurationPage({ isLoggedIn }: MemberCurationPageProps) {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const user = useUserStore((state) => state.user);
 
@@ -91,7 +92,7 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [location.key]);
   const handleScholarshipDetailClick = (scholarshipId: number) => {
     navigate(`/curation/${scholarshipId}`, {
       state: {

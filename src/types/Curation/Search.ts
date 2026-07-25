@@ -1,11 +1,12 @@
 import type { ApiResponse } from '../api';
 
 export type SortOption = '마감 임박순' | '최신순' | '높은 금액순' | '저장한 장학금';
-export type SortParam = 'deadline' | 'amount' | 'relevance' | 'latest';
+
+export type SortParam = 'deadline' | 'latest' | 'amount';
 export type RecruitStatus = 'OPEN' | 'CLOSED';
 
 export interface ScholarshipSearchItem {
-  scholarshipId: string;
+  scholarshipId: number;
   title: string;
   organization: string;
   applicationPeriod: string;

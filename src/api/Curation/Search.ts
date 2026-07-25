@@ -13,8 +13,8 @@ export async function fetchScholarshipSearch(
     params: {
       keyword: params.keyword,
       category: params.category,
-      sort: params.sort,
-      scrappedOnly: params.scrappedOnly, // ← 추가
+      sort: params.sort ?? 'deadline',
+      scrappedOnly: params.scrappedOnly ?? false,
       page: params.page ?? 1,
       size: params.size ?? 10,
     },

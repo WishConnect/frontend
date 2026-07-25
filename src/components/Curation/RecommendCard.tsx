@@ -106,7 +106,7 @@ export default function RecommendCard({
               onScrapClick(scholarship.scholarshipId);
             }}
           >
-            {isScrapLoading ? '처리 중' : isScrapped ? '스크랩 완료' : '스크랩'}
+            {isScrapLoading ? '처리 중' : isScrapped ? '스크랩' : '스크랩'}
           </Button>
         </ButtonGroup>
       </div>

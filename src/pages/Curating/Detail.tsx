@@ -442,36 +442,38 @@ export default function Detail() {
               )}
             </div>
 
-            <div className="w-[685px] h-[432px] rounded-[16px] bg-[#F9FAFC] px-[40px] py-[32px]">
-              <h2 className="text-[28px] font-bold leading-[40px]">장학금 요약 정보</h2>
+            <div className="flex h-[432px] w-[685px] flex-col rounded-[16px] bg-[#F9FAFC] px-[40px] py-[32px]">
+              <h2 className="shrink-0 text-[28px] font-bold leading-[40px]">장학금 요약 정보</h2>
 
-              <div className="mt-[14px] flex justify-between">
-                <div className="flex w-[285px] flex-col gap-[8px]">
-                  {leftInfo.map((item) => (
-                    <div key={item.label} className="flex gap-[19px]">
-                      <span className="w-[49px] h-[24px] shrink-0 text-[14px] font-bold text-[#555964]">
-                        {item.label}
-                      </span>
+              <div className="mt-[14px] min-h-0 flex-1 overflow-y-auto pr-[8px]">
+                <div className="flex justify-between">
+                  <div className="flex w-[285px] flex-col gap-[8px]">
+                    {leftInfo.map((item) => (
+                      <div key={item.label} className="flex gap-[19px]">
+                        <span className="w-[49px] h-[24px] shrink-0 text-[14px] font-bold text-[#555964]">
+                          {item.label}
+                        </span>
 
-                      <span className="text-[14px] font-medium text-[#747883]">
-                        {valueOrDefault(item.value)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                        <span className="text-[14px] font-medium text-[#747883]">
+                          {valueOrDefault(item.value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
 
-                <div className="flex w-[285px] flex-col gap-[8px]">
-                  {rightInfo.map((item) => (
-                    <div key={item.label} className="flex gap-[16px]">
-                      <span className="w-[52px] h-[24px] shrink-0 text-[14px] font-bold text-[#555964]">
-                        {item.label}
-                      </span>
+                  <div className="flex w-[285px] flex-col gap-[8px]">
+                    {rightInfo.map((item) => (
+                      <div key={item.label} className="flex gap-[16px]">
+                        <span className="w-[52px] h-[24px] shrink-0 text-[14px] font-bold text-[#555964]">
+                          {item.label}
+                        </span>
 
-                      <span className="text-[14px] font-medium text-[#747883]">
-                        {valueOrDefault(item.value)}
-                      </span>
-                    </div>
-                  ))}
+                        <span className="text-[14px] font-medium text-[#747883]">
+                          {valueOrDefault(item.value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -480,7 +482,7 @@ export default function Detail() {
                   href={detail.detailUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-[22px] flex h-[48px] w-[605px] items-center justify-between rounded-[8px] border border-[#9DA1AC] px-[16px]"
+                  className="mt-[22px] flex h-[48px] w-[605px] shrink-0 items-center justify-between rounded-[8px] border border-[#9DA1AC] px-[16px]"
                 >
                   <span className="text-[16px] font-medium text-[#555964]">자세히 보기</span>
 
