@@ -13,6 +13,7 @@ import LeftSidebar from '../components/LeftSidebar';
 import Header from '../components/common/Header/Header';
 import { useUserStore } from '../store/user/user';
 import { tokenStorage } from '../utils/token';
+import { logout } from '../api/login/auth';
 
 
 // 지금은 하드코딩된 기본값이지만, 추후 로그인/API 응답으로 이 객체를 채우면 됩니다.
@@ -51,11 +52,19 @@ export default function MyPage() {
   const navigate = useNavigate();
   const clearUser = useUserStore((s) => s.clearUser);
 
-  // 로그아웃: 전역 유저 상태 초기화 + 저장된 토큰 삭제 후 로그인 페이지로 이동.
-  const handleLogout = () => {
-    clearUser();
-    tokenStorage.clearTokens();
-    navigate('/login');
+  // 로그아웃: 서버에 refreshToken 폐기 요청(accessToken 필요) → 전역 유저 상태 초기화
+  // → 저장된 토큰 삭제 → 로그인 페이지로 이동.
+  // 서버 요청이 실패(토큰 만료 등)해도 클라이언트 로그아웃은 그대로 진행한다.
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch {
+      // 서버 로그아웃 실패는 무시하고 클라이언트 정리는 계속 진행
+    } finally {
+      clearUser();
+      tokenStorage.clearTokens();
+      navigate('/login');
+    }
   };
 
   return (

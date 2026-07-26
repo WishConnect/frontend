@@ -64,6 +64,7 @@ const AUTH_PATHS = [
   '/auth/login',
   '/auth/signup',
   '/auth/refresh',
+  '/auth/logout',
   '/auth/kakao/login',
   '/auth/google/login',
 ];
