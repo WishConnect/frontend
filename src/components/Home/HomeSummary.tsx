@@ -5,37 +5,48 @@ import InsightIcon from '../../assets/icons/NewInsight.svg';
 
 interface HomeSummaryCardsProps {
   isOnboarded: boolean;
+  newMatchedCount: number;
+  urgentDeadlineCount: number;
+  applicationCount?: number;
+  newInsightCount?: number;
   onLockedClick?: () => void;
 }
 
-const summaryItems = [
-  {
-    id: 1,
-    label: '새로운 맞춤 장학금',
-    count: 2,
-    icon: GiftIcon,
-  },
-  {
-    id: 2,
-    label: '이번 주 마감 장학금',
-    count: 1,
-    icon: ClockIcon,
-  },
-  {
-    id: 3,
-    label: '작성 중인 지원서',
-    count: 1,
-    icon: FolderIcon,
-  },
-  {
-    id: 4,
-    label: '새로운 인사이트',
-    count: 3,
-    icon: InsightIcon,
-  },
-];
+export default function HomeSummaryCards({
+  isOnboarded,
+  newMatchedCount,
+  urgentDeadlineCount,
+  applicationCount = 0,
+  newInsightCount = 0,
+  onLockedClick,
+}: HomeSummaryCardsProps) {
+  const summaryItems = [
+    {
+      id: 1,
+      label: '새로운 맞춤 장학금',
+      count: newMatchedCount,
+      icon: GiftIcon,
+    },
+    {
+      id: 2,
+      label: '이번 주 마감 장학금',
+      count: urgentDeadlineCount,
+      icon: ClockIcon,
+    },
+    {
+      id: 3,
+      label: '작성 중인 지원서',
+      count: applicationCount,
+      icon: FolderIcon,
+    },
+    {
+      id: 4,
+      label: '새로운 인사이트',
+      count: newInsightCount,
+      icon: InsightIcon,
+    },
+  ];
 
-export default function HomeSummaryCards({ isOnboarded, onLockedClick }: HomeSummaryCardsProps) {
   return (
     <section className="flex h-[256px] w-[1222px] flex-col rounded-[16px] bg-[#F9FAFC] px-[36px] py-[24px]">
       <h2 className="h-[32px] w-[180px] text-[24px] font-bold leading-[32px] text-[#320095]">
