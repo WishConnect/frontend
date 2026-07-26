@@ -44,6 +44,7 @@ export default function GuestCurationPage() {
     <div className="h-[1024px] w-[1440px] bg-white font-['Pretendard']">
       <Header
         searchPlaceholder="장학금 찾아보기"
+        isLoggedIn={false}
         isSearchMode={false}
         onSearch={(query) => {
           navigate(`/curation?keyword=${query}`);
