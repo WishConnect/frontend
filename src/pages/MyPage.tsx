@@ -11,6 +11,9 @@ import logOutIcon1 from '../assets/lucide/log-out-1.svg';
 import chevronRightIcon from '../assets/icons/chevron.right.svg';
 import LeftSidebar from '../components/LeftSidebar';
 import Header from '../components/common/Header/Header';
+import { useUserStore } from '../store/user/user';
+import { tokenStorage } from '../utils/token';
+import { logout } from '../api/login/auth';
 import { getMyProfile } from '../api/onboarding/profile';
 import type { FullProfile } from '../types/onboarding/profile';
 
@@ -82,6 +85,22 @@ export default function MyPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const clearUser = useUserStore((s) => s.clearUser);
+
+  // 로그아웃: 서버에 refreshToken 폐기 요청(accessToken 필요) → 전역 유저 상태 초기화
+  // → 저장된 토큰 삭제 → 로그인 페이지로 이동.
+  // 서버 요청이 실패(토큰 만료 등)해도 클라이언트 로그아웃은 그대로 진행한다.
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch {
+      // 서버 로그아웃 실패는 무시하고 클라이언트 정리는 계속 진행
+    } finally {
+      clearUser();
+      tokenStorage.clearTokens();
+      navigate('/login');
+    }
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -253,7 +272,11 @@ export default function MyPage() {
                     계정관리
                   </h2>
                   <div className="flex w-full flex-col gap-4">
-                    <button type="button" className="flex w-full items-center justify-between">
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between"
+                      onClick={handleLogout}
+                    >
                       <div className="flex items-center gap-6">
                         <img src={logOutIcon} alt="" className="size-8" />
                         <span
