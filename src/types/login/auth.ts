@@ -21,12 +21,28 @@ export interface LoginResponseData {
 }
 
 // 회원가입 요청 body (POST /api/v1/auth/signup)
-// 명세상 필드는 4개뿐. SignPage의 출생년도/성별/국적/거주지역/인증코드는 이 요청에 안 들어감.
+// ⚠️ Swagger 운영 명세엔 4필드로 나오지만, 배포 백엔드 실제 코드(SignupRequest.java)는
+//    gender(@NotNull)·agreements(@NotEmpty)가 필수라 4개만 보내면 400. 코드 기준으로 맞춤.
+export type Gender = 'FEMALE' | 'MALE' | 'NONE'; // 여성/남성/선택안함
+export type Nationality = 'DOMESTIC' | 'FOREIGN'; // 내국인/외국인
+export type AgreementType = 'TERMS' | 'PRIVACY' | 'THIRD_PARTY' | 'AGE_14';
+
+// 약관 동의 항목. JSON 필드명은 isAgreed(백엔드 @JsonProperty).
+export interface AgreementItem {
+  type: AgreementType;
+  isAgreed: boolean;
+}
+
 export interface SignupRequest {
-  email: string;
-  password: string;
-  name: string;
-  phone: string; // 예: "010-1234-5678"
+  email: string; // 필수
+  password: string; // 필수. 8~20자, 영/숫/특 3종 이상, 공백·이메일동일 불가
+  name: string; // 필수
+  phone: string; // 필수. 예: "010-1234-5678"
+  gender: Gender; // 필수(@NotNull)
+  agreements: AgreementItem[]; // 필수(@NotEmpty, 최소 1개)
+  birthYear?: number; // 선택
+  nationality?: Nationality; // 선택
+  region?: string; // 선택
 }
 
 // 회원가입 성공 시 data 필드 (201). 로그인과 달리 user 객체가 없고 userId만 옴.
