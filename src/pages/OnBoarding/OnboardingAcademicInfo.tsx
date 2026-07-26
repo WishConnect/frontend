@@ -1,15 +1,12 @@
-import { useState, type ReactNode, type ChangeEvent } from 'react';
+import { useState, useEffect, type ReactNode, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.svg';
 import capIcon from '../../assets/onboarding/graduation-cap.svg';
 import helpIcon from '../../assets/onboarding/circle-question-mark.svg';
 import searchIcon from '../../assets/onboarding/magnifyingglass.svg';
 import clockIcon from '../../assets/onboarding/clock.svg';
-
-// 피그마(node-id 382-387) get_design_context 기준 실제 토큰
-// Text Colors/H1: #0A0C11 · H2: #555964 · H3: #747883 · Disabled: #9DA1AC
-// Sub Colors/accent_red: #FA5862 · Primary/purple: #7962ED · purple_deep: #320095
-// Gray/50: #F9FAFC · Gray/100: #F3F4F6 · Gray/200: #E6E7EB
+import { putAcademicProfile, searchUniversities, searchMajors } from '../../api/onboarding/profile';
+import type { University, Major } from '../../types/onboarding/profile';
 
 function CloseIcon() {
   return (
@@ -28,9 +25,6 @@ function CloseIcon() {
   );
 }
 
-// 도움말 모드에서 특정 필드를 가리키는 말풍선.
-// top/left/width 값은 피그마 절대좌표(1440px 기준) 그대로 사용 — 페이지 레이아웃이
-// 같은 좌표계를 따르도록 맞춰뒀기 때문에 그대로 넣으면 필드 위치에 맞게 배치돼요.
 function HelpBubble({
   top,
   left,
@@ -125,9 +119,6 @@ const HELP_BUBBLES = [
   },
 ];
 
-// ------------------------------------------------------------------
-// 지금은 하드코딩된 임의 옵션이지만, 추후 학교/학과 API 응답으로 교체하면 됩니다.
-// ------------------------------------------------------------------
 const MAJOR_CATEGORY_OPTIONS: string[] = [
   '인문계열',
   '사회계열',
@@ -177,6 +168,13 @@ const STEPS = [
   { step: 2, label: '가구 정보 & 관심사' },
   { step: 3, label: '완료' },
 ];
+
+function getDualMajorLabel(doubleMajor: boolean, minorMajor: boolean): string {
+  if (doubleMajor && minorMajor) return '복수전공,부전공';
+  if (doubleMajor) return '복수전공';
+  if (minorMajor) return '부전공';
+  return '';
+}
 
 // ------------------------------------------------------------------
 // 아이콘
@@ -345,6 +343,36 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
 }
 
 // ------------------------------------------------------------------
+// 검색 드롭다운 공통 컴포넌트 (학교/전공 공용)
+// ------------------------------------------------------------------
+function SearchDropdown<T extends { id: number; name: string }>({
+  items,
+  onSelect,
+  renderSubtext,
+}: {
+  items: T[];
+  onSelect: (item: T) => void;
+  renderSubtext: (item: T) => string;
+}) {
+  return (
+    <ul className="absolute top-full z-40 mt-2 max-h-60 w-full overflow-y-auto rounded-lg bg-white shadow-[0_8px_24px_rgba(16,19,26,0.16)]">
+      {items.map((item) => (
+        <li key={item.id}>
+          <button
+            type="button"
+            onClick={() => onSelect(item)}
+            className="flex w-full flex-col items-start px-6 py-3 text-left hover:bg-[#F9FAFC]"
+          >
+            <span className="text-[16px] font-medium text-[#0A0C11]">{item.name}</span>
+            <span className="text-[12px] text-[#9DA1AC]">{renderSubtext(item)}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// ------------------------------------------------------------------
 // 메인 컴포넌트
 // ------------------------------------------------------------------
 export default function OnboardingAcademicInfo() {
@@ -353,21 +381,106 @@ export default function OnboardingAcademicInfo() {
   const [doubleMajor, setDoubleMajor] = useState(false);
   const [minorMajor, setMinorMajor] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // 학교 검색 자동완성
+  const [universityResults, setUniversityResults] = useState<University[]>([]);
+  const [showUniversityDropdown, setShowUniversityDropdown] = useState(false);
+
+  // 전공명 검색 자동완성
+  const [majorResults, setMajorResults] = useState<Major[]>([]);
+  const [showMajorDropdown, setShowMajorDropdown] = useState(false);
 
   const updateField =
     (field: keyof AcademicForm) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
     };
 
+  // 학교명 입력 → 0.3초 디바운스 후 검색
+  useEffect(() => {
+    const keyword = form.school.trim();
+    if (!keyword) {
+      setUniversityResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await searchUniversities(keyword);
+        setUniversityResults(res.data.data);
+        setShowUniversityDropdown(true);
+      } catch (err) {
+        console.error('학교 검색 실패:', err);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [form.school]);
+
+  // 전공명 입력 → 0.3초 디바운스 후 검색
+  useEffect(() => {
+    const keyword = form.majorName.trim();
+    if (!keyword) {
+      setMajorResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await searchMajors(keyword);
+        setMajorResults(res.data.data);
+        setShowMajorDropdown(true);
+      } catch (err) {
+        console.error('전공 검색 실패:', err);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [form.majorName]);
+
+  const handleSelectUniversity = (uni: University) => {
+    setForm((prev) => ({ ...prev, school: uni.name }));
+    setShowUniversityDropdown(false);
+    setUniversityResults([]);
+  };
+
+  // 디자인상 "전공 분류"는 별도 셀렉트로 유지 — 검색 결과 선택 시 majorName만 채움
+  const handleSelectMajor = (major: Major) => {
+    setForm((prev) => ({ ...prev, majorName: major.name }));
+    setShowMajorDropdown(false);
+    setMajorResults([]);
+  };
+
   const handlePrev = () => {
     // 진입 페이지라 이전 단계가 없음 — 필요 시 홈 등으로 변경
     navigate(-1);
   };
 
-  const handleNext = () => {
-    // TODO: 폼 유효성 검사
-    console.log('학적 정보:', form, { doubleMajor, minorMajor });
-    navigate('/onboarding/household');
+  const handleNext = async () => {
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const res = await putAcademicProfile({
+        university: form.school,
+        majorCategory: form.majorCategory,
+        majorName: form.majorName,
+        enrollmentStatus: form.enrollmentStatus,
+        grade: form.gradeSemester,
+        semesterGpa: Number(form.lastSemesterGpa),
+        cumulativeGpa: Number(form.cumulativeGpa),
+        dualMajor: getDualMajorLabel(doubleMajor, minorMajor),
+      });
+
+      console.log('학적 정보 저장 성공:', res.data.data);
+      navigate('/onboarding/household');
+    } catch (err) {
+      console.error('학적 정보 저장 실패:', err);
+      setSubmitError('학적 정보 저장에 실패했어요. 다시 시도해 주세요.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -434,17 +547,26 @@ export default function OnboardingAcademicInfo() {
             {/* 폼 필드 */}
             <div className="mt-20 flex w-full flex-col gap-12">
               {/* 소속 학교 */}
-              <div className="flex flex-col gap-2">
+              <div className="relative flex flex-col gap-2">
                 <FieldLabel required>소속 학교</FieldLabel>
                 <div className="flex w-full items-center gap-3 rounded-lg bg-[#F9FAFC] py-3 pl-6 pr-3">
                   <input
                     value={form.school}
                     onChange={updateField('school')}
+                    onFocus={() => form.school.trim() && setShowUniversityDropdown(true)}
                     placeholder="학교명을 입력해 주세요"
                     className="w-full flex-1 bg-transparent text-[16px] font-medium leading-6 text-[#0A0C11] placeholder:text-[#9DA1AC] focus:outline-none"
                   />
                   <img src={searchIcon} alt="" className="size-[22px] shrink-0" />
                 </div>
+
+                {showUniversityDropdown && universityResults.length > 0 && (
+                  <SearchDropdown
+                    items={universityResults}
+                    onSelect={handleSelectUniversity}
+                    renderSubtext={(uni) => uni.region}
+                  />
+                )}
               </div>
 
               {/* 전공 분류 / 전공명 */}
@@ -458,13 +580,21 @@ export default function OnboardingAcademicInfo() {
                     options={MAJOR_CATEGORY_OPTIONS}
                   />
                 </div>
-                <div className="flex flex-1 flex-col gap-2">
+                <div className="relative flex flex-1 flex-col gap-2">
                   <FieldLabel required>전공명</FieldLabel>
                   <TextField
                     value={form.majorName}
                     onChange={updateField('majorName')}
                     placeholder="전공명을 입력해 주세요"
                   />
+
+                  {showMajorDropdown && majorResults.length > 0 && (
+                    <SearchDropdown
+                      items={majorResults}
+                      onSelect={handleSelectMajor}
+                      renderSubtext={(major) => major.category}
+                    />
+                  )}
                 </div>
               </div>
 
@@ -564,6 +694,13 @@ export default function OnboardingAcademicInfo() {
               </div>
             </div>
 
+            {/* 제출 에러 메시지 */}
+            {submitError && (
+              <p className="mt-6 text-right text-[14px] font-medium leading-5 text-[#FA5862]">
+                {submitError}
+              </p>
+            )}
+
             {/* 하단 버튼 */}
             <div className="mt-24 flex w-full items-center justify-end gap-4">
               <button
@@ -578,13 +715,15 @@ export default function OnboardingAcademicInfo() {
               <button
                 type="button"
                 onClick={handleNext}
+                disabled={isSubmitting}
                 style={{
                   backgroundImage:
                     'linear-gradient(115.029deg, rgb(121, 98, 237) 30.662%, rgb(189, 185, 249) 105.21%)',
+                  opacity: isSubmitting ? 0.6 : 1,
                 }}
                 className="flex items-center gap-4 rounded-lg py-4 pl-8 pr-4 text-[20px] font-medium leading-7 tracking-[-0.1px] text-white"
               >
-                다음 단계로
+                {isSubmitting ? '저장 중...' : '다음 단계로'}
                 <ChevronRightIcon />
               </button>
             </div>
