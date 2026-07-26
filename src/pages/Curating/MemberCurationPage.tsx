@@ -9,11 +9,8 @@ import Header from '../../components/common/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar';
 import UpdateRight from '../../assets/icons/UpdateRight.svg';
 
-interface MemberCurationPageProps {
-  isLoggedIn: boolean;
-}
-
-export default function MemberCurationPage({ isLoggedIn }: MemberCurationPageProps) {
+// 헤더의 로그인/비로그인 표시는 Header가 유저 스토어를 보고 처리하므로 isLoggedIn을 넘기지 않음
+export default function MemberCurationPage() {
   const { member, schoolScholarships, recruitingScholarships } = memberCurationMock;
 
   const [recommendedScholarships, setRecommendedScholarships] = useState(
@@ -49,7 +46,6 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
     <div className="h-[1024px] w-[1440px] bg-white font-['Pretendard']">
       <Header
         searchPlaceholder="장학금 찾아보기"
-        isLoggedIn={isLoggedIn}
         isSearchMode={false}
         onSearch={(query) => {
           navigate(`/curation?keyword=${query}`);

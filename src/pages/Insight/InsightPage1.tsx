@@ -118,7 +118,6 @@ export default function InsightPage1() {
     <div className="relative h-[1024px] w-[1440px] bg-white font-['Pretendard']">
       <Header
         searchPlaceholder="장학금 찾아보기"
-        isLoggedIn={true}
         isSearchMode={false}
         onSearch={(query) => {
           setSearchQuery(query);

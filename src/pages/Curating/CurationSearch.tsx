@@ -11,10 +11,10 @@ type SortOption = '마감 임박순' | '최신순' | '높은 금액순' | '저�
 
 interface CurationSearchPageProps {
   query: string;
-  isLoggedIn: boolean;
 }
 
-export default function CurationSearchPage({ query, isLoggedIn }: CurationSearchPageProps) {
+// 헤더의 로그인/비로그인 표시는 Header가 유저 스토어를 보고 처리하므로 isLoggedIn을 넘기지 않음
+export default function CurationSearchPage({ query }: CurationSearchPageProps) {
   const [sortOption, setSortOption] = useState<SortOption>('마감 임박순');
   const [isSortOpen, setIsSortOpen] = useState(false);
   const navigate = useNavigate();
@@ -73,7 +73,6 @@ export default function CurationSearchPage({ query, isLoggedIn }: CurationSearch
     <div className="h-[1024px] w-[1440px] bg-white font-['Pretendard']">
       <Header
         searchPlaceholder={query || '장학금 찾아보기'}
-        isLoggedIn={isLoggedIn}
         isSearchMode={false}
         onSearch={(nextQuery) => {
           const trimmedQuery = nextQuery.trim();
