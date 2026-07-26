@@ -22,3 +22,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code / 내부 문서 (커밋 제외)
+CLAUDE.md
+docs/
+.claude/
+.agents/
+
+# MCP 설정 (Figma 토큰 등 민감정보 포함, 커밋 제외)
+.mcp.json
+
+.env

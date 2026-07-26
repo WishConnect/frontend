@@ -1,0 +1,127 @@
+import Button from '../Button/Button';
+import ButtonGroup from '../Button/ButtonGroup';
+import ChevronRight from '../../assets/icons/ChevronRight';
+import ScrapDisable from '../../assets/icons/ScrapDiasbled.svg';
+import Scrap from '../../assets/icons/Scrap.svg';
+import DdayStatus from '../DdayStatus';
+
+import type { CuratedFeaturedScholarship } from '../../types/Curation/Curated';
+
+interface RecommendCardProps {
+  scholarship: CuratedFeaturedScholarship;
+  onDetailClick: () => void;
+  onScrapClick: (scholarshipId: number) => void;
+  isScrapLoading?: boolean;
+}
+
+export default function RecommendCard({
+  scholarship,
+  onDetailClick,
+  onScrapClick,
+  isScrapLoading = false,
+}: RecommendCardProps) {
+  const isScrapped = scholarship.isScrapped;
+  const tags = scholarship.tags ?? [];
+  const matchReasons = scholarship.matchReasons ?? [];
+
+  return (
+    <div className="flex h-[528px] w-[1043px] gap-[32px] rounded-[16px] pl-[56px] shadow-[0px_4px_20px_0px_rgba(0,0,0,0.1)]">
+      <div className="flex h-[528px] w-[410px] flex-col pt-[48px] pb-[42px]">
+        <DdayStatus days={scholarship.dDay ?? 0} />
+
+        <h2 className="mt-[24px] text-[28px] font-bold leading-[36px] text-[#10131A]">
+          {scholarship.title}
+        </h2>
+
+        {tags.length > 0 && (
+          <div className="mt-[12px] flex flex-wrap gap-[8px]">
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-[16px] px-[10px] py-[4px] text-[12px] font-medium leading-[16px] text-[#747883] shadow-[inset_0_0_0_0.781px_#9DA1AC]"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <p className="mt-[24px] text-[16px] font-semibold leading-[24px] text-[#555964]">
+          {scholarship.maxAmount ?? '금액 정보 없음'} |{' '}
+          {scholarship.deadline ? `${scholarship.deadline} 마감` : '마감일 정보 없음'}
+        </p>
+
+        <p className="mt-[4px] text-[16px] font-medium leading-[24px] text-[#555964]">
+          {scholarship.organization}
+        </p>
+
+        <div className="mt-[20px] h-px w-full bg-[#D2D4DA]" />
+
+        <h3 className="mt-[16px] text-[18px] font-bold leading-[28px] text-[#10131A]">
+          이 장학금을 추천하는 이유
+        </h3>
+
+        <div className="mt-[12px] flex flex-col gap-[8px]">
+          {matchReasons.length > 0 ? (
+            matchReasons.map((reason) => (
+              <span key={reason} className="text-[14px] font-medium leading-[20px] text-[#555964]">
+                ✓ {reason}
+              </span>
+            ))
+          ) : (
+            <span className="text-[14px] font-medium leading-[20px] text-[#747883]">
+              프로필 정보를 추가하면 더 정확한 추천 이유를 확인할 수 있어요.
+            </span>
+          )}
+        </div>
+
+        <ButtonGroup className="mt-[32px]">
+          <Button
+            size="md"
+            variant="primary"
+            weight="medium"
+            width="148px"
+            iconGap={16}
+            paddingLeft="32px"
+            paddingRight="16px"
+            rightIcon={<ChevronRight />}
+            onClick={onDetailClick}
+          >
+            상세보기
+          </Button>
+
+          <Button
+            size="md"
+            variant={isScrapped ? 'primary' : 'inactive'}
+            weight="medium"
+            width="148px"
+            paddingLeft="32px"
+            paddingRight="32px"
+            iconGap={13}
+            disabled={isScrapLoading}
+            leftIcon={
+              <img src={isScrapped ? Scrap : ScrapDisable} alt="" className="h-[17px] w-[14px]" />
+            }
+            onClick={() => {
+              onScrapClick(scholarship.scholarshipId);
+            }}
+          >
+            {isScrapLoading ? '처리 중' : isScrapped ? '스크랩' : '스크랩'}
+          </Button>
+        </ButtonGroup>
+      </div>
+
+      {scholarship.thumbnailUrl ? (
+        <img
+          src={scholarship.thumbnailUrl}
+          alt={scholarship.title}
+          className="h-[528px] w-[545px] rounded-r-[16px] object-cover"
+        />
+      ) : (
+        <div className="flex h-[528px] w-[545px] items-center justify-center rounded-r-[16px] bg-[#F3F4F6] text-[16px] font-medium text-[#747883]">
+          등록된 이미지가 없습니다.
+        </div>
+      )}
+    </div>
+  );
+}
