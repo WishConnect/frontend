@@ -11,6 +11,8 @@ import logOutIcon1 from '../assets/lucide/log-out-1.svg';
 import chevronRightIcon from '../assets/icons/chevron.right.svg';
 import LeftSidebar from '../components/LeftSidebar';
 import Header from '../components/common/Header/Header';
+import { useUserStore } from '../store/user/user';
+import { tokenStorage } from '../utils/token';
 
 
 // 지금은 하드코딩된 기본값이지만, 추후 로그인/API 응답으로 이 객체를 채우면 됩니다.
@@ -47,6 +49,14 @@ export default function MyPage() {
   // 지금은 DEFAULT_USER_PROFILE로 초기화해서 화면에 표시합니다.
   const [userProfile, setUserProfile] = useState(DEFAULT_USER_PROFILE);
   const navigate = useNavigate();
+  const clearUser = useUserStore((s) => s.clearUser);
+
+  // 로그아웃: 전역 유저 상태 초기화 + 저장된 토큰 삭제 후 로그인 페이지로 이동.
+  const handleLogout = () => {
+    clearUser();
+    tokenStorage.clearTokens();
+    navigate('/login');
+  };
 
   return (
     <div className="relative left-1/2 w-[1440px] -ml-[50vw] h-[1024px] bg-white text-left font-['Pretendard',sans-serif]">
@@ -200,13 +210,14 @@ export default function MyPage() {
                     계정관리
                   </h2>
                   <div className="flex w-full flex-col gap-4">
-                    <button type="button" className="flex w-full items-center justify-between">
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between"
+                      onClick={handleLogout}
+                    >
                       <div className="flex items-center gap-6">
                         <img src={logOutIcon} alt="" className="size-8" />
-                        <span 
-                          className="text-[16px] font-medium leading-6 text-[#747883]"
-                          onClick={() => navigate('/login')}
-                          >
+                        <span className="text-[16px] font-medium leading-6 text-[#747883]">
                           로그아웃
                         </span>
                       </div>
