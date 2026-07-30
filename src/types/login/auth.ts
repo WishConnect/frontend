@@ -58,16 +58,33 @@ export interface TokenRefreshResponseData {
   refreshToken: string;
 }
 
-// 소셜 로그인 요청 body (카카오/구글 공통). 프론트가 받은 인가코드를 서버로 전달.
-export interface SocialLoginRequest {
+// 소셜 로그인 요청 body의 공통 부분: 제공자에게 받은 인가코드.
+interface SocialLoginBase {
   code: string;
 }
 
+// 소셜 로그인 요청 body (카카오/구글 공통). 프론트가 받은 인가코드를 서버로 전달.
+// redirectUri: 인가코드를 받을 때 사용한 콜백 주소. OAuth 규약상 서버가 토큰 교환 시 보내는 값이
+//   인가 시점의 값과 완전히 같아야 하는데, 서버 기본값은 운영 도메인이라 로컬에선 어긋난다.
+//   그래서 프론트가 자기가 쓴 값을 함께 보낸다(서버가 허용목록과 대조 후 사용, 아니면 400).
+//   백엔드는 선택 필드로 두었지만(미전송 시 서버 기본값), 로컬/배포 모두 항상 보내는 게 맞아 필수로 둔다.
+export interface SocialLoginRequest extends SocialLoginBase {
+  redirectUri: string;
+}
+
+// 네이버만 인가코드와 함께 state를 요구한다 (백엔드 NaverLoginRequest.java: record(code, state)).
+// state는 CSRF 방지용 랜덤값으로, 프론트가 인가 URL 생성 시 만들어 콜백에서 되돌려받은 값을 그대로 전달.
+// 네이버는 토큰 교환에 redirect_uri를 쓰지 않아(NaverApiClient) redirectUri를 보내지 않는다.
+export interface NaverLoginRequest extends SocialLoginBase {
+  state: string;
+}
+
 // 소셜 로그인 응답 안의 user 객체 (기본 User + loginType)
+// 백엔드 LoginType enum 기준: LOCAL/KAKAO/GOOGLE/NAVER 중 소셜 3종.
 export interface SocialUser {
   userId: string; // uuid
   name: string;
-  loginType: 'KAKAO' | 'GOOGLE';
+  loginType: 'KAKAO' | 'GOOGLE' | 'NAVER';
   onboardingCompleted: boolean;
 }
 
