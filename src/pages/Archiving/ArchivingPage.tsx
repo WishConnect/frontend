@@ -52,10 +52,16 @@ export default function ArchivingPage() {
         onQueryChange={isLoggedIn ? setSearchQuery : undefined}
       />
 
-      <div className="flex gap-8 px-16 py-6">
-        <LeftSidebar activeId="archiving" />
+      {/* 사이드바 + 본문. 폭 합계를 페이지 폭(1440px)에 정확히 맞춘다: 64 + 237 + 32 + 1043 + 64.
+          합계가 넘치면 flex가 사이드바까지 같이 줄여서 큐레이팅/인사이트와 폭이 어긋나므로,
+          shrink-0으로 사이드바 폭을 고정하고 본문 폭을 남는 값(1043px)으로 명시한다.
+          상단 패딩은 두지 않는다(헤더 80px 바로 아래 시작 = 다른 페이지와 동일 기준선). */}
+      <div className="flex gap-8 px-16 pb-6">
+        <div className="h-[896px] w-[237px] shrink-0 self-start">
+          <LeftSidebar activeId="archiving" />
+        </div>
 
-        <main className="flex w-[1139px] flex-col gap-8">
+        <main className="flex w-[1043px] flex-col gap-8">
           <div className="flex flex-col gap-2">
             <h1 className="text-[40px] font-bold leading-[52px] tracking-[-0.02em] text-[#10131A]">아카이빙</h1>
             <p className="text-base font-medium text-[#555964]">
