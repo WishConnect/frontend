@@ -1,3 +1,5 @@
+import type { MouseEvent } from 'react';
+
 import Button from '../Button/Button';
 import ButtonGroup from '../Button/ButtonGroup';
 import ChevronRight from '../../assets/icons/ChevronRight';
@@ -11,6 +13,8 @@ interface RecommendCardProps {
   scholarship: CuratedFeaturedScholarship;
   onDetailClick: () => void;
   onScrapClick: (scholarshipId: number) => void;
+  onPrev: () => void;
+  onNext: () => void;
   isScrapLoading?: boolean;
 }
 
@@ -18,14 +22,38 @@ export default function RecommendCard({
   scholarship,
   onDetailClick,
   onScrapClick,
+  onPrev,
+  onNext,
   isScrapLoading = false,
 }: RecommendCardProps) {
   const isScrapped = scholarship.isScrapped;
   const tags = scholarship.tags ?? [];
   const matchReasons = scholarship.matchReasons ?? [];
 
+  const handleCardClick = (event: MouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+
+    // 상세보기·스크랩 버튼 클릭 시에는 캐러셀을 이동하지 않음
+    if (target.closest('button, a')) {
+      return;
+    }
+
+    const cardRect = event.currentTarget.getBoundingClientRect();
+    const cardCenterX = cardRect.left + cardRect.width / 2;
+
+    if (event.clientX < cardCenterX) {
+      onPrev();
+      return;
+    }
+
+    onNext();
+  };
+
   return (
-    <div className="flex h-[528px] w-[1043px] gap-[32px] rounded-[16px] pl-[56px] shadow-[0px_4px_20px_0px_rgba(0,0,0,0.1)]">
+    <div
+      onClick={handleCardClick}
+      className="flex h-[528px] w-[1043px] gap-[32px] rounded-[16px] pl-[56px] shadow-[0px_4px_20px_0px_rgba(0,0,0,0.1)]"
+    >
       <div className="flex h-[528px] w-[410px] flex-col pt-[48px] pb-[42px]">
         <DdayStatus days={scholarship.dDay ?? 0} />
 
@@ -62,17 +90,11 @@ export default function RecommendCard({
         </h3>
 
         <div className="mt-[12px] flex flex-col gap-[8px]">
-          {matchReasons.length > 0 ? (
-            matchReasons.map((reason) => (
-              <span key={reason} className="text-[14px] font-medium leading-[20px] text-[#555964]">
-                ✓ {reason}
-              </span>
-            ))
-          ) : (
-            <span className="text-[14px] font-medium leading-[20px] text-[#747883]">
-              프로필 정보를 추가하면 더 정확한 추천 이유를 확인할 수 있어요.
+          {matchReasons.map((reason) => (
+            <span key={reason} className="text-[14px] font-medium leading-[20px] text-[#555964]">
+              ✓ {reason}
             </span>
-          )}
+          ))}
         </div>
 
         <ButtonGroup className="mt-[32px]">
@@ -106,7 +128,7 @@ export default function RecommendCard({
               onScrapClick(scholarship.scholarshipId);
             }}
           >
-            {isScrapLoading ? '처리 중' : isScrapped ? '스크랩' : '스크랩'}
+            {isScrapLoading ? '처리 중' : '스크랩'}
           </Button>
         </ButtonGroup>
       </div>

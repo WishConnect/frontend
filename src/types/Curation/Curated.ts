@@ -57,9 +57,10 @@ export interface CuratedScholarshipParams {
 }
 
 export interface CuratedScholarshipResponse {
-  featured: CuratedFeaturedScholarship | null;
+  featured: CuratedFeaturedScholarship[];
   profileCompletionRate: number;
   campusScholarships: CuratedCampusScholarship[];
   otherScholarships: CuratedOtherScholarship[];
+  ineligibleScholarships: CuratedOtherScholarship[];
   pagination: Pagination;
 }
