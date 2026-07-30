@@ -287,7 +287,7 @@ export default function InsightPage1() {
 
           {/* 검색 전 화면의 기존 오른쪽 영역 */}
           {!isSearchResult && (
-            <aside className="mt-[144px] w-[237px] shrink-0">
+            <aside className={`w-[237px] shrink-0 ${isSearchResult ? 'mt-[144px]' : 'mt-[128px]'}`}>
               <section className="flex flex-col gap-3">
                 {/* 출처 */}
                 <div className="relative">
@@ -404,7 +404,7 @@ export default function InsightPage1() {
               {/* 참고하면 좋아요 */}
               <section className="mt-4 h-[52px] w-[237px] rounded-2xl border border-[#D2D4DA]">
                 <div className="mt-[16px] ml-[21px] flex w-[237px] items-center gap-[61px]">
-                  <img src={LightIcon} alt="참고하면 좋아요" className="h-5 w-[127px]" />
+                  <img src={LightIcon} alt="참고하면 좋아요" />
 
                   <button type="button" onClick={() => navigate('/insight/reference')}>
                     <img src={Right} alt="이동" className="h-[14px] w-[9px]" />
