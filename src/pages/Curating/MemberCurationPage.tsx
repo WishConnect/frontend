@@ -6,6 +6,7 @@ import SchoolSection from '../../components/Curation/SchoolSection';
 import RecruitingSection from '../../components/Curation/RecruitingSection';
 import LockedSection from '../../components/Curation/Locked';
 import Header from '../../components/common/Header/Header';
+import DotIndicator from '../../components/common/Pagination/DotIndicator';
 import LeftSidebar from '../../components/LeftSidebar';
 
 import UpdateRight from '../../assets/icons/UpdateRight.svg';
@@ -30,7 +31,11 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
 
   const user = useUserStore((state) => state.user);
 
-  const [featured, setFeatured] = useState<CuratedFeaturedScholarship | null>(null);
+  const [featuredScholarships, setFeaturedScholarships] = useState<CuratedFeaturedScholarship[]>(
+    [],
+  );
+
+  const [currentFeaturedIndex, setCurrentFeaturedIndex] = useState(0);
 
   const [profileCompletionRate, setProfileCompletionRate] = useState(0);
 
@@ -38,13 +43,18 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
 
   const [otherScholarships, setOtherScholarships] = useState<CuratedOtherScholarship[]>([]);
 
+  const [ineligibleScholarships, setIneligibleScholarships] = useState<CuratedOtherScholarship[]>(
+    [],
+  );
+
   const [isLoading, setIsLoading] = useState(false);
   const [isScrapLoading, setIsScrapLoading] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState('');
 
-  const isOnboarded = Boolean(user?.onboardingCompleted);
+  const featured = featuredScholarships[currentFeaturedIndex] ?? null;
 
+  const isOnboarded = Boolean(user?.onboardingCompleted);
   const isLocked = !isOnboarded;
 
   useEffect(() => {
@@ -63,19 +73,24 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
 
         if (isCancelled) return;
 
-        setFeatured(data.featured);
+        setFeaturedScholarships(data.featured ?? []);
+        setCurrentFeaturedIndex(0);
+
         setProfileCompletionRate(data.profileCompletionRate);
         setCampusScholarships(data.campusScholarships ?? []);
         setOtherScholarships(data.otherScholarships ?? []);
+        setIneligibleScholarships(data.ineligibleScholarships ?? []);
       } catch (error) {
         if (isCancelled) return;
 
         console.error('맞춤 장학금 조회 실패:', error);
 
-        setFeatured(null);
+        setFeaturedScholarships([]);
+        setCurrentFeaturedIndex(0);
         setProfileCompletionRate(0);
         setCampusScholarships([]);
         setOtherScholarships([]);
+        setIneligibleScholarships([]);
 
         setErrorMessage(
           error instanceof Error ? error.message : '맞춤 장학금을 불러오지 못했습니다.',
@@ -93,6 +108,27 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
       isCancelled = true;
     };
   }, [location.key]);
+
+  const handleFeaturedPrev = () => {
+    if (featuredScholarships.length <= 1) {
+      return;
+    }
+
+    setCurrentFeaturedIndex((prev) => (prev === 0 ? featuredScholarships.length - 1 : prev - 1));
+  };
+
+  const handleFeaturedNext = () => {
+    if (featuredScholarships.length <= 1) {
+      return;
+    }
+
+    setCurrentFeaturedIndex((prev) => (prev === featuredScholarships.length - 1 ? 0 : prev + 1));
+  };
+
+  const handleFeaturedDotClick = (index: number) => {
+    setCurrentFeaturedIndex(index - 1);
+  };
+
   const handleScholarshipDetailClick = (scholarshipId: number) => {
     navigate(`/curation/${scholarshipId}`, {
       state: {
@@ -100,31 +136,43 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
       },
     });
   };
+
   const handleDetailClick = () => {
     if (!featured) return;
 
     handleScholarshipDetailClick(featured.scholarshipId);
   };
+
   const handleScrapClick = async (scholarshipId: number) => {
-    if (!featured || isScrapLoading) {
+    if (isScrapLoading) {
+      return;
+    }
+
+    const targetScholarship = featuredScholarships.find(
+      (scholarship) => scholarship.scholarshipId === scholarshipId,
+    );
+
+    if (!targetScholarship) {
       return;
     }
 
     try {
       setIsScrapLoading(true);
 
-      const result = featured.isScrapped
+      const result = targetScholarship.isScrapped
         ? await unscrapScholarship(scholarshipId)
         : await scrapScholarship(scholarshipId);
 
-      setFeatured((prev) => {
-        if (!prev) return prev;
-
-        return {
-          ...prev,
-          isScrapped: result.scrapped,
-        };
-      });
+      setFeaturedScholarships((prev) =>
+        prev.map((scholarship) =>
+          scholarship.scholarshipId === scholarshipId
+            ? {
+                ...scholarship,
+                isScrapped: result.scrapped,
+              }
+            : scholarship,
+        ),
+      );
     } catch (error) {
       console.error('추천 장학금 스크랩 변경 실패:', error);
 
@@ -220,19 +268,33 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
               </div>
             )}
 
-            {!isLoading && !errorMessage && !featured && (
+            {!isLoading && !errorMessage && featuredScholarships.length === 0 && (
               <div className="flex h-[528px] items-center justify-center text-[16px] font-medium text-[#747883]">
                 아직 추천할 장학금이 없어요.
               </div>
             )}
 
             {!isLoading && !errorMessage && featured && (
-              <RecommendCard
-                scholarship={featured}
-                onDetailClick={handleDetailClick}
-                onScrapClick={handleScrapClick}
-                isScrapLoading={isScrapLoading}
-              />
+              <>
+                <RecommendCard
+                  scholarship={featured}
+                  onDetailClick={handleDetailClick}
+                  onScrapClick={handleScrapClick}
+                  onPrev={handleFeaturedPrev}
+                  onNext={handleFeaturedNext}
+                  isScrapLoading={isScrapLoading}
+                />
+
+                {featuredScholarships.length > 1 && (
+                  <div className="flex justify-center">
+                    <DotIndicator
+                      total={featuredScholarships.length}
+                      current={currentFeaturedIndex + 1}
+                      onDotClick={handleFeaturedDotClick}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -267,7 +329,11 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
             </div>
 
             <LockedSection isLocked={isLocked}>
-              <RecruitingSection scholarships={otherScholarships} />
+              <RecruitingSection
+                scholarships={
+                  ineligibleScholarships.length > 0 ? ineligibleScholarships : otherScholarships
+                }
+              />
             </LockedSection>
           </div>
         </main>
