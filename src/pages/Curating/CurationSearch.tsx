@@ -187,8 +187,8 @@ export default function CurationSearchPage({ query, isLoggedIn }: CurationSearch
           <LeftSidebar activeId="curating" />
         </div>
 
-        <main className="ml-[32px] flex w-[1043px] flex-col">
-          <div className="flex items-start justify-between">
+        <main className="ml-[32px] mt-[32px] flex w-[1043px] flex-col">
+          <div className="flex items-end justify-between">
             <div>
               <h1 className="text-[40px] font-bold leading-[52px] text-[#10131A]">
                 '{query}' 검색 결과
@@ -199,7 +199,7 @@ export default function CurationSearchPage({ query, isLoggedIn }: CurationSearch
               </p>
             </div>
 
-            <div className="relative mt-[16px]">
+            <div className="relative">
               <button
                 type="button"
                 onClick={() => setIsSortOpen((prev) => !prev)}
