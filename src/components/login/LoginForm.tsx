@@ -85,10 +85,16 @@ export default function LoginForm() {
       </div>
 
       <div className="flex items-center justify-between">
+        {/* TODO: 비밀번호 재설정 화면이 아직 없어서 비워둠. 화면 생기면 연결
+            (API는 src/api/login/password.ts에 준비돼 있음) */}
         <button type="button" className="text-base font-medium text-[#747883] underline">
           아이디/비밀번호 찾기
         </button>
-        <button type="button" className="text-base font-medium text-[#747883] underline">
+        <button
+          type="button"
+          onClick={() => navigate('/sign')}
+          className="text-base font-medium text-[#747883] underline"
+        >
           회원가입
         </button>
       </div>
