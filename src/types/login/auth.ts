@@ -58,6 +58,68 @@ export interface TokenRefreshResponseData {
   refreshToken: string;
 }
 
+/* ------------------------------------------------------------------
+ * 이메일 인증 (회원가입 선행 단계)
+ * 백엔드 AuthService.signup() 첫 줄이 isVerified(email) 검사라, 아래 3단계를
+ * 통과하지 않으면 회원가입은 400 EMAIL_NOT_VERIFIED로 막힌다.
+ *   1) GET  /auth/email/check?email=       중복 확인
+ *   2) POST /auth/email/verification-code  6자리 코드 메일 발송
+ *   3) POST /auth/email/verify             코드 확인(서버가 "인증됨" 상태 30분 보관)
+ * ------------------------------------------------------------------ */
+
+// 이메일 중복 확인 응답. available=true면 가입 가능(LOCAL 기준 미가입).
+export interface EmailCheckResponseData {
+  available: boolean;
+}
+
+// 인증코드 발송 요청 body
+export interface SendVerificationCodeRequest {
+  email: string;
+}
+
+// 인증코드 발송 응답. expiresIn은 코드 유효시간(초, 서버 기본 300=5분).
+// 재발송은 60초 쿨다운이 있어 그 전에 다시 부르면 429 TOO_MANY_REQUESTS.
+export interface VerificationCodeResponseData {
+  sent: boolean;
+  expiresIn: number;
+}
+
+// 인증코드 확인 요청 body. code는 6자리 숫자 문자열.
+export interface EmailVerifyRequest {
+  email: string;
+  code: string;
+}
+
+// 인증코드 확인 응답
+export interface EmailVerifyResponseData {
+  verified: boolean;
+}
+
+/* ------------------------------------------------------------------
+ * 비밀번호 재설정 (LOCAL 계정 전용)
+ *   1) POST /auth/password/reset-request  재설정 코드 메일 발송
+ *   2) POST /auth/password/reset          코드 + 새 비밀번호로 변경
+ * ------------------------------------------------------------------ */
+
+// 재설정 코드 발송 요청 body.
+// 계정 열거(어떤 이메일이 가입돼 있는지 떠보기) 방지를 위해 서버는 미가입/소셜 계정이어도
+// 똑같이 성공 응답을 준다. 즉 응답만으로 가입 여부를 알 수 없다.
+export interface PasswordResetCodeRequest {
+  email: string;
+}
+
+// 새 비밀번호로 변경 요청 body
+export interface PasswordResetRequest {
+  email: string;
+  code: string;
+  newPassword: string; // 비밀번호 정책은 회원가입과 동일
+}
+
+// 비밀번호 변경 응답
+export interface PasswordResetResponseData {
+  reset: boolean;
+}
+
 // 소셜 로그인 요청 body의 공통 부분: 제공자에게 받은 인가코드.
 interface SocialLoginBase {
   code: string;
