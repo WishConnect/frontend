@@ -1,5 +1,10 @@
 import { useState, type ReactNode, type InputHTMLAttributes, type ChangeEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.svg';
+import { putBasicProfile } from '../api/onboarding/profile';
+import { updatePassword } from '../api/mypage/mypage';
+import { useUserStore } from '../store/user/user';
+import { tokenStorage } from '../utils/token';
 
 type Gender = 'female' | 'male' | 'none';
 type Nationality = 'domestic' | 'foreign';
@@ -101,7 +106,6 @@ function FieldLabel({ children, required }: { children: ReactNode; required?: bo
   );
 }
 
-// 공통 텍스트 인풋 (배경 #F9FAFC, 텍스트 #555964)
 interface TextInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'className'> {
   rightSlot?: ReactNode;
 }
@@ -190,20 +194,94 @@ const DEFAULT_FORM: ProfileForm = {
   region: '서울특별시 광진구',
 };
 
+// 폼의 내부 값(female/male/none, domestic/foreign)을 API가 기대하는 문자열로 변환.
+// 정확한 값 규칙은 백엔드 확인 필요 — 우선 화면에 보이는 한글 라벨 그대로 전송.
+function mapGenderToApiValue(gender: Gender): string {
+  const map: Record<Gender, string> = { female: '여성', male: '남성', none: '선택 안함' };
+  return map[gender];
+}
+
+function mapNationalityToApiValue(nationality: Nationality): string {
+  return nationality === 'domestic' ? '내국인' : '외국인';
+}
+
 export default function EditProfile() {
+  const navigate = useNavigate();
   const [form, setForm] = useState<ProfileForm>(DEFAULT_FORM);
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
   const [showNewPwConfirm, setShowNewPwConfirm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const clearUser = useUserStore((s) => s.clearUser);
 
   const updateField =
     (field: keyof ProfileForm) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
     };
 
-  const handleSubmit = () => {
-    // TODO: 실제 저장 API 연동 (라우팅 포함)
-    console.log('수정완료:', form);
+  const handleBack = () => {
+    navigate('/mypage');
+  };
+
+  const handleSubmit = async () => {
+    // 비밀번호 필드 중 하나라도 입력했다면 비밀번호 변경도 같이 진행
+    const wantsPasswordChange =
+      form.currentPassword.trim() !== '' ||
+      form.newPassword.trim() !== '' ||
+      form.newPasswordConfirm.trim() !== '';
+
+    if (wantsPasswordChange) {
+      if (
+        form.currentPassword.trim() === '' ||
+        form.newPassword.trim() === '' ||
+        form.newPasswordConfirm.trim() === ''
+      ) {
+        setSubmitError('비밀번호를 변경하려면 세 항목을 모두 입력해 주세요.');
+        return;
+      }
+      if (form.newPassword !== form.newPasswordConfirm) {
+        setSubmitError('새 비밀번호와 새 비밀번호 확인이 일치하지 않아요.');
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      // 기본 정보 저장 (이메일은 이 API에 포함되지 않음 — 별도 이메일 변경 플로우에서 처리)
+      await putBasicProfile({
+        name: form.name,
+        birthYear: form.birthYear,
+        phone: form.contact,
+        gender: mapGenderToApiValue(form.gender),
+        nationality: mapNationalityToApiValue(form.nationality),
+        region: form.region,
+      });
+
+      if (wantsPasswordChange) {
+        await updatePassword({
+          currentPassword: form.currentPassword,
+          newPassword: form.newPassword,
+          newPasswordConfirm: form.newPasswordConfirm,
+        });
+
+        // 비밀번호 변경 성공 시 서버에서 기존 refreshToken이 무효화되므로
+        // 클라이언트도 로그아웃 처리 후 재로그인 유도
+        clearUser();
+        tokenStorage.clearTokens();
+        navigate('/login');
+        return;
+      }
+
+      navigate('/mypage');
+    } catch (err) {
+      console.error('프로필 수정 실패:', err);
+      setSubmitError('저장에 실패했어요. 입력한 내용을 다시 확인해 주세요.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -397,10 +475,18 @@ export default function EditProfile() {
               </div>
             </div>
 
-            {/* 하단 버튼 — 라우팅은 추후 연결 */}
+            {/* 저장 에러 메시지 */}
+            {submitError && (
+              <p className="text-right text-[14px] font-medium leading-5 text-[#FA5862]">
+                {submitError}
+              </p>
+            )}
+
+            {/* 하단 버튼 */}
             <div className="flex w-full items-center justify-end gap-4">
               <button
                 type="button"
+                onClick={handleBack}
                 style={{ backgroundColor: '#F3F4F6', border: '1px solid transparent' }}
                 className="flex h-[60px] items-center gap-4 rounded-lg py-4 pl-4 pr-8 text-[20px] font-medium leading-7 text-[#747883]"
               >
@@ -410,10 +496,15 @@ export default function EditProfile() {
               <button
                 type="button"
                 onClick={handleSubmit}
-                style={{ backgroundColor: '#F3F4F6', border: '1px solid transparent' }}
-                className="flex h-[60px] items-center gap-4 rounded-lg px-8 py-4 text-[20px] font-bold leading-7 text-[#9DA1AC]"
+                disabled={isSubmitting}
+                style={{
+                  backgroundColor: '#7962ED',
+                  border: '1px solid #7962ED',
+                  opacity: isSubmitting ? 0.6 : 1,
+                }}
+                className="flex h-[60px] items-center gap-4 rounded-lg px-8 py-4 text-[20px] font-bold leading-7 text-white"
               >
-                수정완료
+                {isSubmitting ? '저장 중...' : '수정완료'}
                 <ChevronRightIcon />
               </button>
             </div>

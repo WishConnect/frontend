@@ -13,6 +13,9 @@ import LeftSidebar from '../components/LeftSidebar';
 import Header from '../components/common/Header/Header';
 import { useUserStore } from '../store/user/user';
 import { tokenStorage } from '../utils/token';
+// import { logout } from '../api/login/auth';
+import { getMyPageSummary } from '../api/mypage/mypage';
+import type { MyPageSummary } from '../types/mypage/mypage';
 import { logout } from '../api/login/auth';
 import { getMyProfile } from '../api/onboarding/profile';
 import type { FullProfile } from '../types/onboarding/profile';
@@ -31,11 +34,13 @@ const DEFAULT_USER_PROFILE = {
 
 type UserProfileView = typeof DEFAULT_USER_PROFILE;
 
+// "3학년" 같은 문자열에서 학년 숫자만 추출
 function extractGradeNumber(grade: string): number {
   const match = grade.match(/\d+/);
   return match ? Number(match[0]) : 0;
 }
 
+// "3분위" 같은 문자열에서 소득분위 숫자만 추출
 function extractIncomeDecile(incomeLevel: string): number {
   const match = incomeLevel.match(/\d+/);
   return match ? Number(match[0]) : 0;
@@ -43,21 +48,22 @@ function extractIncomeDecile(incomeLevel: string): number {
 
 // "생활비 지원", "해외연수 / 교환학생" 같은 관심분야 라벨을
 // "#생활비", "#해외연수" 같은 해시태그 형태로 축약
+// (정확한 표시 규칙은 디자인 확인 필요 — 우선 첫 단어만 사용)
 function toHashtag(label: string): string {
   const firstWord = label.split(/[ /]/)[0];
   return `#${firstWord}`;
 }
 
-function mapFullProfileToView(profile: FullProfile): UserProfileView {
+function mapSummaryToView(summary: MyPageSummary): UserProfileView {
   return {
-    name: profile.name,
-    birthYear: Number(profile.birthYear),
-    region: profile.region,
-    grade: extractGradeNumber(profile.academic.grade),
-    gpa: profile.academic.cumulativeGpa, // 가정: 누적학점 표시. 직전학기 학점이면 semesterGpa로 교체
+    name: summary.name,
+    birthYear: Number(summary.birthYear),
+    region: summary.region,
+    grade: extractGradeNumber(summary.recommendationCriteria.grade),
+    gpa: summary.recommendationCriteria.gpa,
     gpaMax: 4.5,
-    incomeDecile: extractIncomeDecile(profile.household.incomeLevel),
-    interests: profile.interests.map(toHashtag),
+    incomeDecile: extractIncomeDecile(summary.recommendationCriteria.incomeLevel),
+    interests: summary.recommendationCriteria.interests.map(toHashtag),
   };
 }
 
@@ -105,10 +111,10 @@ export default function MyPage() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await getMyProfile();
-        setUserProfile(mapFullProfileToView(res.data.data));
+        const res = await getMyPageSummary();
+        setUserProfile(mapSummaryToView(res.data.data));
       } catch (err) {
-        console.error('프로필 조회 실패:', err);
+        console.error('마이페이지 요약 정보 조회 실패:', err);
         setLoadError('프로필 정보를 불러오지 못했어요.');
       } finally {
         setIsLoading(false);
@@ -157,6 +163,7 @@ export default function MyPage() {
                     </h2>
                     <button
                       type="button"
+                      onClick={() => navigate('/mypage/edit')}
                       style={{ border: '1px solid #9DA1AC' }}
                       className="flex h-9 shrink-0 items-center justify-center gap-1 rounded-lg bg-white px-4 py-2 text-[14px] font-medium leading-5 text-[#555964]"
                     >
@@ -279,10 +286,7 @@ export default function MyPage() {
                     >
                       <div className="flex items-center gap-6">
                         <img src={logOutIcon} alt="" className="size-8" />
-                        <span
-                          className="text-[16px] font-medium leading-6 text-[#747883]"
-                          onClick={() => navigate('/login')}
-                        >
+                        <span className="text-[16px] font-medium leading-6 text-[#747883]">
                           로그아웃
                         </span>
                       </div>
