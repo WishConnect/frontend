@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header/Header';
 import NotificationCategoryRow from '../../components/notification-settings/NotificationCategoryRow';
@@ -7,11 +8,53 @@ import infoIcon from '../../assets/notification/info.svg';
 import giftIcon from '../../assets/notification/gift.svg';
 import chevronRightIcon from '../../assets/notification/chevron-right.svg';
 import { useNotificationSettingsStore } from '../../store/useNotificationSettingsStore';
+import { getNotificationSettings, putNotificationSettings, type NotificationSettings } from '../../api/notification/settings';
 
 // 알림 설정 페이지: Figma node 1428:4581
 export default function NotificationSettingsPage() {
   const navigate = useNavigate();
-  const { showBadge, categories, toggleBadge, toggleCategory } = useNotificationSettingsStore();
+  const { showBadge, categories, toggleBadge, toggleCategory, initSettings } = useNotificationSettingsStore();
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const data = await getNotificationSettings();
+        if (data && initSettings) {
+          initSettings(data);
+        }
+      } catch (error) {
+        console.error("알림 설정 조회 실패:", error);
+      }
+    };
+    fetchSettings();
+  }, [initSettings]);
+
+  const syncSettingsWithBackend = async (updatedFields: Partial<NotificationSettings>) => {
+    const currentSettings: NotificationSettings = {
+      notificationEnabled: showBadge,
+      matchingEnabled: categories.scholarship,
+      scheduleEnabled: categories.schedule,
+      essayEnabled: categories.writing,
+      etcEnabled: categories.etc,
+    };
+
+    const payload = { ...currentSettings, ...updatedFields };
+
+    try {
+      await putNotificationSettings(payload);
+    } catch (error) {
+      console.error("알림 설정 변경 저장 실패:", error);    }
+  };
+
+  const handleToggleBadge = async () => {
+    toggleBadge();
+    await syncSettingsWithBackend({ notificationEnabled: !showBadge });
+  };
+
+  const handleToggleCategory = async (key: 'scholarship' | 'schedule' | 'writing' | 'etc', backendKey: keyof NotificationSettings) => {
+    toggleCategory(key);
+    await syncSettingsWithBackend({ [backendKey]: !categories[key] });
+  };
 
   return (
     <div className="min-h-screen w-[1440px] bg-white">
@@ -35,7 +78,7 @@ export default function NotificationSettingsPage() {
                   <img src={infoIcon} alt="" className="size-[18px]" />
                 </div>
               </div>
-              <Toggle checked={showBadge} onChange={toggleBadge} ariaLabel="배지 아이콘 표시" />
+              <Toggle checked={showBadge} onChange={handleToggleBadge} ariaLabel="배지 아이콘 표시" />
             </div>
 
             <div className="flex flex-col gap-6 border border-[#D2D4DA] rounded-2xl p-6">
@@ -56,25 +99,25 @@ export default function NotificationSettingsPage() {
                   title="맞춤 장학금"
                   description="조건에 맞는 신규 장학금, 모집 시작 알림"
                   checked={categories.scholarship}
-                  onChange={() => toggleCategory('scholarship')}
+                  onChange={() => handleToggleCategory('scholarship', 'matchingEnabled')}
                 />
                 <NotificationCategoryRow
                   title="일정"
                   description="마감 임박, 일정 변경 등의 알림"
                   checked={categories.schedule}
-                  onChange={() => toggleCategory('schedule')}
+                  onChange={() => handleToggleCategory('schedule', 'scheduleEnabled')}
                 />
                 <NotificationCategoryRow
                   title="작성"
                   description="지원서 작성 이어 쓰기, 임시 저장 알림"
                   checked={categories.writing}
-                  onChange={() => toggleCategory('writing')}
+                  onChange={() => handleToggleCategory('writing', 'essayEnabled')}
                 />
                 <NotificationCategoryRow
                   title="기타"
                   description="공고 내용 변경, 합격 후기 등 기타 알림"
                   checked={categories.etc}
-                  onChange={() => toggleCategory('etc')}
+                  onChange={() => handleToggleCategory('etc', 'etcEnabled')}
                 />
               </div>
             </div>
