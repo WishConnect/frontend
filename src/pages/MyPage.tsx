@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import profileIcon from '../assets/profile.svg';
 import gradeIcon from '../assets/grade.svg';
@@ -11,9 +11,13 @@ import logOutIcon1 from '../assets/lucide/log-out-1.svg';
 import chevronRightIcon from '../assets/icons/chevron.right.svg';
 import LeftSidebar from '../components/LeftSidebar';
 import Header from '../components/common/Header/Header';
+import { useUserStore } from '../store/user/user';
+import { tokenStorage } from '../utils/token';
+import { logout } from '../api/login/auth';
+import { getMyProfile } from '../api/onboarding/profile';
+import type { FullProfile } from '../types/onboarding/profile';
 
-
-// 지금은 하드코딩된 기본값이지만, 추후 로그인/API 응답으로 이 객체를 채우면 됩니다.
+// API 응답을 받아오기 전/실패했을 때 보여줄 기본값
 const DEFAULT_USER_PROFILE = {
   name: '김위시',
   birthYear: 2004,
@@ -24,6 +28,38 @@ const DEFAULT_USER_PROFILE = {
   incomeDecile: 3,
   interests: ['#생활비', '#등록금', '#창업', '#IT/개발'],
 };
+
+type UserProfileView = typeof DEFAULT_USER_PROFILE;
+
+function extractGradeNumber(grade: string): number {
+  const match = grade.match(/\d+/);
+  return match ? Number(match[0]) : 0;
+}
+
+function extractIncomeDecile(incomeLevel: string): number {
+  const match = incomeLevel.match(/\d+/);
+  return match ? Number(match[0]) : 0;
+}
+
+// "생활비 지원", "해외연수 / 교환학생" 같은 관심분야 라벨을
+// "#생활비", "#해외연수" 같은 해시태그 형태로 축약
+function toHashtag(label: string): string {
+  const firstWord = label.split(/[ /]/)[0];
+  return `#${firstWord}`;
+}
+
+function mapFullProfileToView(profile: FullProfile): UserProfileView {
+  return {
+    name: profile.name,
+    birthYear: Number(profile.birthYear),
+    region: profile.region,
+    grade: extractGradeNumber(profile.academic.grade),
+    gpa: profile.academic.cumulativeGpa, // 가정: 누적학점 표시. 직전학기 학점이면 semesterGpa로 교체
+    gpaMax: 4.5,
+    incomeDecile: extractIncomeDecile(profile.household.incomeLevel),
+    interests: profile.interests.map(toHashtag),
+  };
+}
 
 function PencilIcon() {
   return (
@@ -43,24 +79,56 @@ function PencilIcon() {
 }
 
 export default function MyPage() {
-  // 나중에 로그인한 사용자의 실제 데이터로 교체될 state입니다.
-  // 지금은 DEFAULT_USER_PROFILE로 초기화해서 화면에 표시합니다.
-  const [userProfile, setUserProfile] = useState(DEFAULT_USER_PROFILE);
+  // API 응답이 오기 전까지는 기본값으로 화면을 보여주고,
+  // 응답이 오면 실제 값으로 교체
+  const [userProfile, setUserProfile] = useState<UserProfileView>(DEFAULT_USER_PROFILE);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const clearUser = useUserStore((s) => s.clearUser);
+
+  // 로그아웃: 서버에 refreshToken 폐기 요청(accessToken 필요) → 전역 유저 상태 초기화
+  // → 저장된 토큰 삭제 → 로그인 페이지로 이동.
+  // 서버 요청이 실패(토큰 만료 등)해도 클라이언트 로그아웃은 그대로 진행한다.
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch {
+      // 서버 로그아웃 실패는 무시하고 클라이언트 정리는 계속 진행
+    } finally {
+      clearUser();
+      tokenStorage.clearTokens();
+      navigate('/login');
+    }
+  };
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await getMyProfile();
+        setUserProfile(mapFullProfileToView(res.data.data));
+      } catch (err) {
+        console.error('프로필 조회 실패:', err);
+        setLoadError('프로필 정보를 불러오지 못했어요.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   return (
     <div className="relative left-1/2 w-[1440px] -ml-[50vw] h-[1024px] bg-white text-left font-['Pretendard',sans-serif]">
       <div className="mx-auto w-full">
         {/* 상단바 */}
         <header className="">
-            <Header 
-                logoOnly={true}
-            />
+          <Header logoOnly={true} />
         </header>
 
-        <div className='flex'>
-          <aside className='ml-[64px] mr-[32px]'>
-            <LeftSidebar activeId='mypage'/>
+        <div className="flex">
+          <aside className="ml-[64px] mr-[32px]">
+            <LeftSidebar activeId="mypage" />
           </aside>
 
           {/* 본문 */}
@@ -68,15 +136,19 @@ export default function MyPage() {
             <div className="flex w-full flex-col gap-[28px]">
               {/* 페이지 타이틀  */}
               <div className="flex w-full flex-col items-start gap-1">
-                <h1 className="text-[36px] font-[700] text-[#10131A]">
-                  마이페이지
-                </h1>
+                <h1 className="text-[36px] font-[700] text-[#10131A]">마이페이지</h1>
                 <p className="text-[16px] font-medium text-[#555964]">
                   내 정보를 관리하고, 맞춤 추천 기준을 확인해보세요.
                 </p>
               </div>
 
-              <div className="flex w-full flex-col gap-4">
+              {loadError && (
+                <div className="flex w-[1020px] items-center gap-2 rounded-lg bg-[#FEF2F2] px-6 py-3">
+                  <p className="text-[14px] font-medium leading-5 text-[#FA5862]">{loadError}</p>
+                </div>
+              )}
+
+              <div className={`flex w-full flex-col gap-4 ${isLoading ? 'opacity-60' : ''}`}>
                 {/* 프로필 카드 */}
                 <section className="flex w-[1020px] flex-col gap-3 rounded-2xl border border-[#D2D4DA] p-6">
                   <div className="flex w-full items-start justify-between">
@@ -200,13 +272,17 @@ export default function MyPage() {
                     계정관리
                   </h2>
                   <div className="flex w-full flex-col gap-4">
-                    <button type="button" className="flex w-full items-center justify-between">
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between"
+                      onClick={handleLogout}
+                    >
                       <div className="flex items-center gap-6">
                         <img src={logOutIcon} alt="" className="size-8" />
-                        <span 
+                        <span
                           className="text-[16px] font-medium leading-6 text-[#747883]"
                           onClick={() => navigate('/login')}
-                          >
+                        >
                           로그아웃
                         </span>
                       </div>
@@ -218,10 +294,10 @@ export default function MyPage() {
                     <button type="button" className="flex w-full items-center justify-between">
                       <div className="flex items-center gap-6">
                         <img src={logOutIcon1} alt="" className="size-8" />
-                        <span 
+                        <span
                           className="text-[16px] font-medium leading-6 text-[#747883]"
                           onClick={() => navigate('/sign')}
-                          >
+                        >
                           회원가입
                         </span>
                       </div>
@@ -236,7 +312,6 @@ export default function MyPage() {
               © 2026 WISHCONNECT. All rights reserved.
             </p>
           </main>
-
         </div>
       </div>
     </div>

@@ -8,3 +8,9 @@ export async function login(body: LoginRequest): Promise<LoginResponseData> {
   const res = await api.post<ApiResponse<LoginResponseData>>('/auth/login', body);
   return res.data.data;
 }
+
+// 서버 로그아웃. 서버(Redis)에 저장된 refreshToken을 폐기한다.
+// body 없이 accessToken만 필요(요청 인터셉터가 Bearer 자동 첨부, userId는 서버가 토큰에서 추출).
+export async function logout(): Promise<void> {
+  await api.post<ApiResponse<null>>('/auth/logout');
+}

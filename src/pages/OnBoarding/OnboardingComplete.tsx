@@ -1,7 +1,10 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.svg';
 import partyPopperIcon from '../../assets/onboarding/party-popper.svg';
 import graduationCapIcon from '../../assets/onboarding/graduation-cap.svg';
 import clockIcon from '../../assets/onboarding/clock.svg';
+import { completeOnboarding } from '../../api/onboarding/profile';
 
 const STEPS = [
   { step: 1, label: '학적 정보' },
@@ -100,6 +103,28 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
 // 메인 컴포넌트
 // ------------------------------------------------------------------
 export default function OnboardingComplete() {
+  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+
+  // 화면 진입 시 온보딩 완료 처리 API를 자동 호출.
+  // 이전 STEP1~3이 모두 저장돼 있어야 정상 동작하는 API임.
+  useEffect(() => {
+    const finishOnboarding = async () => {
+      try {
+        const res = await completeOnboarding();
+        console.log('온보딩 완료 처리 성공:', res.data.data);
+
+        // TODO: 실제 이동할 경로로 수정 필요 (예: 추천 결과 페이지)
+        navigate('/home');
+      } catch (err) {
+        console.error('온보딩 완료 처리 실패:', err);
+        setError('맞춤 추천을 준비하는 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.');
+      }
+    };
+
+    finishOnboarding();
+  }, [navigate]);
+
   return (
     <div className="relative left-1/2 w-screen -ml-[50vw] min-h-screen bg-white text-left font-['Pretendard',sans-serif]">
       <div className="mx-auto w-full max-w-[1440px]">
@@ -181,10 +206,14 @@ export default function OnboardingComplete() {
               </div>
             </div>
 
-            {/* 준비 중 텍스트 — 카드 다음, 맨 아래 */}
-            <p className="mt-[76px] text-[16px] font-medium leading-6 text-[#747883]">
-              추천 결과를 준비 중이에요...
-            </p>
+            {/* 준비 중 텍스트 / 에러 메시지 — 카드 다음, 맨 아래 */}
+            {error ? (
+              <p className="mt-[76px] text-[16px] font-medium leading-6 text-[#FA5862]">{error}</p>
+            ) : (
+              <p className="mt-[76px] text-[16px] font-medium leading-6 text-[#747883]">
+                추천 결과를 준비 중이에요...
+              </p>
+            )}
           </section>
         </main>
       </div>
