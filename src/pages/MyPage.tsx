@@ -17,8 +17,6 @@ import { tokenStorage } from '../utils/token';
 import { getMyPageSummary } from '../api/mypage/mypage';
 import type { MyPageSummary } from '../types/mypage/mypage';
 import { logout } from '../api/login/auth';
-import { getMyProfile } from '../api/onboarding/profile';
-import type { FullProfile } from '../types/onboarding/profile';
 
 // API 응답을 받아오기 전/실패했을 때 보여줄 기본값
 const DEFAULT_USER_PROFILE = {
