@@ -13,6 +13,7 @@ import OnboardingAcademicInfo from './pages/OnBoarding/OnboardingAcademicInfo';
 import OnboardingHouseholdInfo from './pages/OnBoarding/OnboardingHouseholdInfo';
 import OnboardingComplete from './pages/OnBoarding/OnboardingComplete';
 import MyPage from './pages/MyPage';
+import EditProfile from './pages/EditProfile';
 import './App.css';
 
 function App() {
@@ -51,6 +52,9 @@ function App() {
       <Route path="/onboarding/household" element={<OnboardingHouseholdInfo />} />
       {/* 온보딩 3: 완료 */}
       <Route path="/onboarding/complete" element={<OnboardingComplete />} />
+
+      {/* 프로필 수정하기 */}
+      <Route path="/mypage/edit" element={<EditProfile />} />
 
       {/* 마이페이지 */}
       <Route path="/mypage" element={<MyPage />} />
