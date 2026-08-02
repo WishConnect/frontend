@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TextField3 from '../../components/TextField3';
+import { postAiDraft } from '../../api/write/step2/Draft';
 
 interface Step2Props {
+    applicationId: number;
     questionCategories: string[];
     step2Category: number;
     setStep2Category: (idx: number) => void;
@@ -9,8 +11,50 @@ interface Step2Props {
     setDrafts: React.Dispatch<React.SetStateAction<Record<number, string>>>;
 }
 
-export default function Step2({ questionCategories, step2Category, setStep2Category, drafts, setDrafts }: Step2Props) {
+export default function Step2({ applicationId, questionCategories, step2Category, setStep2Category, drafts, setDrafts }: Step2Props) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+    const [aiDrafts, setAiDrafts] = useState<Record<number, string>>({});
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        const fetchAiDraft = async () => {
+            if (aiDrafts[step2Category]) return;
+
+            setIsLoading(true);
+            try {
+                const questionId = step2Category + 1;
+                const response = await postAiDraft(applicationId, questionId);
+
+                if (response.success && response.data) {
+                    const generatedText = response.data.aiDraft;
+                    
+                    setAiDrafts(prev => ({
+                        ...prev,
+                        [step2Category]: generatedText
+                    }));
+                    
+                    if (!drafts[step2Category]) {
+                        setDrafts(prev => ({
+                            ...prev,
+                            [step2Category]: generatedText
+                        }));
+                    }
+                }
+            } catch (error) {
+                console.error("AI 초안 생성 실패:", error);
+                setAiDrafts(prev => ({
+                    ...prev,
+                    [step2Category]: "AI 초안 생성에 실패했습니다. 잠시 후 다시 시도해 주세요."
+                }));
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchAiDraft();
+    }, [step2Category, applicationId, aiDrafts, drafts, setDrafts]);
+    
 
     return (
         <div className='flex-1 w-[1043px] rounded-[16px] border border-[#E5E7E8] bg-white p-[32px] flex flex-col'>
@@ -64,9 +108,7 @@ export default function Step2({ questionCategories, step2Category, setStep2Categ
                     <h3 className="text-[#10131A] text-[16px] font-[600] ml-[5px] mb-[7px]">AI가 작성한 초안</h3>
                     <div className="flex-1 rounded-[16px] border border-[#D2D4DA] bg-white pt-[28px] px-[24px] overflow-y-auto [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-thumb]:bg-[#D2D4DA] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
                         <p className="text-[#747883] text-[14px] leading-[1.4] whitespace-pre-wrap">
-                            저는 어릴 때부터 주변 사람들의 이야기에 귀 기울이며 공감하는 것을 중요하게 생각했습니다. 중학교 시절 학급 친구가 개인적인 어려움으로 힘들어하는 모습을 보고 먼저 다가가 이야기를 들어주고 함께 고민을 나누며 큰 힘이 되어주었습니다. 그 경험을 통해 타인의 입장에서 생각하고 도움을 주는 것이 얼마나 의미 있는 일인지 깨달았습니다.{"\n\n"}
-                            이러한 경험은 저의 가치관 형성에 큰 영향을 주었고, '사람 중심의 가치'를 가장 중요하게 여기게 되었습니다. 이후 다양한 봉사활동과 팀 프로젝트에 참여하며 협력과 배려의 자세를 키웠습니다. 특히 고등학교 때 진행한 지역 아동 학습 멘토링 활동에서는 아이들의 작은 성장이 큰 보람으로 다가왔고, 제가 가진 역량이 누군가에게 긍정적인 영향을 줄 수 있다는 확신을 갖게 되었습니다.{"\n\n"}
-                            앞으로도 저는 사람을 존중하고 함께 성장하는 가치를 바탕으로 사회에 긍정적인 변화를 만들어가는 사람이 되고자 합니다.
+                            {isLoading ? "AI가 초안을 작성하고 있습니다." : (aiDrafts[step2Category])}
                         </p>
                     </div>
                 </div>
