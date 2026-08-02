@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'; 
 import { useNavigate } from 'react-router-dom';
 import SearchBar from './SearchBar';
 import BackButton from './BackButton';
@@ -6,6 +7,7 @@ import NotificationPanel from './NotificationPanel';
 import AuthButtons from './AuthButtons';
 import logo from '../../../assets/logo.svg';
 import { useNotificationStore } from '../../../store/useNotificationStore';
+import { getUnreadNotificationCount } from '../../../api/notification/count';
 
 interface HeaderProps {
   searchPlaceholder?: string;
@@ -39,10 +41,27 @@ export default function Header({
 }: HeaderProps) {
   const navigate = useNavigate();
   const togglePanel = useNotificationStore((state) => state.togglePanel);
-  const hasUnread = useNotificationStore((state) => state.unreadCount() > 0);
+  // const hasUnread = useNotificationStore((state) => state.unreadCount() > 0);
   const handleNotificationClick = onNotificationClick ?? togglePanel;
   // 로고 클릭 시 기본은 홈(/)으로 이동, 페이지에서 onLogoClick으로 재정의 가능
   const handleLogoClick = onLogoClick ?? (() => navigate('/'));
+
+  const [hasUnread, setHasUnread] = useState(false);
+
+  useEffect(() => {
+    if (!isLoggedIn) return; 
+
+    const fetchNotificationCount = async () => {
+      try {
+        const count = await getUnreadNotificationCount();
+        setHasUnread(count > 0);
+      } catch (error) {
+        console.error("알림 개수 연동 실패:", error);
+      }
+    };
+
+    fetchNotificationCount();
+  }, [isLoggedIn]);
 
   // logoOnly / isLoggedIn / isSearchMode 조합에 따라 헤더 우측 영역 내용을 결정
   let content = null;

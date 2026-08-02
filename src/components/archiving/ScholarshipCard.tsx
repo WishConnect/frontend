@@ -43,7 +43,7 @@ export default function ScholarshipCard({ scholarship }: ScholarshipCardProps) {
         if (response.success && response.data) {
             const newApplicationId = response.data.applicationId;
             
-            navigate(`/write/${cleanId}/${newApplicationId}`);
+            navigate(`/write/${newApplicationId}`);
         }
     } catch (error: any) {
         console.error("지원서 생성 실패:", error);

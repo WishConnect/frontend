@@ -8,16 +8,9 @@ export interface ApplicationResponse {
     success: boolean;
     data: {
         applicationId: number;
-        scholarshipTitle: string;
-        applicationPeriod: string;
         status: string;
-        currentStep: number;
-        questions: {
-            questionId: string;
-            order: number;
-            title: string;
-        }[];
-    };
+        questionCount: number;
+    } | null;
     message: string | null;
 }
 
