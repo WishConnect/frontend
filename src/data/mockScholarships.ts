@@ -21,6 +21,7 @@ import img16 from '../assets/archiving/scholarship-16.png';
 export const mockScholarships: Scholarship[] = [
   {
     id: 'sch-01',
+    applicationId: null,
     title: '삼성드림클래스 장학금',
     imageUrl: img01,
     deadline: '2026.06.30 (화) 15:00',
@@ -32,6 +33,7 @@ export const mockScholarships: Scholarship[] = [
   },
   {
     id: 'sch-02',
+    applicationId: null,
     title: '교보생명 체육꿈나무 장학금',
     imageUrl: img05,
     deadline: '2026.06.06 (토) 13:00',
@@ -43,6 +45,7 @@ export const mockScholarships: Scholarship[] = [
   },
   {
     id: 'sch-03',
+    applicationId: null,
     title: '청년미래 성장 장학금',
     imageUrl: img07,
     deadline: '2026.06.22 (월) 18:00',
@@ -54,6 +57,7 @@ export const mockScholarships: Scholarship[] = [
   },
   {
     id: 'sch-04',
+    applicationId: null,
     title: '한국문화재단 예술인재 장학금',
     imageUrl: img08,
     deadline: '2026.07.02 (목) 23:59',
@@ -65,6 +69,7 @@ export const mockScholarships: Scholarship[] = [
   },
   {
     id: 'sch-05',
+    applicationId: null,
     title: '글로벌 인재양성 장학금',
     imageUrl: img09,
     deadline: '2026.06.11 (목) 12:00',
@@ -76,6 +81,7 @@ export const mockScholarships: Scholarship[] = [
   },
   {
     id: 'sch-06',
+    applicationId: null,
     title: '지역상생 희망 장학금',
     imageUrl: img10,
     deadline: '2026.06.14 (일) 23:59',
@@ -87,6 +93,7 @@ export const mockScholarships: Scholarship[] = [
   },
   {
     id: 'sch-07',
+    applicationId: null,
     title: '2026 희망장학금',
     imageUrl: img02,
     deadline: '2026.06.15 (월) 23:59',
@@ -98,6 +105,7 @@ export const mockScholarships: Scholarship[] = [
   },
   {
     id: 'sch-08',
+    applicationId: null,
     title: '하나금융그룹 장학금',
     imageUrl: img04,
     deadline: '2026.07.10 (금) 23:59',
@@ -109,6 +117,7 @@ export const mockScholarships: Scholarship[] = [
   },
   {
     id: 'sch-09',
+    applicationId: null,
     title: '미래인재 IT 장학금',
     imageUrl: img11,
     deadline: '2026.06.25 (목) 18:00',
@@ -120,6 +129,7 @@ export const mockScholarships: Scholarship[] = [
   },
   {
     id: 'sch-10',
+    applicationId: null,
     title: '푸른나무 복지재단 장학금',
     imageUrl: img12,
     deadline: '2026.06.09 (화) 23:59',
@@ -131,6 +141,7 @@ export const mockScholarships: Scholarship[] = [
   },
   {
     id: 'sch-11',
+    applicationId: null,
     title: '창업도전 스타트업 장학금',
     imageUrl: img13,
     deadline: '2026.06.28 (일) 23:59',
@@ -142,6 +153,7 @@ export const mockScholarships: Scholarship[] = [
   },
   {
     id: 'sch-12',
+    applicationId: null,
     title: '희망나눔 봉사장학금',
     imageUrl: img14,
     deadline: '2026.06.13 (토) 12:00',
@@ -153,6 +165,7 @@ export const mockScholarships: Scholarship[] = [
   },
   {
     id: 'sch-13',
+    applicationId: null,
     title: '한국장학재단 인재육성 장학금',
     imageUrl: img03,
     deadline: '2026.06.08 (월) 12:00',
@@ -164,6 +177,7 @@ export const mockScholarships: Scholarship[] = [
   },
   {
     id: 'sch-14',
+    applicationId: null,
     title: '서울희망 장학금',
     imageUrl: img06,
     deadline: '2026.06.19 (금) 23:59',
@@ -175,6 +189,7 @@ export const mockScholarships: Scholarship[] = [
   },
   {
     id: 'sch-15',
+    applicationId: null,
     title: '미래에셋 드림 장학금',
     imageUrl: img15,
     deadline: '2026.06.17 (수) 23:59',
@@ -186,6 +201,7 @@ export const mockScholarships: Scholarship[] = [
   },
   {
     id: 'sch-16',
+    applicationId: null,
     title: '따뜻한동행 나눔 장학금',
     imageUrl: img16,
     deadline: '2026.06.21 (일) 23:59',

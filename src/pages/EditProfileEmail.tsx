@@ -5,7 +5,18 @@ import {
   type InputHTMLAttributes,
   type ChangeEvent,
 } from 'react';
+import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.svg';
+import { putBasicProfile } from '../api/onboarding/profile';
+import {
+  updatePassword,
+  updateEmail,
+  checkEmailDuplicate,
+  sendEmailVerification,
+  verifyEmailCode,
+} from '../api/mypage/mypage';
+import { useUserStore } from '../store/user/user';
+import { tokenStorage } from '../utils/token';
 
 type Gender = 'female' | 'male' | 'none';
 type Nationality = 'domestic' | 'foreign';
@@ -204,7 +215,21 @@ function formatMMSS(totalSeconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+// 폼의 내부 값(female/male/none, domestic/foreign)을 API가 기대하는 문자열로 변환.
+// 정확한 값 규칙은 백엔드 확인 필요 — 우선 화면에 보이는 한글 라벨 그대로 전송.
+function mapGenderToApiValue(gender: Gender): string {
+  const map: Record<Gender, string> = { female: '여성', male: '남성', none: '선택 안함' };
+  return map[gender];
+}
+
+function mapNationalityToApiValue(nationality: Nationality): string {
+  return nationality === 'domestic' ? '내국인' : '외국인';
+}
+
 export default function EditProfileEmailChange() {
+  const navigate = useNavigate();
+  const clearUser = useUserStore((s) => s.clearUser);
+
   const [form, setForm] = useState<ProfileForm>(DEFAULT_FORM);
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
@@ -212,6 +237,24 @@ export default function EditProfileEmailChange() {
 
   const [verificationStarted, setVerificationStarted] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(VERIFICATION_DURATION_SECONDS);
+
+  // 이메일 중복 확인 상태
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null);
+  const [emailCheckError, setEmailCheckError] = useState<string | null>(null);
+
+  // 인증코드 발송 상태
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [sendCodeError, setSendCodeError] = useState<string | null>(null);
+
+  // 인증코드 확인 상태
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+  const [codeVerified, setCodeVerified] = useState(false);
+  const [verifyCodeError, setVerifyCodeError] = useState<string | null>(null);
+
+  // 최종 저장 상태
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!verificationStarted) return;
@@ -229,30 +272,175 @@ export default function EditProfileEmailChange() {
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
     };
 
-  const handleResendCode = () => {
-    // TODO: 실제 인증코드 재전송 API 연동
-    setSecondsLeft(VERIFICATION_DURATION_SECONDS);
-    setVerificationStarted(true);
+  // 이메일을 다시 입력하면 이전 중복확인/인증 상태는 전부 무효화
+  const handleEmailChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setForm((prev) => ({ ...prev, newEmail: e.target.value, verificationCode: '' }));
+    setEmailAvailable(null);
+    setEmailCheckError(null);
+    setVerificationStarted(false);
+    setCodeVerified(false);
+    setVerifyCodeError(null);
   };
 
-  const handleVerifyCode = () => {
+  const handleBack = () => {
+    navigate('/mypage');
+  };
+
+  // 1) 이메일 중복 확인
+  const handleCheckEmailDuplicate = async () => {
+    if (!form.newEmail.trim()) return;
+
+    setIsCheckingEmail(true);
+    setEmailCheckError(null);
+
+    try {
+      const res = await checkEmailDuplicate({ email: form.newEmail });
+      setEmailAvailable(res.data.data.available);
+      if (!res.data.data.available) {
+        setEmailCheckError('이미 사용 중인 이메일이에요.');
+      }
+    } catch (err) {
+      console.error('이메일 중복 확인 실패:', err);
+      setEmailCheckError('중복 확인에 실패했어요. 다시 시도해 주세요.');
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  };
+
+  // 2) 인증코드 발송 (재전송 버튼에서도 재사용)
+  const handleSendCode = async () => {
+    if (!form.newEmail.trim()) return;
+
+    setIsSendingCode(true);
+    setSendCodeError(null);
+
+    try {
+      await sendEmailVerification({ email: form.newEmail });
+      setSecondsLeft(VERIFICATION_DURATION_SECONDS);
+      setVerificationStarted(true);
+      setCodeVerified(false);
+      setVerifyCodeError(null);
+    } catch (err) {
+      console.error('인증코드 발송 실패:', err);
+      setSendCodeError('인증코드 발송에 실패했어요. 다시 시도해 주세요.');
+    } finally {
+      setIsSendingCode(false);
+    }
+  };
+
+  // 3) 인증하기 버튼 — 아직 코드 발송 전이면 발송, 발송 후면 입력한 코드로 검증
+  const handleVerifyCode = async () => {
     if (!form.newEmail.trim()) return;
 
     if (!verificationStarted) {
-      setSecondsLeft(VERIFICATION_DURATION_SECONDS);
-      setVerificationStarted(true);
+      await handleSendCode();
+      return;
     }
 
-    console.log('인증코드 확인:', form.verificationCode);
+    if (!form.verificationCode.trim()) return;
+
+    setIsVerifyingCode(true);
+    setVerifyCodeError(null);
+
+    try {
+      const res = await verifyEmailCode({ email: form.newEmail, code: form.verificationCode });
+      setCodeVerified(res.data.data.updated);
+      if (!res.data.data.updated) {
+        setVerifyCodeError('인증코드가 올바르지 않아요.');
+      }
+    } catch (err) {
+      console.error('인증코드 확인 실패:', err);
+      setVerifyCodeError('인증코드 확인에 실패했어요. 다시 시도해 주세요.');
+    } finally {
+      setIsVerifyingCode(false);
+    }
   };
 
-  const handleCheckEmailDuplicate = () => {
-    console.log('이메일 중복 확인:', form.newEmail);
+  const handleResendCode = () => {
+    handleSendCode();
   };
 
-  const handleSubmit = () => {
-    console.log('수정완료:', form);
+  const handleSubmit = async () => {
+    const emailChanged = form.newEmail.trim() !== '';
+
+    if (emailChanged && !codeVerified) {
+      setSubmitError('이메일 인증을 완료해 주세요.');
+      return;
+    }
+
+    // 비밀번호 필드 중 하나라도 입력했다면 비밀번호 변경도 같이 진행
+    const wantsPasswordChange =
+      form.currentPassword.trim() !== '' ||
+      form.newPassword.trim() !== '' ||
+      form.newPasswordConfirm.trim() !== '';
+
+    if (wantsPasswordChange) {
+      if (
+        form.currentPassword.trim() === '' ||
+        form.newPassword.trim() === '' ||
+        form.newPasswordConfirm.trim() === ''
+      ) {
+        setSubmitError('비밀번호를 변경하려면 세 항목을 모두 입력해 주세요.');
+        return;
+      }
+      if (form.newPassword !== form.newPasswordConfirm) {
+        setSubmitError('새 비밀번호와 새 비밀번호 확인이 일치하지 않아요.');
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      // 기본 정보 저장
+      await putBasicProfile({
+        name: form.name,
+        birthYear: form.birthYear,
+        phone: form.contact,
+        gender: mapGenderToApiValue(form.gender),
+        nationality: mapNationalityToApiValue(form.nationality),
+        region: form.region,
+      });
+
+      // 인증이 완료된 이메일이 있으면 최종 반영
+      if (emailChanged) {
+        await updateEmail({ email: form.newEmail });
+      }
+
+      if (wantsPasswordChange) {
+        await updatePassword({
+          currentPassword: form.currentPassword,
+          newPassword: form.newPassword,
+          newPasswordConfirm: form.newPasswordConfirm,
+        });
+
+        // 비밀번호 변경 성공 시 서버에서 기존 refreshToken이 무효화되므로
+        // 클라이언트도 로그아웃 처리 후 재로그인 유도
+        clearUser();
+        tokenStorage.clearTokens();
+        navigate('/login');
+        return;
+      }
+
+      navigate('/mypage');
+    } catch (err) {
+      console.error('프로필 수정 실패:', err);
+      setSubmitError('저장에 실패했어요. 입력한 내용을 다시 확인해 주세요.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const verifyButtonLabel = isSendingCode
+    ? '발송 중...'
+    : isVerifyingCode
+      ? '확인 중...'
+      : !verificationStarted
+        ? '인증코드 받기'
+        : codeVerified
+          ? '인증완료'
+          : '인증하기';
 
   return (
     <div className="relative left-1/2 w-screen -ml-[50vw] min-h-screen bg-white text-left font-['Pretendard',sans-serif]">
@@ -283,21 +471,32 @@ export default function EditProfileEmailChange() {
                 <TextInput
                   type="email"
                   value={form.newEmail}
-                  onChange={updateField('newEmail')}
+                  onChange={handleEmailChange}
                   placeholder="변경할 이메일 주소를 입력해주세요."
                 />
                 <button
                   type="button"
                   onClick={handleCheckEmailDuplicate}
+                  disabled={isCheckingEmail || !form.newEmail.trim()}
                   style={{ backgroundColor: '#F3F4F6', border: '1px solid transparent' }}
-                  className="flex h-12 w-[140px] shrink-0 items-center justify-center rounded-lg px-4 py-2 text-[16px] font-medium leading-6 text-[#9DA1AC]"
+                  className="flex h-12 w-[140px] shrink-0 items-center justify-center rounded-lg px-4 py-2 text-[16px] font-medium leading-6 text-[#9DA1AC] disabled:opacity-60"
                 >
-                  중복 확인
+                  {isCheckingEmail ? '확인 중...' : '중복 확인'}
                 </button>
               </div>
-              <p className="text-[14px] font-medium leading-5 text-[#747883]">
-                ※ 이메일 중복을 확인해주세요.
-              </p>
+              {emailCheckError ? (
+                <p className="text-[14px] font-medium leading-5 text-[#FA5862]">
+                  {emailCheckError}
+                </p>
+              ) : emailAvailable ? (
+                <p className="text-[14px] font-medium leading-5 text-[#22C55E]">
+                  사용 가능한 이메일이에요.
+                </p>
+              ) : (
+                <p className="text-[14px] font-medium leading-5 text-[#747883]">
+                  ※ 이메일 중복을 확인해주세요.
+                </p>
+              )}
             </div>
 
             {/* 인증코드 (이메일 변경 시에만 노출되는 섹션) */}
@@ -314,29 +513,49 @@ export default function EditProfileEmailChange() {
                     placeholder="인증코드 6자리를 입력하세요"
                     className="w-full flex-1 bg-transparent text-[16px] font-medium leading-6 text-[#555964] placeholder:text-[#9DA1AC] focus:outline-none"
                   />
-                  <span
-                    className={`shrink-0 text-[16px] font-medium leading-6 ${isCodeExpired ? 'text-[#FA5862]' : 'text-[#9DA1AC]'}`}
-                  >
-                    {formatMMSS(secondsLeft)}
-                  </span>
+                  {verificationStarted && (
+                    <span
+                      className={`shrink-0 text-[16px] font-medium leading-6 ${isCodeExpired ? 'text-[#FA5862]' : 'text-[#9DA1AC]'}`}
+                    >
+                      {formatMMSS(secondsLeft)}
+                    </span>
+                  )}
                 </div>
                 <button
                   type="button"
                   onClick={handleVerifyCode}
+                  disabled={
+                    isSendingCode ||
+                    isVerifyingCode ||
+                    codeVerified ||
+                    !form.newEmail.trim() ||
+                    (verificationStarted && !form.verificationCode.trim())
+                  }
                   style={{ backgroundColor: '#F3F4F6', border: '1px solid transparent' }}
-                  className="flex h-12 w-[140px] shrink-0 items-center justify-center rounded-lg px-4 py-2 text-[16px] font-medium leading-6 text-[#9DA1AC]"
+                  className="flex h-12 w-[140px] shrink-0 items-center justify-center rounded-lg px-4 py-2 text-[16px] font-medium leading-6 text-[#9DA1AC] disabled:opacity-60"
                 >
-                  인증하기
+                  {verifyButtonLabel}
                 </button>
               </div>
-              <button
-                type="button"
-                onClick={handleResendCode}
-                style={{ backgroundColor: 'transparent', border: 'none' }}
-                className="text-left text-[14px] font-medium leading-5 text-[#747883] underline"
-              >
-                ※ 인증코드를 받지 못하셨나요? {isCodeExpired ? '재전송하기' : ''}
-              </button>
+              {sendCodeError && (
+                <p className="text-[14px] font-medium leading-5 text-[#FA5862]">{sendCodeError}</p>
+              )}
+              {verifyCodeError && (
+                <p className="text-[14px] font-medium leading-5 text-[#FA5862]">
+                  {verifyCodeError}
+                </p>
+              )}
+              {verificationStarted && !codeVerified && (
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={isSendingCode}
+                  style={{ backgroundColor: 'transparent', border: 'none' }}
+                  className="text-left text-[14px] font-medium leading-5 text-[#747883] underline disabled:opacity-60"
+                >
+                  ※ 인증코드를 받지 못하셨나요? {isCodeExpired ? '재전송하기' : ''}
+                </button>
+              )}
             </div>
 
             {/* 현재 비밀번호 / 새 비밀번호 / 새 비밀번호 확인 */}
@@ -488,10 +707,18 @@ export default function EditProfileEmailChange() {
               </div>
             </div>
 
-            {/* 하단 버튼 — 라우팅은 추후 연결 */}
+            {/* 저장 에러 메시지 */}
+            {submitError && (
+              <p className="text-right text-[14px] font-medium leading-5 text-[#FA5862]">
+                {submitError}
+              </p>
+            )}
+
+            {/* 하단 버튼 */}
             <div className="flex w-full items-center justify-end gap-4">
               <button
                 type="button"
+                onClick={handleBack}
                 style={{ backgroundColor: '#F3F4F6', border: '1px solid transparent' }}
                 className="flex h-[60px] items-center gap-4 rounded-lg py-4 pl-4 pr-8 text-[20px] font-medium leading-7 text-[#747883]"
               >
@@ -501,10 +728,15 @@ export default function EditProfileEmailChange() {
               <button
                 type="button"
                 onClick={handleSubmit}
-                style={{ backgroundColor: '#F3F4F6', border: '1px solid transparent' }}
-                className="flex h-[60px] items-center gap-4 rounded-lg px-8 py-4 text-[20px] font-bold leading-7 text-[#9DA1AC]"
+                disabled={isSubmitting}
+                style={{
+                  backgroundColor: '#7962ED',
+                  border: '1px solid #7962ED',
+                  opacity: isSubmitting ? 0.6 : 1,
+                }}
+                className="flex h-[60px] items-center gap-4 rounded-lg px-8 py-4 text-[20px] font-bold leading-7 text-white"
               >
-                수정완료
+                {isSubmitting ? '저장 중...' : '수정완료'}
                 <ChevronRightIcon />
               </button>
             </div>

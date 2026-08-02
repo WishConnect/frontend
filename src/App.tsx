@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 import LoginPage from './pages/Login/LoginPage';
+import SocialCallbackPage from './pages/Login/SocialCallbackPage';
 import NotificationSettingsPage from './pages/NotificationSettings/NotificationSettingsPage';
 import ArchivingPage from './pages/Archiving/ArchivingPage';
 import Home from './pages/Home/HomePage';
@@ -13,6 +14,7 @@ import OnboardingAcademicInfo from './pages/OnBoarding/OnboardingAcademicInfo';
 import OnboardingHouseholdInfo from './pages/OnBoarding/OnboardingHouseholdInfo';
 import OnboardingComplete from './pages/OnBoarding/OnboardingComplete';
 import MyPage from './pages/MyPage';
+import EditProfile from './pages/EditProfile';
 import './App.css';
 
 function App() {
@@ -23,6 +25,9 @@ function App() {
 
       {/* 로그인 */}
       <Route path="/login" element={<LoginPage />} />
+      {/* 소셜 로그인 콜백 (:provider = kakao/google/naver)
+          경로는 서버 설정(KAKAO_REDIRECT_URI 등)과 반드시 동일해야 함 */}
+      <Route path="/auth/:provider/callback" element={<SocialCallbackPage />} />
       {/* 회원가입 */}
       <Route path="/sign" element={<SignPage />} />
 
@@ -51,6 +56,9 @@ function App() {
       <Route path="/onboarding/household" element={<OnboardingHouseholdInfo />} />
       {/* 온보딩 3: 완료 */}
       <Route path="/onboarding/complete" element={<OnboardingComplete />} />
+
+      {/* 프로필 수정하기 */}
+      <Route path="/mypage/edit" element={<EditProfile />} />
 
       {/* 마이페이지 */}
       <Route path="/mypage" element={<MyPage />} />

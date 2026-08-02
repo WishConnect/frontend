@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { NotificationSettings } from '../api/notification/settings';
 
 interface NotificationCategorySettings {
   scholarship: boolean;
@@ -12,6 +13,7 @@ interface NotificationSettingsState {
   categories: NotificationCategorySettings;
   toggleBadge: () => void;
   toggleCategory: (key: keyof NotificationCategorySettings) => void;
+  initSettings: (settings: NotificationSettings) => void;
 }
 
 // 알림 설정 페이지 상태: Figma node 1428:4581 기준, mock이라 전부 기본 켜짐
@@ -28,4 +30,14 @@ export const useNotificationSettingsStore = create<NotificationSettingsState>((s
     set((state) => ({
       categories: { ...state.categories, [key]: !state.categories[key] },
     })),
+
+    initSettings: (settings) => set({
+    showBadge: settings.notificationEnabled,
+    categories: {
+      scholarship: settings.matchingEnabled,
+      schedule: settings.scheduleEnabled,
+      writing: settings.essayEnabled,
+      etc: settings.etcEnabled,
+    }
+  }),
 }));
