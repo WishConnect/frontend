@@ -1,6 +1,6 @@
 import { useState, useEffect, type ReactNode, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import logo from '../../assets/logo.svg';
+import Header from '../../components/common/Header/Header';
 import capIcon from '../../assets/onboarding/graduation-cap.svg';
 import helpIcon from '../../assets/onboarding/circle-question-mark.svg';
 import searchIcon from '../../assets/onboarding/magnifyingglass.svg';
@@ -120,16 +120,27 @@ const HELP_BUBBLES = [
 ];
 
 const MAJOR_CATEGORY_OPTIONS: string[] = [
-  '인문계열',
-  '사회계열',
-  '자연계열',
+  '인문사회계열',
   '공학계열',
-  '의약계열',
+  '자연과학계열',
   '예체능계열',
-  '교육계열',
+  '의학계열',
+  '광역계열',
 ];
 
-const ENROLLMENT_STATUS_OPTIONS: string[] = ['재학', '휴학', '졸업예정', '졸업'];
+const ENROLLMENT_STATUS_OPTIONS: string[] = ['재학', '휴학', '졸업'];
+
+const ENROLLMENT_STATUS_MAP: Record<string, string> = {
+  재학: 'ENROLLED',
+  휴학: 'ON_LEAVE',
+  졸업: 'GRADUATED',
+};
+
+function getDualMajorValue(doubleMajor: boolean, minorMajor: boolean): string {
+  if (doubleMajor) return 'DOUBLE';
+  if (minorMajor) return 'MINOR';
+  return '';
+}
 
 const GRADE_SEMESTER_OPTIONS: string[] = [
   '1학년 1학기',
@@ -168,13 +179,6 @@ const STEPS = [
   { step: 2, label: '가구 정보 & 관심사' },
   { step: 3, label: '완료' },
 ];
-
-function getDualMajorLabel(doubleMajor: boolean, minorMajor: boolean): string {
-  if (doubleMajor && minorMajor) return '복수전공,부전공';
-  if (doubleMajor) return '복수전공';
-  if (minorMajor) return '부전공';
-  return '';
-}
 
 // ------------------------------------------------------------------
 // 아이콘
@@ -466,11 +470,11 @@ export default function OnboardingAcademicInfo() {
         university: form.school,
         majorCategory: form.majorCategory,
         majorName: form.majorName,
-        enrollmentStatus: form.enrollmentStatus,
+        enrollmentStatus: ENROLLMENT_STATUS_MAP[form.enrollmentStatus],
         grade: form.gradeSemester,
         semesterGpa: Number(form.lastSemesterGpa),
         cumulativeGpa: Number(form.cumulativeGpa),
-        dualMajor: getDualMajorLabel(doubleMajor, minorMajor),
+        dualMajor: getDualMajorValue(doubleMajor, minorMajor),
       });
 
       console.log('학적 정보 저장 성공:', res.data.data);
@@ -487,11 +491,7 @@ export default function OnboardingAcademicInfo() {
     <div className="relative left-1/2 w-screen -ml-[50vw] min-h-screen bg-white text-left font-['Pretendard',sans-serif]">
       <div className="relative mx-auto w-full max-w-[1440px]">
         {/* 상단바 */}
-        <header className="h-20 w-full">
-          <div className="flex h-full items-center px-16">
-            <img src={logo} alt="WISHCONNECT" className="h-8" />
-          </div>
-        </header>
+        <Header logoOnly />
 
         <main className="flex items-start gap-8 px-16 pb-16">
           {/* 좌측 스텝 사이드바 */}
@@ -648,7 +648,10 @@ export default function OnboardingAcademicInfo() {
                   <div className="flex w-full items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setDoubleMajor((v) => !v)}
+                      onClick={() => {
+                        setDoubleMajor((v) => !v);
+                        setMinorMajor(false);
+                      }}
                       aria-pressed={doubleMajor}
                       style={
                         doubleMajor
@@ -669,7 +672,10 @@ export default function OnboardingAcademicInfo() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setMinorMajor((v) => !v)}
+                      onClick={() => {
+                        setMinorMajor((v) => !v);
+                        setDoubleMajor(false);
+                      }}
                       aria-pressed={minorMajor}
                       style={
                         minorMajor
