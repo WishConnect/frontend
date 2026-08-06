@@ -12,7 +12,7 @@ import UpdateRight from '../../assets/icons/UpdateRight.svg';
 import DetailScrap from '../../assets/icons/DetailScrap.svg';
 import Scrap from '../../assets/icons/Scrap.svg';
 import PaperPlane from '../../assets/icons/PaperPlane.svg';
-
+import ShareCheck from '../../assets/icons/ShareCheck.svg';
 import Button from '../../components/Button/Button';
 import Header from '../../components/common/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar';
@@ -175,7 +175,7 @@ export default function Detail() {
   const [errorMessage, setErrorMessage] = useState('');
   const [isScrapped, setIsScrapped] = useState(false);
   const [isScrapLoading, setIsScrapLoading] = useState(false);
-
+  const [showShareToast, setShowShareToast] = useState(false);
   const locationState = location.state as DetailLocationState | null;
   const profileProgress = locationState?.profileCompletionRate ?? 0;
   const isOnboarded = Boolean(user?.onboardingCompleted);
@@ -339,7 +339,12 @@ export default function Detail() {
 
     try {
       await navigator.clipboard.writeText(detail.detailUrl);
-      alert('장학금 원문 링크가 복사되었습니다.');
+
+      setShowShareToast(true);
+
+      window.setTimeout(() => {
+        setShowShareToast(false);
+      }, 2000);
     } catch (error) {
       console.error('장학금 링크 복사 실패:', error);
       alert('링크 복사에 실패했습니다.');
@@ -369,7 +374,13 @@ export default function Detail() {
   return (
     <div className="min-h-[1024px] w-[1440px] bg-white font-['Pretendard']">
       <Header isLoggedIn={isLoggedIn} isSearchMode onBack={() => navigate(-1)} />
-
+      {showShareToast && (
+        <div className="fixed inset-0 z-[100] bg-black/50">
+          <div className="absolute left-1/2 top-[32px] flex h-[48px] w-[195px] -translate-x-1/2 items-center justify-center rounded-[8px] bg-white shadow-[0_4px_12px_rgba(0,0,0,0.16)]">
+            <img src={ShareCheck} alt="장학금 링크 복사완료" />
+          </div>
+        </div>
+      )}
       <div className="flex">
         <div className="relative ml-[64px] h-[896px] w-[237px] shrink-0 self-start">
           <LeftSidebar activeId="curating" />
