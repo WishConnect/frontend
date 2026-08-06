@@ -31,7 +31,7 @@ interface DetailLocationState {
   profileCompletionRate?: number;
 }
 
-type ApplicationStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+type ApplicationStatus = 'NOT_REQUIRED' | 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
 
 /**
  * 백엔드 상세 API에 지원서 상태가 추가되기 전까지 사용하는 임시 확장 타입.
@@ -158,6 +158,14 @@ function getApplicationBannerContent(
         description: '지원서 작성 시간을 줄이고, 합격 가능성을 높여보세요!',
         buttonText: '지원서 작성 시작하기',
         buttonVariant: 'primary',
+      };
+
+    case 'NOT_REQUIRED':
+      return {
+        title: '지원서를 작성하지 않아도 되는 장학금',
+        description: '서류 없이 지금 바로 장학금을 신청하세요.',
+        buttonText: '장학금 바로 지원하기',
+        buttonVariant: 'gradient',
       };
   }
 }
