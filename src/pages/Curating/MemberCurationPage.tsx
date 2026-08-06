@@ -243,7 +243,7 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
 
         <main className="flex w-[1139px] flex-col gap-[52px] pl-[32px] pr-[64px] pb-[64px]">
           <div className="flex w-[1043px] flex-col gap-[32px]">
-            <div className="flex w-[420px] flex-col gap-[4px]">
+            <div className="flex w-[1000px] flex-col gap-[4px]">
               <span className="h-[104px] text-[40px] font-bold leading-[52px] text-[#10131A]">
                 <span className="text-[#7962ED]">{user?.name ?? '회원'}님</span>
                 , 지금 지원 가능한
