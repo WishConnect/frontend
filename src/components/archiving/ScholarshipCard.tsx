@@ -4,6 +4,7 @@ import ToggleIcon from '../ToggleIcon';
 import ProgressRing from './ProgressRing';
 import type { Scholarship } from '../../types/scholarship';
 import { useScrapStore } from '../../store/useScrapStore';
+import { postStartApplication } from '../../api/archiving/start';
 
 interface ScholarshipCardProps {
   scholarship: Scholarship;
@@ -30,6 +31,24 @@ export default function ScholarshipCard({ scholarship }: ScholarshipCardProps) {
   const isScrapped = useScrapStore((state) => state.isScrapped(scholarship.id));
   const toggleScrap = useScrapStore((state) => state.toggleScrap);
   const { id, title, imageUrl, deadline, dDay, tags, status, questionLabel, progressPercent } = scholarship;
+
+  const handleStartWrite = async () => {
+    const cleanId = Number(String(scholarship.id).replace("sch-", ""));
+
+    try {
+        const response = await postStartApplication({ 
+            scholarshipId: cleanId
+        });
+
+        if (response.success && response.data) {
+            const newApplicationId = response.data.applicationId;
+            
+            navigate(`/write/${cleanId}/${newApplicationId}`);
+        }
+    } catch (error: any) {
+        console.error("지원서 생성 실패:", error);
+    }
+  };
 
   return (
     <div className="group relative w-full overflow-hidden rounded-2xl border border-[#E6E7EB] bg-white">
@@ -88,7 +107,7 @@ export default function ScholarshipCard({ scholarship }: ScholarshipCardProps) {
             {/* 상태와 무관하게 자기소개서 작성 페이지(/write)로 이동. 작성 페이지는 아직 장학금별 id 파라미터가 없어 단일 라우트로 연결 (조회 전용 화면 생기면 done 분기 추가) */}
             <button
               type="button"
-              onClick={() => navigate('/write')}
+              onClick={handleStartWrite}
               className={`flex h-9 items-center justify-center rounded-lg text-sm font-medium ${
                 status === 'before'
                   ? 'border border-[#9DA1AC] bg-white text-[#555964]'
