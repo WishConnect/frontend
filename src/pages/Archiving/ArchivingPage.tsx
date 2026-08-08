@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+// import { useNavigate } from 'react-router-dom';
+// import { useUserStore } from '../../store/user/user';
+// import { useScrapStore } from '../../store/useScrapStore';
 import Header from '../../components/common/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar';
 import FilterTabs, { type ArchivingFilter } from '../../components/archiving/FilterTabs';
@@ -8,8 +11,12 @@ import { getApplications, type ApplicationItem, type ApplicationStatus } from '.
 // 아카이빙 페이지: Figma node 1393:6451(전체)/6474(작성 전)/6657(진행 중)/6859(완료)
 // scholarships는 지금 mock 배열, 백엔드 API 준비되면 이 부분만 fetch 결과로 교체하면 됨
 export default function ArchivingPage() {
+  // const navigate = useNavigate();
   const [filter, setFilter] = useState<ArchivingFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  // const scrappedIds = useScrapStore((state) => state.scrappedIds);
+  // // 아카이빙은 "내 스크랩" 개인 페이지라 비로그인 상태에선 목록 대신 로그인 유도만 보여줌
+  // const isLoggedIn = useUserStore((state) => state.isLoggedIn);
 
   // const scrappedIds = useScrapStore((state) => state.scrappedIds);
 
@@ -100,6 +107,8 @@ const transformToScholarship = (app: ApplicationItem): any => {
 
   return (
     <div className="h-[1024px] w-[1440px] bg-white">
+      {/* isLoggedIn을 안 넘기면 Header가 유저 스토어를 따라 로그인/비로그인 상태를 알아서 표시함
+          (비로그인: 검색바 + 로그인/회원가입 버튼 / 로그인: 검색바 + 알림 벨) */}
       <Header
         searchPlaceholder="내가 스크랩한 장학금 찾아보기"
         onSearch={setSearchQuery}

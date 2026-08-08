@@ -1,34 +1,88 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import Header from '../../components/common/Header/Header';
 import HomeGreeting from '../../components/Home/HomeGreeting';
 import HomeBanner from '../../components/Home/HomeBanner';
-
 import HomeSummaryCards from '../../components/Home/HomeSummary';
 import WishConnectInfo from '../../components/Home/WishConnectInfo';
 import MonthlySchedule, { type HomeSchedule } from '../../components/Home/MonthlySchedule';
 import QuickMenuSection from '../../components/Home/QuickMenu';
-import { useNavigate } from 'react-router-dom';
-import { scholarships } from '../../mock/scholarships';
 
-/**
- * "2026.05.01 - 2026.06.31" 같은 문자열에서
- * 날짜 부분만 찾아 "2026-05-01" 형식으로 바꾸는 함수
- */
+import { fetchHomeSummary } from '../../api/Home/Summary';
+import { scholarships } from '../../mock/scholarships';
+import { useUserStore } from '../../store/user/user';
+
+import type { HomeSummaryResponse } from '../../types/Home/Summary';
+
 function extractDates(text: string): string[] {
   const matchedDates = text.match(/\d{4}[.-]\d{2}[.-]\d{2}/g);
 
   return matchedDates?.map((date) => date.replaceAll('.', '-')) ?? [];
 }
 
+const INITIAL_HOME_SUMMARY: HomeSummaryResponse = {
+  newMatchedCount: 0,
+  urgentDeadlineCount: 0,
+  hasNewMatched: false,
+};
+
 export default function HomePage() {
   const navigate = useNavigate();
-  const isLoggedIn = true;
-  const isOnboarded = false;
 
-  const member = {
-    name: '김위시',
-  };
+  const user = useUserStore((state) => state.user);
+  const isLoggedIn = useUserStore((state) => state.isLoggedIn);
+
+  const isOnboarded = Boolean(user?.onboardingCompleted);
+
+  const [homeSummary, setHomeSummary] = useState<HomeSummaryResponse>(INITIAL_HOME_SUMMARY);
+
+  //const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+  const [summaryErrorMessage, setSummaryErrorMessage] = useState('');
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadHomeSummary = async () => {
+      if (!isLoggedIn) {
+        setHomeSummary(INITIAL_HOME_SUMMARY);
+        setSummaryErrorMessage('');
+        //setIsSummaryLoading(false);
+        return;
+      }
+
+      try {
+        //setIsSummaryLoading(true);
+        setSummaryErrorMessage('');
+
+        const data = await fetchHomeSummary();
+
+        if (isCancelled) {
+          return;
+        }
+
+        setHomeSummary(data);
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        console.error('홈 장학금 소식 조회 실패:', error);
+
+        setHomeSummary(INITIAL_HOME_SUMMARY);
+
+        setSummaryErrorMessage(
+          error instanceof Error ? error.message : '오늘의 장학금 소식을 불러오지 못했습니다.',
+        );
+      }
+    };
+
+    void loadHomeSummary();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isLoggedIn]);
 
   const homeSchedules = useMemo<HomeSchedule[]>(() => {
     return scholarships.flatMap((scholarship) => {
@@ -70,40 +124,36 @@ export default function HomePage() {
   const handleBannerClick = () => {
     if (!isLoggedIn) {
       navigate('/login');
-      console.log('로그인 페이지 이동');
       return;
     }
 
     if (!isOnboarded) {
       navigate('/onboarding');
-      console.log('온보딩 페이지 이동');
       return;
     }
 
     navigate('/curation');
-    console.log('큐레이팅 페이지 이동');
   };
 
   const handleLockedClick = () => {
     if (!isLoggedIn) {
       navigate('/login');
-      console.log('로그인 페이지 이동');
       return;
     }
 
     navigate('/onboarding');
-    console.log('온보딩 페이지 이동');
   };
 
   return (
     <div className="min-h-screen w-[1440px] bg-white font-['Pretendard']">
       <Header logoOnly />
 
-      <main className="mx-auto flex w-[1222px] gap-[52px] flex-col pb-[64px] pt-[32px]">
-        {/* 인사말 */}
-        <HomeGreeting isLoggedIn={isLoggedIn} name={isLoggedIn ? member.name : undefined} />
+      <main className="mx-auto flex w-[1222px] flex-col gap-[52px] pt-[32px] pb-[64px]">
+        <HomeGreeting
+          isLoggedIn={isLoggedIn}
+          name={isLoggedIn ? (user?.name ?? '회원') : undefined}
+        />
 
-        {/* 상태에 따라 문구와 버튼이 달라지는 배너 */}
         <div className="mt-[24px]">
           <HomeBanner
             isLoggedIn={isLoggedIn}
@@ -113,10 +163,23 @@ export default function HomePage() {
         </div>
 
         {isLoggedIn && (
-          <HomeSummaryCards isOnboarded={isOnboarded} onLockedClick={handleLockedClick} />
+          <>
+            {summaryErrorMessage && (
+              <p className="text-[14px] font-medium text-[#747883]">{summaryErrorMessage}</p>
+            )}
+
+            <HomeSummaryCards
+              isOnboarded={isOnboarded}
+              //isLoading={isSummaryLoading}
+              newMatchedCount={homeSummary.newMatchedCount}
+              urgentDeadlineCount={homeSummary.urgentDeadlineCount}
+              applicationCount={1}
+              newInsightCount={3}
+              onLockedClick={handleLockedClick}
+            />
+          </>
         )}
 
-        {/* 위시커넥트 소개 + 이번 달 일정 */}
         <div className="mt-[32px] flex items-stretch gap-[32px]">
           <WishConnectInfo />
 
@@ -127,7 +190,6 @@ export default function HomePage() {
           />
         </div>
 
-        {/* 바로 가기 */}
         <QuickMenuSection />
       </main>
     </div>

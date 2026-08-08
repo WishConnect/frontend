@@ -1,8 +1,10 @@
 import { useState, type ReactNode, type ChangeEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.svg';
 import heartIcon from '../../assets/onboarding/heart.svg';
 import helpIcon from '../../assets/onboarding/circle-question-mark.svg';
 import clockIcon from '../../assets/onboarding/clock.svg';
+import { putHouseholdProfile } from '../../api/onboarding/profile';
 
 function CloseIcon() {
   return (
@@ -79,7 +81,6 @@ function HelpBubble({
   );
 }
 
-// 피그마(node-id 1428-5332) get_design_context 기준 도움말 말풍선 데이터
 const HELP_BUBBLES = [
   {
     top: 296,
@@ -177,6 +178,27 @@ const STEPS = [
   { step: 3, label: '완료' },
 ];
 
+// "소득 분위를 모르겠어요"를 눌렀을 때 API로 보낼 값
+// (백엔드 실제 스펙 확인 전까지의 임시 값 — 확인 후 필요하면 수정)
+const INCOME_LEVEL_UNKNOWN_VALUE = '모름';
+
+// ------------------------------------------------------------------
+// "N인 가구" 라벨에서 숫자만 추출하는 헬퍼 (API는 number를 요구)
+// "5인 이상 가구"는 5로 매핑됨
+// ------------------------------------------------------------------
+function parseHouseholdSize(label: string): number {
+  const match = label.match(/\d+/);
+  return match ? Number(match[0]) : 0;
+}
+
+// ------------------------------------------------------------------
+// 선택된 배열 + 직접입력 값을 하나의 배열로 합치는 헬퍼
+// ------------------------------------------------------------------
+function mergeWithCustom(list: string[], custom: string): string[] {
+  const trimmed = custom.trim();
+  return trimmed ? [...list, trimmed] : list;
+}
+
 // ------------------------------------------------------------------
 // 아이콘
 // ------------------------------------------------------------------
@@ -261,17 +283,24 @@ function SelectField({
   onChange,
   placeholder,
   options,
+  disabled,
 }: {
   value: string;
   onChange: (e: ChangeEvent<HTMLSelectElement>) => void;
   placeholder: string;
   options: string[];
+  disabled?: boolean;
 }) {
   return (
-    <div className="flex w-full flex-1 items-center gap-6 rounded-lg bg-[#F9FAFC] py-3 pl-6 pr-3">
+    <div
+      className={`flex w-full flex-1 items-center gap-6 rounded-lg bg-[#F9FAFC] py-3 pl-6 pr-3 ${
+        disabled ? 'opacity-50' : ''
+      }`}
+    >
       <select
         value={value}
         onChange={onChange}
+        disabled={disabled}
         className={`w-full flex-1 appearance-none bg-transparent text-[16px] font-medium leading-6 focus:outline-none ${
           value ? 'text-[#0A0C11]' : 'text-[#9DA1AC]'
         }`}
@@ -472,10 +501,13 @@ function MultiSelectSection({
 // 메인 컴포넌트
 // ------------------------------------------------------------------
 export default function OnboardingHouseholdInfo() {
+  const navigate = useNavigate();
   const [incomeLevel, setIncomeLevel] = useState('');
   const [incomeUnknown, setIncomeUnknown] = useState(false);
   const [householdSize, setHouseholdSize] = useState('');
   const [showHelp, setShowHelp] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [housingTypes, setHousingTypes] = useState<string[]>([]);
   const [selfStatuses, setSelfStatuses] = useState<string[]>([]);
@@ -492,23 +524,39 @@ export default function OnboardingHouseholdInfo() {
     setList(allSelected ? [] : [...options]);
   };
 
-  const handlePrev = () => {
-    // TODO: STEP 1(학적 정보)로 라우팅
-    console.log('이전 단계로 이동');
+  const handleToggleIncomeUnknown = () => {
+    setIncomeUnknown((v) => !v);
+    // "모르겠어요"를 켜면 직접 선택한 소득 분위는 초기화
+    if (!incomeUnknown) {
+      setIncomeLevel('');
+    }
   };
 
-  const handleNext = () => {
-    // TODO: STEP 3(완료)로 라우팅 + 관심분야 필수값 검사
-    console.log('가구 정보 & 관심사:', {
-      incomeLevel,
-      incomeUnknown,
-      householdSize,
-      housingTypes,
-      selfStatuses,
-      selfStatusCustom,
-      interests,
-      interestCustom,
-    });
+  const handlePrev = () => {
+    navigate('/onboarding');
+  };
+
+  const handleNext = async () => {
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const res = await putHouseholdProfile({
+        incomeLevel: incomeUnknown ? INCOME_LEVEL_UNKNOWN_VALUE : incomeLevel,
+        familySize: parseHouseholdSize(householdSize),
+        familyTypes: housingTypes,
+        personalStatuses: mergeWithCustom(selfStatuses, selfStatusCustom),
+        interests: mergeWithCustom(interests, interestCustom),
+      });
+
+      console.log('가구 정보 & 관심사 저장 성공:', res.data.data);
+      navigate('/onboarding/complete');
+    } catch (err) {
+      console.error('가구 정보 & 관심사 저장 실패:', err);
+      setSubmitError('저장에 실패했어요. 다시 시도해 주세요.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -590,10 +638,11 @@ export default function OnboardingHouseholdInfo() {
                           onChange={(e) => setIncomeLevel(e.target.value)}
                           placeholder="선택해 주세요"
                           options={INCOME_LEVEL_OPTIONS}
+                          disabled={incomeUnknown}
                         />
                         <button
                           type="button"
-                          onClick={() => setIncomeUnknown((v) => !v)}
+                          onClick={handleToggleIncomeUnknown}
                           aria-pressed={incomeUnknown}
                           style={{
                             backgroundColor: '#F9FAFC',
@@ -664,6 +713,13 @@ export default function OnboardingHouseholdInfo() {
               </div>
             </div>
 
+            {/* 제출 에러 메시지 */}
+            {submitError && (
+              <p className="mt-6 text-right text-[14px] font-medium leading-5 text-[#FA5862]">
+                {submitError}
+              </p>
+            )}
+
             {/* 하단 버튼 */}
             <div className="mt-16 flex w-full items-center justify-end gap-4">
               <button
@@ -678,13 +734,15 @@ export default function OnboardingHouseholdInfo() {
               <button
                 type="button"
                 onClick={handleNext}
+                disabled={isSubmitting}
                 style={{
                   backgroundImage:
                     'linear-gradient(115.029deg, rgb(121, 98, 237) 30.662%, rgb(189, 185, 249) 105.21%)',
+                  opacity: isSubmitting ? 0.6 : 1,
                 }}
                 className="flex items-center gap-4 rounded-lg py-4 pl-8 pr-4 text-[20px] font-medium leading-7 tracking-[-0.1px] text-white"
               >
-                다음 단계로
+                {isSubmitting ? '저장 중...' : '다음 단계로'}
                 <ChevronRightIcon />
               </button>
             </div>

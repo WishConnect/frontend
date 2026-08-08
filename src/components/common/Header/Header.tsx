@@ -8,11 +8,13 @@ import AuthButtons from './AuthButtons';
 import logo from '../../../assets/logo.svg';
 import { useNotificationStore } from '../../../store/useNotificationStore';
 import { getUnreadNotificationCount } from '../../../api/notification/count';
+import { useUserStore } from '../../../store/user/user';
 
 interface HeaderProps {
   searchPlaceholder?: string;
   searchInitialValue?: string;
   isSearchMode?: boolean;
+  /** 로그인 여부. 안 넘기면 useUserStore의 실제 로그인 상태를 따라감 (넘기면 강제 지정) */
   isLoggedIn?: boolean;
   logoOnly?: boolean;
   onSearch?: (query: string) => void;
@@ -29,7 +31,7 @@ export default function Header({
   searchPlaceholder,
   searchInitialValue,
   isSearchMode = false,
-  isLoggedIn = true,
+  isLoggedIn,
   logoOnly = false,
   onSearch,
   onQueryChange,
@@ -64,10 +66,19 @@ export default function Header({
   }, [isLoggedIn]);
 
   // logoOnly / isLoggedIn / isSearchMode 조합에 따라 헤더 우측 영역 내용을 결정
+  // 실제 로그인 여부: prop이 있으면 그 값 우선, 없으면 전역 유저 스토어를 따라감
+  const storeLoggedIn = useUserStore((state) => state.isLoggedIn);
+  const loggedIn = isLoggedIn ?? storeLoggedIn;
+
+  // 로그인/회원가입 버튼 기본 동작 (페이지에서 prop으로 재정의 가능)
+  const handleLoginClick = onLoginClick ?? (() => navigate('/login'));
+  const handleSignupClick = onSignupClick ?? (() => navigate('/sign'));
+
+  // logoOnly / loggedIn / isSearchMode 조합에 따라 헤더 우측 영역 내용을 결정
   let content = null;
 
   if (!logoOnly) {
-    if (!isLoggedIn) {
+    if (!loggedIn) {
       // 비로그인 상태: 검색바 또는 뒤로가기 버튼 + 로그인/회원가입 버튼을 left: 333px ~ right: 64px 사이에 정렬
       content = (
         <div
@@ -86,7 +97,7 @@ export default function Header({
               className="flex-1 min-w-0"
             />
           )}
-          <AuthButtons onLoginClick={onLoginClick} onSignupClick={onSignupClick} />
+          <AuthButtons onLoginClick={handleLoginClick} onSignupClick={handleSignupClick} />
         </div>
       );
     } else if (isSearchMode) {

@@ -35,12 +35,11 @@ export default function MonthlySchedule({
   isLocked = false,
   onLockedClick,
 }: MonthlyScheduleProps) {
-  const initialScheduleDate = schedules.length > 0 ? parseDate(schedules[0].date) : new Date();
+  const [currentDate, setCurrentDate] = useState(() => {
+    const today = new Date();
 
-  const [currentDate, setCurrentDate] = useState(
-    new Date(initialScheduleDate.getFullYear(), initialScheduleDate.getMonth(), 1),
-  );
-
+    return new Date(today.getFullYear(), today.getMonth(), 1);
+  });
   const [schedulePage, setSchedulePage] = useState(0);
 
   const year = currentDate.getFullYear();

@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 import LoginPage from './pages/Login/LoginPage';
+import SocialCallbackPage from './pages/Login/SocialCallbackPage';
 import NotificationSettingsPage from './pages/NotificationSettings/NotificationSettingsPage';
 import ArchivingPage from './pages/Archiving/ArchivingPage';
 import Home from './pages/Home/HomePage';
@@ -23,6 +24,9 @@ function App() {
 
       {/* 로그인 */}
       <Route path="/login" element={<LoginPage />} />
+      {/* 소셜 로그인 콜백 (:provider = kakao/google/naver)
+          경로는 서버 설정(KAKAO_REDIRECT_URI 등)과 반드시 동일해야 함 */}
+      <Route path="/auth/:provider/callback" element={<SocialCallbackPage />} />
       {/* 회원가입 */}
       <Route path="/sign" element={<SignPage />} />
 
