@@ -33,6 +33,11 @@ export default function ScholarshipCard({ scholarship }: ScholarshipCardProps) {
   const { id, title, imageUrl, deadline, dDay, tags, status, questionLabel, progressPercent } = scholarship;
 
   const handleStartWrite = async () => {
+    if (status !== 'before' && scholarship.applicationId) {
+    navigate(`/write/${scholarship.applicationId}`);
+    return;
+  }
+  
     const cleanId = Number(String(scholarship.id).replace("sch-", ""));
 
     try {

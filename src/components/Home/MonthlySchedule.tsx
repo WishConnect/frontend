@@ -126,7 +126,7 @@ export default function MonthlySchedule({
       </div>
 
       {/* 제목 아래 영역 */}
-      <div className="relative mt-[12px] min-h-0 flex-1">
+      <div className="relative mt-[12px] min-h-0 flex-1 overflow-hidden">
         {/* 실제 달력 + 일정 */}
         <div className={`flex h-full min-h-0 ${isLocked ? 'pointer-events-none' : ''}`}>
           {/* 왼쪽 달력 */}
@@ -238,9 +238,9 @@ export default function MonthlySchedule({
         {/* 로그인하지 않았을 때 흰 배경으로 내용 영역을 덮음 */}
         {isLocked && (
           <>
-            <div className="absolute inset-0 bg-white" />
+            <div className="absolute inset-0 z-10 bg-white" />
 
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center">
               <p className="text-[14px] font-semibold leading-[20px] text-[#10131A]">
                 로그인하고 맞춤
                 <br />

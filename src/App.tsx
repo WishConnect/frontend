@@ -8,7 +8,7 @@ import CurationPage from './pages/Curating/CurationPage';
 import Detail from './pages/Curating/Detail';
 import InsightPage1 from './pages/Insight/InsightPage1';
 import MoreInfoPage from './pages/Insight/MoreInfo';
-import WrtiePage from './pages/WritePage/WritePage';
+import WritePage from './pages/WritePage/WritePage';
 import SignPage from './pages/SignPage';
 import OnboardingAcademicInfo from './pages/OnBoarding/OnboardingAcademicInfo';
 import OnboardingHouseholdInfo from './pages/OnBoarding/OnboardingHouseholdInfo';
@@ -43,7 +43,7 @@ function App() {
       <Route path="/curation/:id" element={<Detail />} />
 
       {/* 자기소개서 작성 */}
-      <Route path="/write" element={<WrtiePage />} />
+      <Route path="/write/:applicationId" element={<WritePage />} />
 
       {/* 인사이트 */}
       <Route path="/insight" element={<InsightPage1 />} />
