@@ -119,6 +119,12 @@ const HELP_BUBBLES = [
   },
 ];
 
+// ------------------------------------------------------------------
+// 전공 분류 목록을 조회하는 API가 명세서에 없어 하드코딩 유지.
+// (전공 "명" 검색 API(/majors/search)는 있지만, 계열 목록 자체를 주는
+//  API가 아니라서 이 셀렉트 옵션과는 별개로 둠. 디자인 유지를 위해
+//  전공 분류/전공명 필드는 계속 분리된 상태로 둠)
+// ------------------------------------------------------------------
 const MAJOR_CATEGORY_OPTIONS: string[] = [
   '인문계열',
   '사회계열',
@@ -169,6 +175,9 @@ const STEPS = [
   { step: 3, label: '완료' },
 ];
 
+// ------------------------------------------------------------------
+// 복수전공/부전공 boolean 두 개를 API의 dualMajor 문자열 하나로 합쳐주는 헬퍼
+// ------------------------------------------------------------------
 function getDualMajorLabel(doubleMajor: boolean, minorMajor: boolean): string {
   if (doubleMajor && minorMajor) return '복수전공,부전공';
   if (doubleMajor) return '복수전공';
@@ -489,7 +498,12 @@ export default function OnboardingAcademicInfo() {
         {/* 상단바 */}
         <header className="h-20 w-full">
           <div className="flex h-full items-center px-16">
-            <img src={logo} alt="WISHCONNECT" className="h-8" />
+            <img
+              src={logo}
+              alt="WISHCONNECT"
+              className="h-8 cursor-pointer"
+              onClick={() => navigate('/')}
+            />
           </div>
         </header>
 
