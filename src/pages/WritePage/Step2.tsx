@@ -1,33 +1,60 @@
 import { useState, useEffect } from 'react';
 import TextField3 from '../../components/TextField3';
-import { postAiDraft } from '../../api/write/step2/Draft';
+import { putAnswer } from '../../api/write/step2/answer';
+import type { ApplicationQuestion } from '../../api/archiving/view';
 
 interface Step2Props {
     applicationId: number;
     questionCategories: string[];
+    questionIds: number[];
+    questions: ApplicationQuestion[];
     step2Category: number;
     setStep2Category: (idx: number) => void;
     drafts: Record<number, string>;
     setDrafts: React.Dispatch<React.SetStateAction<Record<number, string>>>;
 }
 
-export default function Step2({ applicationId, questionCategories, step2Category, setStep2Category, drafts, setDrafts }: Step2Props) {
+export default function Step2({ applicationId, questionCategories, questionIds, questions, step2Category, setStep2Category, drafts, setDrafts }: Step2Props) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
     const [aiDrafts, setAiDrafts] = useState<Record<number, string>>({});
     const [isLoading, setIsLoading] = useState(false);
 
+    // draft
     useEffect(() => {
+        if (aiDrafts[step2Category]) return;
+
+        const existingAnswer = questions?.[step2Category]?.answer;
+
+        if (existingAnswer?.aiDraft) {
+            setAiDrafts((prev) => ({ ...prev, [step2Category]: existingAnswer.aiDraft }));
+
+            setDrafts((prev) => {
+                if (prev[step2Category]) return prev;
+                return { ...prev, [step2Category]: existingAnswer.userContent ?? existingAnswer.aiDraft };
+            });
+            return;
+        }
+
+        let cancelled = false;
+
         const fetchAiDraft = async () => {
             if (aiDrafts[step2Category]) return;
 
+            const questionId = questionIds[step2Category];
+            if (!questionId) return;
+
             setIsLoading(true);
             try {
-                const questionId = step2Category + 1;
-                const response = await postAiDraft(applicationId, questionId);
+                const response = await putAnswer(applicationId, questionId, {
+                    action: 'draft',
+                    userContent: '',
+                });
+                console.log('draft response:', response.data);
+
+                if (cancelled) return;
 
                 if (response.success && response.data) {
-                    const generatedText = response.data.aiDraft;
+                    const generatedText = response.data.aiDraft ?? '';
                     
                     setAiDrafts(prev => ({
                         ...prev,
@@ -43,17 +70,25 @@ export default function Step2({ applicationId, questionCategories, step2Category
                 }
             } catch (error) {
                 console.error("AI 초안 생성 실패:", error);
-                setAiDrafts(prev => ({
-                    ...prev,
-                    [step2Category]: "AI 초안 생성에 실패했습니다. 잠시 후 다시 시도해 주세요."
-                }));
+                if (!cancelled) {
+                    setAiDrafts(prev => ({
+                        ...prev,
+                        [step2Category]: "AI 초안 생성에 실패했습니다. 잠시 후 다시 시도해 주세요."
+                    }));
+                }
             } finally {
-                setIsLoading(false);
+                if (!cancelled) {
+                    setIsLoading(false);
+                }
             }
         };
 
         fetchAiDraft();
-    }, [step2Category, applicationId, aiDrafts, drafts, setDrafts]);
+
+        return () => {
+            cancelled = true;
+        };
+    }, [step2Category, applicationId, questionIds]);
     
 
     return (
@@ -108,7 +143,7 @@ export default function Step2({ applicationId, questionCategories, step2Category
                     <h3 className="text-[#10131A] text-[16px] font-[600] ml-[5px] mb-[7px]">AI가 작성한 초안</h3>
                     <div className="flex-1 rounded-[16px] border border-[#D2D4DA] bg-white pt-[28px] px-[24px] overflow-y-auto [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-thumb]:bg-[#D2D4DA] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
                         <p className="text-[#747883] text-[14px] leading-[1.4] whitespace-pre-wrap">
-                            {isLoading ? "AI가 초안을 작성하고 있습니다." : (aiDrafts[step2Category])}
+                            {isLoading ? "AI가 초안을 작성하고 있습니다." : (aiDrafts[step2Category] ?? '')}
                         </p>
                     </div>
                 </div>
@@ -116,7 +151,7 @@ export default function Step2({ applicationId, questionCategories, step2Category
                 <div className="flex flex-col">
                     <h3 className="text-[#10131A] text-[16px] font-[600] ml-[5px] mb-[7px]">내가 수정한 내용</h3>
                     <TextField3
-                        value={drafts[step2Category]}
+                        value={drafts[step2Category] ?? ''}
                         onChange={(val) => setDrafts(prev => ({ ...prev, [step2Category]: val }))}
                     />
                 </div>
