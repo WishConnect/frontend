@@ -1,24 +1,165 @@
+import { useState, useEffect } from "react";
 import TextField2 from "../../components/TextField2";
+import { postInterviewAnswer } from '../../api/write/step1/Interview';
+import type { ApplicationQuestion } from '../../api/archiving/view';
+
+interface Turn {
+    stepOrder: number;
+    questionText: string;
+    answerText: string;
+    submitted: boolean;
+}
+
+interface CategoryState {
+    turns: Turn[];
+    nextStepOrder: number;
+    isComplete: boolean;
+    isLoading: boolean;
+}
 
 interface Step1Props {
+    applicationId: number;
     questionCategories: string[];
-    subQuestions: any[];
-    completedCount: number;
+    questions: ApplicationQuestion[];
     selectedCategory: number;
     setSelectedCategory: (idx: number) => void;
-    answers: Record<number, Record<number, string>>;
-    handleAnswerChange: (categoryId: number, questionId: number, value: string) => void;
+    onProgressChange: (categoryId: number, isComplete: boolean) => void;
 }
 
 export default function Step1({
+    applicationId,
     questionCategories,
-    subQuestions,
-    completedCount,
+    questions,
     selectedCategory,
     setSelectedCategory,
-    answers,
-    handleAnswerChange
+    onProgressChange
 }: Step1Props) {
+    const [stateByCategory, setStateByCategory] = useState<Record<number, CategoryState>>({});
+    const currentQuestion = questions[selectedCategory];
+    const current = stateByCategory[selectedCategory];
+
+    const completedCount = questionCategories.filter(
+        (_, idx) => stateByCategory[idx]?.isComplete
+    ).length;
+
+    useEffect(() => {
+        if (!currentQuestion || stateByCategory[selectedCategory]) return;
+
+        const existing = currentQuestion.interviews ?? [];
+
+        if (existing.length > 0) {
+            const turns: Turn[] = existing.map((iv) => ({
+                stepOrder: iv.stepOrder,
+                questionText: iv.questionText,
+                answerText: iv.answerText ?? '',
+                submitted: true,
+            }));
+            const lastAnswered = turns[turns.length - 1];
+            const isComplete = currentQuestion.currentStep !== 'STEP_1';
+            setStateByCategory((prev) => ({
+                ...prev,
+                [selectedCategory]: {
+                    turns,
+                    nextStepOrder: lastAnswered.stepOrder + 1,
+                    isComplete,
+                    isLoading: false,
+                },
+            }));
+            return;
+        }
+
+        setStateByCategory((prev) => ({
+            ...prev,
+            [selectedCategory]: { turns: [], nextStepOrder: 0, isComplete: false, isLoading: true },
+        }));
+
+        postInterviewAnswer(applicationId, currentQuestion.questionId, {
+            stepOrder: 0,
+            answerText: '',
+        })
+            .then((res) => {
+                if (!res.success || !res.data) return;
+                setStateByCategory((prev) => ({
+                    ...prev,
+                    [selectedCategory]: {
+                        turns: [{ stepOrder: 0, questionText: res.data.nextQuestion, answerText: '', submitted: false }],
+                        nextStepOrder: res.data.nextStepOrder,
+                        isComplete: res.data.isInterviewComplete,
+                        isLoading: false,
+                    },
+                }));
+            })
+            .catch((err) => {
+                console.error('인터뷰 부트스트랩 실패:', err);
+                setStateByCategory((prev) => ({
+                    ...prev,
+                    [selectedCategory]: { turns: [], nextStepOrder: 0, isComplete: false, isLoading: false },
+                }));
+            });
+    }, [selectedCategory, currentQuestion, applicationId]);
+
+    const handleAnswerInput = (stepOrder: number, value: string) => {
+        setStateByCategory((prev) => {
+            const cat = prev[selectedCategory];
+            if (!cat) return prev;
+            return {
+                ...prev,
+                [selectedCategory]: {
+                    ...cat,
+                    turns: cat.turns.map((t) =>
+                        t.stepOrder === stepOrder ? { ...t, answerText: value } : t
+                    ),
+                },
+            };
+        });
+    };
+
+    // const handleSubmitTurn = async (stepOrder: number) => {
+    //     if (!current || !currentQuestion || current.isLoading) return;
+    //     const turn = current.turns.find((t) => t.stepOrder === stepOrder);
+    //     if (!turn || !turn.answerText.trim()) return;
+
+    //     setStateByCategory((prev) => ({
+    //         ...prev,
+    //         [selectedCategory]: { ...prev[selectedCategory], isLoading: true },
+    //     }));
+
+    //     try {
+    //         const res = await postInterviewAnswer(applicationId, currentQuestion.questionId, {
+    //             stepOrder,
+    //             answerText: turn.answerText.trim(),
+    //         });
+
+    //         if (!res.success || !res.data) return;
+
+    //         setStateByCategory((prev) => {
+    //             const cat = prev[selectedCategory];
+    //             const nextTurns = res.data.isInterviewComplete
+    //                 ? cat.turns
+    //                 : [...cat.turns, { stepOrder: res.data.nextStepOrder, questionText: res.data.nextQuestion, answerText: '', submitted: false }];
+
+    //             return {
+    //                 ...prev,
+    //                 [selectedCategory]: {
+    //                     turns: nextTurns,
+    //                     nextStepOrder: res.data.nextStepOrder,
+    //                     isComplete: res.data.isInterviewComplete,
+    //                     isLoading: false,
+    //                 },
+    //             };
+    //         });
+
+    //         onProgressChange(selectedCategory, res.data.isInterviewComplete);
+    //     } catch (error) {
+    //         console.error('답변 제출 실패:', error);
+    //         setStateByCategory((prev) => ({
+    //             ...prev,
+    //             [selectedCategory]: { ...prev[selectedCategory], isLoading: false },
+    //         }));
+    //     }
+    // };
+
+
     return (
         <div className="flex gap-[24px]">
             {/* 질문 목록 */}
@@ -40,7 +181,8 @@ export default function Step1({
                                     : 'border-[#E6E7E8] bg-[#F9FAFC] text-[#9DA1AC] hover:bg-gray-50'
                             }`}
                         >
-                            {category}
+                            {idx + 1}. {category}
+                            {stateByCategory[idx]?.isComplete && ' ✓'}
                         </button>
                     ))}
                     <button className='w-[204px] h-[32px] flex justify-center items-center rounded-[8px] gap-[4px] border border-[#E6E7E8] text-[12px] font-[500] text-[#747883]'>
@@ -56,7 +198,7 @@ export default function Step1({
             <div className='flex-1 h-[736px] flex flex-col rounded-[16px] border border-[#E5E7E8] bg-[#FFF]'>
                 <div className="px-[32px] mt-[28px] mb-[24px]">
                     <h2 className="text-[#181C25] text-[24px] font-[700]">
-                        {questionCategories[selectedCategory]}
+                        {selectedCategory + 1}. {questionCategories[selectedCategory]}
                     </h2>
                 </div>
                 <div className='
@@ -68,24 +210,35 @@ export default function Step1({
                     [&::-webkit-scrollbar-thumb]:bg-[#7962ED]
                     [&::-webkit-scrollbar-thumb]:rounded-[16px]
                 '>
-                    {subQuestions.map((sq) => (
-                        <div key={sq.id} className='flex flex-col gap-[12px]'>
+                    {current?.turns.map((turn) => (
+                        <div key={turn.stepOrder} className='flex flex-col gap-[12px]'>
                             <div className="flex gap-[8px] items-start">
                                 <div className='flex justify-center items-center w-[20px] h-[20px] rounded-full bg-[#7962ED] text-white text-[12px] font-[500] mt-[2px]'>
-                                    {sq.id}
+                                    {turn.stepOrder + 1}
                                 </div>
                                 <div className="flex flex-col gap-[4px]">
-                                    <span className="text-[#000] text-[18px] font-[600]">{sq.title}</span>
-                                    <span className="text-[#747883] text-[14px] font-[500]">{sq.desc}</span>
+                                    <span className="text-[#000] text-[18px] font-[600]">{turn.questionText}</span>
                                 </div>
                             </div>
                             <TextField2 
                                 height="141px" 
-                                value={answers[selectedCategory][sq.id]}
-                                onChange={(val) => handleAnswerChange(selectedCategory, sq.id, val)}
+                                value={turn.answerText}
+                                onChange={(val) => handleAnswerInput(turn.stepOrder, val)}
                             />
+
+                            {/* test */}
+                            {/* {!turn.submitted && !current.isComplete && (
+                            <button
+                                onClick={() => handleSubmitTurn(turn.stepOrder)}
+                                disabled={current.isLoading || !turn.answerText.trim()}
+                                className="self-end px-[20px] py-[8px] rounded-[8px] bg-[#7962ED] text-white text-[13px] font-[600] disabled:opacity-40"
+                            >
+                                {current.isLoading ? '다음 질문 준비 중...' : '답변 제출'}
+                            </button>
+                        )} */}
                         </div>
                     ))}
+                    
                 </div>
             </div>
         </div>
