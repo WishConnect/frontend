@@ -20,9 +20,13 @@ import EditProfile from './pages/EditProfile';
 import EditProfileEmail from './pages/EditProfileEmail';
 import './App.css';
 
+import Complete from './pages/WritePage/Complete';
+
 function App() {
   return (
     <Routes>
+      <Route path="/complete" element={<Complete />} />
+
       {/* 홈 */}
       <Route path="/" element={<Home />} />
 
