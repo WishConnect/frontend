@@ -5,6 +5,8 @@ import NotificationItemCard from './NotificationItemCard';
 import settingsIcon from '../../../assets/notification/settings.svg';
 import chevronRightIcon from '../../../assets/notification/chevron-right.svg';
 import { useNotificationStore, type NotificationCategory } from '../../../store/useNotificationStore';
+import { patchMarkAsRead } from '../../../api/notification/read';
+import { deleteAllNotifications } from '../../../api/notification/delete';
 
 const FILTERS: ('전체' | NotificationCategory)[] = ['전체', '맞춤 장학금', '일정', '작성', '기타'];
 
@@ -24,10 +26,26 @@ export default function NotificationPanel() {
   };
 
   // 알림 CTA: 읽음 처리 후 패널 닫고 대상 페이지로 이동 (link는 스토어 각 항목에 지정)
-  const handleCtaClick = (id: string, link: string) => {
-    markAsRead(id);
-    togglePanel();
-    navigate(link);
+  const handleCtaClick = async (id: string, link: string) => {
+    try{
+      await patchMarkAsRead(Number(id));
+
+      markAsRead(id);
+      togglePanel();
+      navigate(link);
+    } catch (error) {
+      console.error('알림 읽음 실패', error);
+    }
+  };
+
+  const handleClearAll = async () => {
+    try {
+      await deleteAllNotifications();
+      
+      clearAll();
+    } catch (error) {
+      console.error("알림 삭제 실패:", error);
+    }
   };
 
   return (
@@ -57,7 +75,7 @@ export default function NotificationPanel() {
       </div>
 
       <div className="flex justify-end">
-        <button type="button" onClick={clearAll} className="text-sm font-medium text-[#747883] underline">
+        <button type="button" onClick={handleClearAll} className="text-sm font-medium text-[#747883] underline">
           전체 삭제
         </button>
       </div>

@@ -33,6 +33,11 @@ export default function ScholarshipCard({ scholarship }: ScholarshipCardProps) {
   const { id, title, imageUrl, deadline, dDay, tags, status, questionLabel, progressPercent } = scholarship;
 
   const handleStartWrite = async () => {
+    if (status !== 'before' && scholarship.applicationId) {
+    navigate(`/write/${scholarship.applicationId}`);
+    return;
+  }
+  
     const cleanId = Number(String(scholarship.id).replace("sch-", ""));
 
     try {
@@ -43,7 +48,7 @@ export default function ScholarshipCard({ scholarship }: ScholarshipCardProps) {
         if (response.success && response.data) {
             const newApplicationId = response.data.applicationId;
             
-            navigate(`/write/${cleanId}/${newApplicationId}`);
+            navigate(`/write/${newApplicationId}`);
         }
     } catch (error: any) {
         console.error("지원서 생성 실패:", error);

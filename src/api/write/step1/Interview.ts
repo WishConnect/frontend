@@ -1,28 +1,28 @@
 import axios from '../../axios';
 
 export interface InterviewAnswerRequest {
-    answers: {
-        subQuestionId: number;
-        answer: string;
-    }[];
+    stepOrder: number;
+    answerText: string;
 }
 
 export interface InterviewAnswerResponse {
     success: boolean;
     data: {
-        saved: boolean;
+        nextStepOrder: number;
+        nextQuestion: string;
+        isInterviewComplete: boolean;
     };
-    messgae: string | null;
+    message: string | null;
 }
 
-export const putInterviewAnswer = async (
+export const postInterviewAnswer = async (
     applicationId: number,
     questionId: number,
     data: InterviewAnswerRequest
 ): Promise<InterviewAnswerResponse> => {
-    const response = await axios.put(
-        `applications/${applicationId}/questions/${questionId}/interview`,
+    const response = await axios.post(
+        `/applications/${applicationId}/questions/${questionId}/interview`,
         data
     );
     return response.data;
-}
+};

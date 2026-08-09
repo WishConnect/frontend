@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 import LoginPage from './pages/Login/LoginPage';
+import SocialCallbackPage from './pages/Login/SocialCallbackPage';
 import NotificationSettingsPage from './pages/NotificationSettings/NotificationSettingsPage';
 import ArchivingPage from './pages/Archiving/ArchivingPage';
 import Home from './pages/Home/HomePage';
@@ -7,7 +8,7 @@ import CurationPage from './pages/Curating/CurationPage';
 import Detail from './pages/Curating/Detail';
 import InsightPage1 from './pages/Insight/InsightPage1';
 import MoreInfoPage from './pages/Insight/MoreInfo';
-import WrtiePage from './pages/WritePage/WritePage';
+import WritePage from './pages/WritePage/WritePage';
 import SignPage from './pages/SignPage';
 import OnboardingAcademicInfo from './pages/OnBoarding/OnboardingAcademicInfo';
 import OnboardingHouseholdInfo from './pages/OnBoarding/OnboardingHouseholdInfo';
@@ -25,6 +26,9 @@ function App() {
 
       {/* 로그인 */}
       <Route path="/login" element={<LoginPage />} />
+      {/* 소셜 로그인 콜백 (:provider = kakao/google/naver)
+          경로는 서버 설정(KAKAO_REDIRECT_URI 등)과 반드시 동일해야 함 */}
+      <Route path="/auth/:provider/callback" element={<SocialCallbackPage />} />
       {/* 회원가입 */}
       <Route path="/sign" element={<SignPage />} />
 
@@ -40,7 +44,7 @@ function App() {
       <Route path="/curation/:id" element={<Detail />} />
 
       {/* 자기소개서 작성 */}
-      <Route path="/write" element={<WrtiePage />} />
+      <Route path="/write/:applicationId" element={<WritePage />} />
 
       {/* 이메일 수정하기*/}
       <Route path="/mypage/edit-email" element={<EditProfileEmail />} />
