@@ -1,6 +1,6 @@
 import { useState, useEffect, type ReactNode, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from '../../components/common/Header/Header';
+import logo from '../../assets/logo.svg';
 import capIcon from '../../assets/onboarding/graduation-cap.svg';
 import helpIcon from '../../assets/onboarding/circle-question-mark.svg';
 import searchIcon from '../../assets/onboarding/magnifyingglass.svg';
@@ -185,16 +185,6 @@ const STEPS = [
   { step: 2, label: '가구 정보 & 관심사' },
   { step: 3, label: '완료' },
 ];
-
-// ------------------------------------------------------------------
-// 복수전공/부전공 boolean 두 개를 API의 dualMajor 문자열 하나로 합쳐주는 헬퍼
-// ------------------------------------------------------------------
-function getDualMajorLabel(doubleMajor: boolean, minorMajor: boolean): string {
-  if (doubleMajor && minorMajor) return '복수전공,부전공';
-  if (doubleMajor) return '복수전공';
-  if (minorMajor) return '부전공';
-  return '';
-}
 
 // ------------------------------------------------------------------
 // 아이콘
