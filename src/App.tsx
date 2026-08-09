@@ -16,9 +16,13 @@ import OnboardingComplete from './pages/OnBoarding/OnboardingComplete';
 import MyPage from './pages/MyPage';
 import './App.css';
 
+import Complete from './pages/WritePage/Complete';
+
 function App() {
   return (
     <Routes>
+      <Route path="/complete" element={<Complete />} />
+
       {/* 홈 */}
       <Route path="/" element={<Home />} />
 

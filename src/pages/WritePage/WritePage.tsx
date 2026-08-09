@@ -39,7 +39,7 @@ export default function WritePage() {
 
     const navigate = useNavigate();
 
-    const { scholarshipId: paramScholarId, applicationId: paramAppId } = useParams();
+    const { scholarshipId: _, applicationId: paramAppId } = useParams();
     const applicationId = Number(paramAppId) || 1;
 
     const [currentStep, setCurrentStep] = useState(1);
@@ -51,9 +51,9 @@ export default function WritePage() {
     const [questionIds, setQuestionIds] = useState<number[]>([]);
     const [selectedCategory, setSelectedCategory] = useState(0);
     const [step2Category, setStep2Category] = useState(0);
-    const [answers, setAnswers] = useState<Record<number, Record<number, string>>>({});
+    const [, setAnswers] = useState<Record<number, Record<number, string>>>({});
     const [drafts, setDrafts] = useState<Record<number, string>>({});
-    const [progressByCategory, setProgressByCategory] = useState<Record<number, boolean>>({});
+    const [, setProgressByCategory] = useState<Record<number, boolean>>({});
 
     useEffect(() => {
         const fetchApplicationData = async () => {
@@ -108,7 +108,7 @@ export default function WritePage() {
     };
 
     // 임시저장
-    const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+    const [, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
     const handleSaveDraft = async () => {
         if (currentStep === 1) {
