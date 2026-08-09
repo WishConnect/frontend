@@ -177,12 +177,24 @@ export default function SignPage() {
             setSubmitError('이름을 입력해 주세요.');
             return;
         }
+        if (!birthYear) {
+            setSubmitError('출생년도를 선택해 주세요.');
+            return;
+        }
         if (!phone.trim()) {
             setSubmitError('연락처를 입력해 주세요.');
             return;
         }
         if (!gender) {
             setSubmitError('성별을 선택해 주세요.');
+            return;
+        }
+        if (!nationality) {
+            setSubmitError('국적을 선택해 주세요.');
+            return;
+        }
+        if (!region) {
+            setSubmitError('거주 지역을 선택해 주세요.');
             return;
         }
 
@@ -198,7 +210,8 @@ export default function SignPage() {
                     type: AGREEMENT_TYPE_BY_ID[term.id],
                     isAgreed: agreements[term.id],
                 })),
-                // 아래 3개는 백엔드에서 선택 항목이라 안 고른 경우 아예 보내지 않는다.
+                // 아래 3개는 화면에선 필수(*)라 위 검증을 통과하면 항상 값이 있다.
+                // 다만 백엔드에선 선택 항목이라 타입상 optional이므로 빈 값 방어는 남겨둔다.
                 birthYear: birthYear ? Number.parseInt(birthYear, 10) : undefined,
                 nationality: nationality ? NATIONALITY_TO_API[nationality] : undefined,
                 region: region || undefined,

@@ -10,6 +10,8 @@ import InsightPage1 from './pages/Insight/InsightPage1';
 import MoreInfoPage from './pages/Insight/MoreInfo';
 import WritePage from './pages/WritePage/WritePage';
 import SignPage from './pages/SignPage';
+import FindIdPage from './pages/FindAccount/FindIdPage';
+import FindPasswordPage from './pages/FindAccount/FindPasswordPage';
 import OnboardingAcademicInfo from './pages/OnBoarding/OnboardingAcademicInfo';
 import OnboardingHouseholdInfo from './pages/OnBoarding/OnboardingHouseholdInfo';
 import OnboardingComplete from './pages/OnBoarding/OnboardingComplete';
@@ -31,6 +33,9 @@ function App() {
       <Route path="/auth/:provider/callback" element={<SocialCallbackPage />} />
       {/* 회원가입 */}
       <Route path="/sign" element={<SignPage />} />
+      {/* 계정 찾기 (로그인 전). 아이디 = 가입 이메일 */}
+      <Route path="/find-id" element={<FindIdPage />} />
+      <Route path="/find-password" element={<FindPasswordPage />} />
 
       {/* 알림 설정 (헤더 알림창 톱니바퀴에서 진입) */}
       <Route path="/notifications/settings" element={<NotificationSettingsPage />} />
