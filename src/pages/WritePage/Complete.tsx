@@ -129,7 +129,7 @@ function InterviewAccordionItem({ item }: { item: typeof mockInterviews[0] }) {
       </div>
 
       {isOpen && (
-        <div className="pl-[20px]">
+        <div className="px-[20px]">
           <div className="bg-[#7962ED0D] border border-[#7962ED] rounded-[8px] p-[20px] mb-[22px] flex flex-col">
             <div>
               <div className="flex items-center gap-[8px] mb-[6px]">
