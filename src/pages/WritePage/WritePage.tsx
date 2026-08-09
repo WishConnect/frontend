@@ -69,21 +69,21 @@ export default function WritePage() {
 
   const navigate = useNavigate();
 
-    const { scholarshipId: _, applicationId: paramAppId } = useParams();
-    const applicationId = Number(paramAppId) || 1;
+  const { scholarshipId: _, applicationId: paramAppId } = useParams();
+  const applicationId = Number(paramAppId) || 1;
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoaded, setIsLoaded] = useState(false);
 
   const [questions, setQuestions] = useState<ApplicationQuestion[]>([]);
 
-    const [questionCategories, setQuestionCategories] = useState<string[]>([]);
-    const [questionIds, setQuestionIds] = useState<number[]>([]);
-    const [selectedCategory, setSelectedCategory] = useState(0);
-    const [step2Category, setStep2Category] = useState(0);
-    const [, setAnswers] = useState<Record<number, Record<number, string>>>({});
-    const [drafts, setDrafts] = useState<Record<number, string>>({});
-    const [, setProgressByCategory] = useState<Record<number, boolean>>({});
+  const [questionCategories, setQuestionCategories] = useState<string[]>([]);
+  const [questionIds, setQuestionIds] = useState<number[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState(0);
+  const [step2Category, setStep2Category] = useState(0);
+  const [, setAnswers] = useState<Record<number, Record<number, string>>>({});
+  const [drafts, setDrafts] = useState<Record<number, string>>({});
+  const [, setProgressByCategory] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     const fetchApplicationData = async () => {
@@ -125,8 +125,8 @@ export default function WritePage() {
     fetchApplicationData();
   }, [applicationId]);
 
-    // 임시저장
-    const [, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  // 임시저장
+  const [, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const isNextEnabled = true;
 
   // 다음
@@ -140,7 +140,7 @@ export default function WritePage() {
 
   // 임시저장
   //const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const [, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
   const handleSaveDraft = async () => {
     if (currentStep === 1) {
     } else if (currentStep === 2) {
