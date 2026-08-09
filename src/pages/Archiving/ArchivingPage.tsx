@@ -6,7 +6,11 @@ import Header from '../../components/common/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar';
 import FilterTabs, { type ArchivingFilter } from '../../components/archiving/FilterTabs';
 import ScholarshipCard from '../../components/archiving/ScholarshipCard';
-import { getApplications, type ApplicationItem, type ApplicationStatus } from '../../api/archiving/list';
+import {
+  getApplications,
+  type ApplicationItem,
+  type ApplicationStatus,
+} from '../../api/archiving/list';
 
 // 아카이빙 페이지: Figma node 1393:6451(전체)/6474(작성 전)/6657(진행 중)/6859(완료)
 // scholarships는 지금 mock 배열, 백엔드 API 준비되면 이 부분만 fetch 결과로 교체하면 됨
@@ -44,15 +48,18 @@ export default function ArchivingPage() {
   //   return trimmedQuery ? byStatus.filter((s) => s.title.includes(trimmedQuery)) : byStatus;
   // }, [filter, scrappedScholarships, searchQuery]);
 
-
   const [applications, setApplications] = useState<ApplicationItem[]>([]);
 
   const getBackendStatus = (f: ArchivingFilter): ApplicationStatus => {
     switch (f) {
-      case 'before': return 'NOT_STARTED';
-      case 'in-progress': return 'IN_PROGRESS';
-      case 'done': return 'COMPLETED';
-      default: return undefined;
+      case 'before':
+        return 'NOT_STARTED';
+      case 'in-progress':
+        return 'IN_PROGRESS';
+      case 'done':
+        return 'COMPLETED';
+      default:
+        return undefined;
     }
   };
 
@@ -61,26 +68,27 @@ export default function ArchivingPage() {
       try {
         const targetStatus = getBackendStatus(filter);
         const res = await getApplications(targetStatus, 0, 100);
-        
+
         if (res.success && res.data) {
           setApplications(res.data.content);
         }
       } catch (error) {
-        console.error("지원서 목록 조회 실패", error);
+        console.error('지원서 목록 조회 실패', error);
       }
     };
 
     fetchApplications();
   }, [filter]);
 
-const transformToScholarship = (app: ApplicationItem): any => {
+  const transformToScholarship = (app: ApplicationItem): any => {
     let status = 'in-progress';
     if (app.status === 'IN_PROGRESS') status = 'in-progress';
     if (app.status === 'COMPLETED') status = 'done';
 
-    const progressPercent = app.progress.total === 0 
-      ? 0 
-      : Math.round((app.progress.completed / app.progress.total) * 100);
+    const progressPercent =
+      app.progress.total === 0
+        ? 0
+        : Math.round((app.progress.completed / app.progress.total) * 100);
 
     return {
       id: app.scholarshipId,
@@ -89,8 +97,8 @@ const transformToScholarship = (app: ApplicationItem): any => {
       status: status,
       progressPercent: progressPercent,
       questionLabel: `${app.progress.total}문항 중 ${app.progress.completed}문항 작성`,
-      
-      imageUrl: 'https://via.placeholder.com/300x200?text=No+Image', 
+
+      imageUrl: 'https://via.placeholder.com/300x200?text=No+Image',
       deadline: '임시데이터',
       dDay: 3,
       tags: ['test', 'test'],
@@ -98,10 +106,10 @@ const transformToScholarship = (app: ApplicationItem): any => {
   };
 
   const displayScholarships = applications
-    .filter((app) => 
-      searchQuery.trim() === '' ? true : app.scholarshipTitle.includes(searchQuery.trim())
+    .filter((app) =>
+      searchQuery.trim() === '' ? true : app.scholarshipTitle.includes(searchQuery.trim()),
     )
-    .map(transformToScholarship); 
+    .map(transformToScholarship);
 
   const counts = { all: 0, before: 0, 'in-progress': 0, done: 0 };
 
@@ -120,7 +128,9 @@ const transformToScholarship = (app: ApplicationItem): any => {
 
         <main className="flex w-[1139px] flex-col gap-8">
           <div className="flex flex-col gap-2">
-            <h1 className="text-[40px] font-bold leading-[52px] tracking-[-0.02em] text-[#10131A]">아카이빙</h1>
+            <h1 className="text-[40px] font-bold leading-[52px] tracking-[-0.02em] text-[#10131A]">
+              아카이빙
+            </h1>
             <p className="text-base font-medium text-[#555964]">
               스크랩한 장학금과 자기소개서 진행 현황을 한 눈에 관리해보세요.
             </p>

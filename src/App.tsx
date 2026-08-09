@@ -14,6 +14,8 @@ import OnboardingAcademicInfo from './pages/OnBoarding/OnboardingAcademicInfo';
 import OnboardingHouseholdInfo from './pages/OnBoarding/OnboardingHouseholdInfo';
 import OnboardingComplete from './pages/OnBoarding/OnboardingComplete';
 import MyPage from './pages/MyPage';
+import EditProfile from './pages/EditProfile';
+import EditProfileEmail from './pages/EditProfileEmail';
 import './App.css';
 
 import Complete from './pages/WritePage/Complete';
@@ -48,6 +50,12 @@ function App() {
       {/* 자기소개서 작성 */}
       <Route path="/write/:applicationId" element={<WritePage />} />
 
+      {/* 이메일 수정하기*/}
+      <Route path="/mypage/edit-email" element={<EditProfileEmail />} />
+
+      {/* 온보딩 1: 학적 정보 */}
+      <Route path="/onboarding" element={<OnboardingAcademicInfo />} />
+
       {/* 인사이트 */}
       <Route path="/insight" element={<InsightPage1 />} />
       {/* 인사이트 - 참고하면 좋아요 */}
@@ -59,6 +67,9 @@ function App() {
       <Route path="/onboarding/household" element={<OnboardingHouseholdInfo />} />
       {/* 온보딩 3: 완료 */}
       <Route path="/onboarding/complete" element={<OnboardingComplete />} />
+
+      {/* 프로필 수정하기 */}
+      <Route path="/mypage/edit" element={<EditProfile />} />
 
       {/* 마이페이지 */}
       <Route path="/mypage" element={<MyPage />} />
