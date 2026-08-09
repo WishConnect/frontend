@@ -9,12 +9,13 @@ export interface MyPageSummary {
   scrappedCount: number;
   applicationCount: number;
   completedCount: number;
+  // 온보딩을 아직 완료하지 않은 유저는 이 값이 null로 옴
   recommendationCriteria: {
     grade: string;
     gpa: number;
     incomeLevel: string;
     interests: string[];
-  };
+  } | null;
 }
 
 // PATCH /users/me/password 요청 body

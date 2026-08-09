@@ -8,26 +8,27 @@ import heartIcon from '../assets/heart.svg';
 import infoIcon from '../assets/lucide/info.svg';
 import logOutIcon from '../assets/lucide/log-out.svg';
 import logOutIcon1 from '../assets/lucide/log-out-1.svg';
+import deleteIcon from '../assets/icons/delete.svg';
 import chevronRightIcon from '../assets/icons/chevron.right.svg';
 import LeftSidebar from '../components/LeftSidebar';
 import Header from '../components/common/Header/Header';
 import { useUserStore } from '../store/user/user';
 import { tokenStorage } from '../utils/token';
 // import { logout } from '../api/login/auth';
-import { getMyPageSummary } from '../api/mypage/mypage';
+import { getMyPageSummary, deleteMyAccount } from '../api/mypage/mypage';
 import type { MyPageSummary } from '../types/mypage/mypage';
 import { logout } from '../api/login/auth';
 
-// API 응답을 받아오기 전/실패했을 때 보여줄 기본값
+// API 응답을 받아오기 전/실패했을 때, 그리고 온보딩 미완료로 추천기준이 없을 때 보여줄 기본값
 const DEFAULT_USER_PROFILE = {
   name: '김위시',
   birthYear: 2004,
   region: '서울시 강남구',
-  grade: 3,
-  gpa: 4.1,
+  grade: 0,
+  gpa: 0,
   gpaMax: 4.5,
-  incomeDecile: 3,
-  interests: ['#생활비', '#등록금', '#창업', '#IT/개발'],
+  incomeDecile: 0,
+  interests: [] as string[],
 };
 
 type UserProfileView = typeof DEFAULT_USER_PROFILE;
@@ -52,16 +53,20 @@ function toHashtag(label: string): string {
   return `#${firstWord}`;
 }
 
+// 온보딩을 아직 완료하지 않은 유저는 recommendationCriteria가 null로 오므로
+// 그 경우 학년/학점/소득분위/관심분야는 기본값(0, 빈 배열)으로 처리한다.
 function mapSummaryToView(summary: MyPageSummary): UserProfileView {
+  const criteria = summary.recommendationCriteria;
+
   return {
     name: summary.name,
     birthYear: Number(summary.birthYear),
     region: summary.region,
-    grade: extractGradeNumber(summary.recommendationCriteria.grade),
-    gpa: summary.recommendationCriteria.gpa,
+    grade: criteria ? extractGradeNumber(criteria.grade) : 0,
+    gpa: criteria ? criteria.gpa : 0,
     gpaMax: 4.5,
-    incomeDecile: extractIncomeDecile(summary.recommendationCriteria.incomeLevel),
-    interests: summary.recommendationCriteria.interests.map(toHashtag),
+    incomeDecile: criteria ? extractIncomeDecile(criteria.incomeLevel) : 0,
+    interests: criteria ? criteria.interests.map(toHashtag) : [],
   };
 }
 
@@ -88,6 +93,9 @@ export default function MyPage() {
   const [userProfile, setUserProfile] = useState<UserProfileView>(DEFAULT_USER_PROFILE);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isOnboardingIncomplete, setIsOnboardingIncomplete] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null);
   const navigate = useNavigate();
   const clearUser = useUserStore((s) => s.clearUser);
 
@@ -106,11 +114,34 @@ export default function MyPage() {
     }
   };
 
+  // 회원 탈퇴: 되돌릴 수 없는 작업이라 확인창을 한 번 거친 뒤 진행.
+  // 성공하면 로그아웃과 동일하게 전역 상태/토큰을 정리하고 로그인 화면으로 이동.
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm('정말로 회원 탈퇴하시겠어요? 이 작업은 되돌릴 수 없어요.');
+    if (!confirmed) return;
+
+    setIsDeletingAccount(true);
+    setDeleteAccountError(null);
+
+    try {
+      await deleteMyAccount();
+      clearUser();
+      tokenStorage.clearTokens();
+      navigate('/login');
+    } catch (err) {
+      console.error('회원 탈퇴 실패:', err);
+      setDeleteAccountError('회원 탈퇴에 실패했어요. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const res = await getMyPageSummary();
         setUserProfile(mapSummaryToView(res.data.data));
+        setIsOnboardingIncomplete(res.data.data.recommendationCriteria === null);
       } catch (err) {
         console.error('마이페이지 요약 정보 조회 실패:', err);
         setLoadError('프로필 정보를 불러오지 못했어요.');
@@ -196,6 +227,7 @@ export default function MyPage() {
                     </div>
                     <button
                       type="button"
+                      onClick={() => navigate('/mypage/edit')}
                       style={{ border: '1px solid #9DA1AC' }}
                       className="flex h-9 shrink-0 items-center justify-center gap-1 rounded-lg bg-white px-4 py-2 text-[14px] font-medium leading-5 text-[#555964]"
                     >
@@ -204,71 +236,84 @@ export default function MyPage() {
                     </button>
                   </div>
 
-                  <div className="flex w-full flex-col gap-6">
-                    <div className="flex w-full items-start gap-6">
-                      <div className="flex h-[104px] flex-1 items-center justify-start gap-6">
-                        <img src={gradeIcon} alt="" className="size-20 shrink-0" />
-                        <div className="flex w-[104px] shrink-0 flex-col items-start gap-1 text-left text-[16px]">
-                          <p className="w-full text-left font-medium leading-6 text-[#747883]">
-                            학년
-                          </p>
-                          <p className="w-full text-left font-semibold leading-6 text-[#0A0C11]">
-                            {userProfile.grade}학년
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex h-[104px] flex-1 items-center justify-start gap-6">
-                        <img src={avgGpaIcon} alt="" className="size-20 shrink-0" />
-                        <div className="flex w-[104px] shrink-0 flex-col items-start gap-1 text-left text-[16px]">
-                          <p className="w-full text-left font-medium leading-6 text-[#747883]">
-                            학점
-                          </p>
-                          <p className="w-full text-left font-semibold leading-6 text-[#0A0C11]">
-                            {userProfile.gpa}/{userProfile.gpaMax}
-                          </p>
-                        </div>
-                      </div>
+                  {/* 온보딩 미완료 시 안내 배너 — 하드코딩처럼 보이는 0/빈값 대신 명확한 안내 표시 */}
+                  {isOnboardingIncomplete ? (
+                    <div className="flex w-full items-center gap-2 rounded-lg bg-[#F9FAFC] px-6 py-3">
+                      <img src={infoIcon} alt="" className="size-[18px] shrink-0" />
+                      <p className="flex-1 text-left text-[16px] font-medium leading-6 text-[#747883]">
+                        아직 온보딩을 완료하지 않았어요. 온보딩을 완료하면 맞춤 추천 기준을 확인할
+                        수 있어요.
+                      </p>
                     </div>
-
-                    <div className="flex w-full items-start gap-6">
-                      <div className="flex h-[104px] flex-1 items-center justify-start gap-6">
-                        <img src={moneyIcon} alt="" className="size-20 shrink-0" />
-                        <div className="flex w-[104px] shrink-0 flex-col items-start gap-1 text-left text-[16px]">
-                          <p className="w-full text-left font-medium leading-6 text-[#747883]">
-                            소득분위
-                          </p>
-                          <p className="w-full text-left font-semibold leading-6 text-[#0A0C11]">
-                            {userProfile.incomeDecile}분위
-                          </p>
+                  ) : (
+                    <>
+                      <div className="flex w-full flex-col gap-6">
+                        <div className="flex w-full items-start gap-6">
+                          <div className="flex h-[104px] flex-1 items-center justify-start gap-6">
+                            <img src={gradeIcon} alt="" className="size-20 shrink-0" />
+                            <div className="flex w-[104px] shrink-0 flex-col items-start gap-1 text-left text-[16px]">
+                              <p className="w-full text-left font-medium leading-6 text-[#747883]">
+                                학년
+                              </p>
+                              <p className="w-full text-left font-semibold leading-6 text-[#0A0C11]">
+                                {userProfile.grade}학년
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex h-[104px] flex-1 items-center justify-start gap-6">
+                            <img src={avgGpaIcon} alt="" className="size-20 shrink-0" />
+                            <div className="flex w-[104px] shrink-0 flex-col items-start gap-1 text-left text-[16px]">
+                              <p className="w-full text-left font-medium leading-6 text-[#747883]">
+                                학점
+                              </p>
+                              <p className="w-full text-left font-semibold leading-6 text-[#0A0C11]">
+                                {userProfile.gpa}/{userProfile.gpaMax}
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex h-[104px] flex-1 items-center justify-start gap-6">
-                        <img src={heartIcon} alt="" className="size-20 shrink-0" />
-                        <div className="flex flex-1 flex-col items-start gap-1 text-left">
-                          <p className="w-full text-left text-[16px] font-medium leading-6 text-[#747883]">
-                            관심분야
-                          </p>
-                          <div className="flex w-full flex-wrap items-start justify-start gap-1">
-                            {userProfile.interests.map((tag) => (
-                              <span
-                                key={tag}
-                                className="flex h-6 items-center justify-center rounded-2xl border border-[#BDB9F9] bg-[#7962ED]/10 px-3 py-1 text-[12px] font-medium leading-4 text-[#320095]"
-                              >
-                                {tag}
-                              </span>
-                            ))}
+
+                        <div className="flex w-full items-start gap-6">
+                          <div className="flex h-[104px] flex-1 items-center justify-start gap-6">
+                            <img src={moneyIcon} alt="" className="size-20 shrink-0" />
+                            <div className="flex w-[104px] shrink-0 flex-col items-start gap-1 text-left text-[16px]">
+                              <p className="w-full text-left font-medium leading-6 text-[#747883]">
+                                소득분위
+                              </p>
+                              <p className="w-full text-left font-semibold leading-6 text-[#0A0C11]">
+                                {userProfile.incomeDecile}분위
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex h-[104px] flex-1 items-center justify-start gap-6">
+                            <img src={heartIcon} alt="" className="size-20 shrink-0" />
+                            <div className="flex flex-1 flex-col items-start gap-1 text-left">
+                              <p className="w-full text-left text-[16px] font-medium leading-6 text-[#747883]">
+                                관심분야
+                              </p>
+                              <div className="flex w-full flex-wrap items-start justify-start gap-1">
+                                {userProfile.interests.map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="flex h-6 items-center justify-center rounded-2xl border border-[#BDB9F9] bg-[#7962ED]/10 px-3 py-1 text-[12px] font-medium leading-4 text-[#320095]"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
 
-                  <div className="flex w-full items-center gap-2 rounded-lg bg-[#F9FAFC] px-6 py-3">
-                    <img src={infoIcon} alt="" className="size-[18px] shrink-0" />
-                    <p className="flex-1 text-left text-[16px] font-medium leading-6 text-[#747883]">
-                      추천 기준을 수정하면 더 정확한 맞춤 장학금을 확인할 수 있어요.
-                    </p>
-                  </div>
+                      <div className="flex w-full items-center gap-2 rounded-lg bg-[#F9FAFC] px-6 py-3">
+                        <img src={infoIcon} alt="" className="size-[18px] shrink-0" />
+                        <p className="flex-1 text-left text-[16px] font-medium leading-6 text-[#747883]">
+                          추천 기준을 수정하면 더 정확한 맞춤 장학금을 확인할 수 있어요.
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </section>
 
                 {/* 계정관리 */}
@@ -276,6 +321,13 @@ export default function MyPage() {
                   <h2 className="text-left text-[20px] font-semibold leading-7 tracking-[-0.1px] text-[#0A0C11]">
                     계정관리
                   </h2>
+                  {deleteAccountError && (
+                    <div className="flex w-full items-center gap-2 rounded-lg bg-[#FEF2F2] px-6 py-3">
+                      <p className="text-[14px] font-medium leading-5 text-[#FA5862]">
+                        {deleteAccountError}
+                      </p>
+                    </div>
+                  )}
                   <div className="flex w-full flex-col gap-4">
                     <button
                       type="button"
@@ -301,6 +353,23 @@ export default function MyPage() {
                           onClick={() => navigate('/sign')}
                         >
                           회원가입
+                        </span>
+                      </div>
+                      <img src={chevronRightIcon} alt="" className="size-4" />
+                    </button>
+
+                    <div className="h-px w-full bg-[#D2D4DA]" />
+
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between disabled:opacity-60"
+                      onClick={handleDeleteAccount}
+                      disabled={isDeletingAccount}
+                    >
+                      <div className="flex items-center gap-6">
+                        <img src={deleteIcon} alt="" className="size-8" />
+                        <span className="text-[16px] font-medium leading-6 text-[#747883]">
+                          {isDeletingAccount ? '탈퇴 처리 중...' : '회원탈퇴'}
                         </span>
                       </div>
                       <img src={chevronRightIcon} alt="" className="size-4" />
