@@ -1,6 +1,6 @@
 import { useState, useEffect, type ReactNode, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from '../../components/common/Header/Header';
+import logo from '../../assets/logo.svg';
 import capIcon from '../../assets/onboarding/graduation-cap.svg';
 import helpIcon from '../../assets/onboarding/circle-question-mark.svg';
 import searchIcon from '../../assets/onboarding/magnifyingglass.svg';
@@ -119,6 +119,12 @@ const HELP_BUBBLES = [
   },
 ];
 
+// ------------------------------------------------------------------
+// 전공 분류 목록을 조회하는 API가 명세서에 없어 하드코딩 유지.
+// (전공 "명" 검색 API(/majors/search)는 있지만, 계열 목록 자체를 주는
+//  API가 아니라서 이 셀렉트 옵션과는 별개로 둠. 디자인 유지를 위해
+//  전공 분류/전공명 필드는 계속 분리된 상태로 둠)
+// ------------------------------------------------------------------
 const MAJOR_CATEGORY_OPTIONS: string[] = [
   '인문사회계열',
   '공학계열',
@@ -491,7 +497,16 @@ export default function OnboardingAcademicInfo() {
     <div className="relative left-1/2 w-screen -ml-[50vw] min-h-screen bg-white text-left font-['Pretendard',sans-serif]">
       <div className="relative mx-auto w-full max-w-[1440px]">
         {/* 상단바 */}
-        <Header logoOnly />
+        <header className="h-20 w-full">
+          <div className="flex h-full items-center px-16">
+            <img
+              src={logo}
+              alt="WISHCONNECT"
+              className="h-8 cursor-pointer"
+              onClick={() => navigate('/')}
+            />
+          </div>
+        </header>
 
         <main className="flex items-start gap-8 px-16 pb-16">
           {/* 좌측 스텝 사이드바 */}

@@ -448,7 +448,12 @@ export default function EditProfileEmailChange() {
         {/* 상단바 */}
         <header className="h-20 w-full">
           <div className="flex h-full items-center px-16">
-            <img src={logo} alt="WISHCONNECT" className="h-8" />
+            <img
+              src={logo}
+              alt="WISHCONNECT"
+              className="h-8 cursor-pointer"
+              onClick={() => navigate('/')}
+            />
           </div>
         </header>
 
