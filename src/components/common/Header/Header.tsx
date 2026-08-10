@@ -133,21 +133,45 @@ export default function Header({
     }
   }
 
+  // 스크롤을 내려도 상단바가 화면 위에 붙어 있게 고정한다.
+  // sticky가 아니라 fixed를 쓰는 이유 — sticky는 부모 박스 밖으로 못 나가서
+  // 루트에 h-[1024px] 같은 고정 높이를 준 페이지에선 그만큼만 붙어 있다가 딸려 올라간다.
+  // fixed는 화면(뷰포트) 기준이라 페이지 파일을 안 고쳐도 전 페이지에서 동일하게 동작한다.
+  // z-50: 스크롤된 본문이 헤더 위로 겹쳐 그려지지 않도록 페이지 드롭다운(z-40)보다 높게 둠
   return (
-    <header className="bg-white w-full h-[80px] relative z-20">
+    <>
+      <header className="bg-white w-full h-[80px] fixed top-0 left-0 z-50">
 
-      {/* 로고 (left: 64px, top: 24px, h: 32px), 클릭 시 홈 이동 */}
-      <button
-        type="button"
-        onClick={handleLogoClick}
-        aria-label="홈으로 이동"
-        className="absolute left-[64px] top-[24px] cursor-pointer"
-      >
-        <img src={logo} alt="WISHCONNECT" className="h-[32px]" />
-      </button>
+        {/* 헤더 안쪽 기준 박스.
+            로고(left-64px)와 우측 묶음(right-64px)이 absolute라 "어느 박스 기준이냐"가 곧 위치가 된다.
+            fixed로 바꾸면서 기준이 헤더=뷰포트가 돼버려, 1440px보다 넓은 화면에서 헤더 요소만
+            본문(대부분 페이지 루트가 w-[1440px])보다 바깥으로 벌어졌다.
+            그래서 여기서 폭을 본문과 같은 1440px로 다시 묶어 준다. mx-auto를 쓰지 않는 건
+            페이지 루트 대부분이 mx-auto 없이 좌측 정렬 1440px이라 그 쪽에 맞추기 위함이다.
+            h-full: 자식들이 top-1/2로 수직 중앙을 잡으므로 높이가 헤더만큼 있어야 한다.
+            흰 배경은 바깥 header가 화면 전체 폭으로 계속 깔아 준다. */}
+        <div className="relative w-[1440px] h-full">
 
-      {content}
+          {/* 로고 (left: 64px, top: 24px, h: 32px), 클릭 시 홈 이동 */}
+          <button
+            type="button"
+            onClick={handleLogoClick}
+            aria-label="홈으로 이동"
+            className="absolute left-[64px] top-[24px] cursor-pointer"
+          >
+            <img src={logo} alt="WISHCONNECT" className="h-[32px]" />
+          </button>
 
-    </header>
+          {content}
+
+        </div>
+
+      </header>
+
+      {/* 위 헤더가 fixed라 문서 흐름에서 빠져 있으므로, 헤더 높이만큼 자리를 대신 채운다.
+          이게 없으면 모든 페이지 내용이 80px 위로 올라가 헤더에 가려진다.
+          shrink-0: 루트가 flex-col인 페이지에서 이 칸이 찌그러지지 않게 방지 */}
+      <div className="h-[80px] shrink-0" aria-hidden="true" />
+    </>
   );
 }
