@@ -133,21 +133,33 @@ export default function Header({
     }
   }
 
+  // 스크롤을 내려도 상단바가 화면 위에 붙어 있게 고정한다.
+  // sticky가 아니라 fixed를 쓰는 이유 — sticky는 부모 박스 밖으로 못 나가서
+  // 루트에 h-[1024px] 같은 고정 높이를 준 페이지에선 그만큼만 붙어 있다가 딸려 올라간다.
+  // fixed는 화면(뷰포트) 기준이라 페이지 파일을 안 고쳐도 전 페이지에서 동일하게 동작한다.
+  // z-50: 스크롤된 본문이 헤더 위로 겹쳐 그려지지 않도록 페이지 드롭다운(z-40)보다 높게 둠
   return (
-    <header className="bg-white w-full h-[80px] relative z-20">
+    <>
+      <header className="bg-white w-full h-[80px] fixed top-0 left-0 z-50">
 
-      {/* 로고 (left: 64px, top: 24px, h: 32px), 클릭 시 홈 이동 */}
-      <button
-        type="button"
-        onClick={handleLogoClick}
-        aria-label="홈으로 이동"
-        className="absolute left-[64px] top-[24px] cursor-pointer"
-      >
-        <img src={logo} alt="WISHCONNECT" className="h-[32px]" />
-      </button>
+        {/* 로고 (left: 64px, top: 24px, h: 32px), 클릭 시 홈 이동 */}
+        <button
+          type="button"
+          onClick={handleLogoClick}
+          aria-label="홈으로 이동"
+          className="absolute left-[64px] top-[24px] cursor-pointer"
+        >
+          <img src={logo} alt="WISHCONNECT" className="h-[32px]" />
+        </button>
 
-      {content}
+        {content}
 
-    </header>
+      </header>
+
+      {/* 위 헤더가 fixed라 문서 흐름에서 빠져 있으므로, 헤더 높이만큼 자리를 대신 채운다.
+          이게 없으면 모든 페이지 내용이 80px 위로 올라가 헤더에 가려진다.
+          shrink-0: 루트가 flex-col인 페이지에서 이 칸이 찌그러지지 않게 방지 */}
+      <div className="h-[80px] shrink-0" aria-hidden="true" />
+    </>
   );
 }
