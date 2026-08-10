@@ -1,8 +1,14 @@
-import { useState, type ReactNode, type InputHTMLAttributes, type ChangeEvent } from 'react';
+import {
+  useState,
+  useEffect,
+  type ReactNode,
+  type InputHTMLAttributes,
+  type ChangeEvent,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.svg';
-import { putBasicProfile } from '../api/onboarding/profile';
-import { updatePassword } from '../api/mypage/mypage';
+import { putBasicProfile, getMyProfile } from '../api/onboarding/profile';
+import { updatePassword, getMyPageSummary } from '../api/mypage/mypage';
 import { useUserStore } from '../store/user/user';
 import { tokenStorage } from '../utils/token';
 
@@ -205,6 +211,18 @@ function mapNationalityToApiValue(nationality: Nationality): string {
   return nationality === 'domestic' ? '내국인' : '외국인';
 }
 
+// API가 준 한글 문자열(여성/남성/선택 안함)을 폼 내부 값으로 역변환
+function mapApiValueToGender(value: string): Gender {
+  if (value === '여성') return 'female';
+  if (value === '남성') return 'male';
+  return 'none';
+}
+
+// API가 준 한글 문자열(내국인/외국인)을 폼 내부 값으로 역변환
+function mapApiValueToNationality(value: string): Nationality {
+  return value === '외국인' ? 'foreign' : 'domestic';
+}
+
 export default function EditProfile() {
   const navigate = useNavigate();
   const [form, setForm] = useState<ProfileForm>(DEFAULT_FORM);
@@ -213,7 +231,40 @@ export default function EditProfile() {
   const [showNewPwConfirm, setShowNewPwConfirm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const clearUser = useUserStore((s) => s.clearUser);
+
+  // 화면 진입 시 실제 유저 프로필을 불러와서 폼에 채워넣음.
+  // getMyProfile(/users/me/profile)에서 이름/생년/연락처/성별/국적/지역을,
+  // getMyPageSummary(/users/me)에서 이메일을 각각 가져와 합친다.
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const [profileRes, summaryRes] = await Promise.all([getMyProfile(), getMyPageSummary()]);
+        const profile = profileRes.data.data;
+        const summary = summaryRes.data.data;
+
+        setForm((prev) => ({
+          ...prev,
+          email: summary.email,
+          name: profile.name,
+          birthYear: profile.birthYear,
+          contact: profile.phone,
+          gender: mapApiValueToGender(profile.gender),
+          nationality: mapApiValueToNationality(profile.nationality),
+          region: profile.region,
+        }));
+      } catch (err) {
+        console.error('프로필 정보 조회 실패:', err);
+        setLoadError('프로필 정보를 불러오지 못했어요. 기본값으로 표시됩니다.');
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const updateField =
     (field: keyof ProfileForm) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -222,6 +273,12 @@ export default function EditProfile() {
 
   const handleBack = () => {
     navigate('/mypage');
+  };
+
+  // 이메일은 이 화면에서 직접 수정하지 않고, 인증 절차가 있는 별도 화면으로 이동해서 처리.
+  // TODO: 실제 라우트 경로는 회의 후 확정되면 여기만 수정하면 됨
+  const handleGoToEditEmail = () => {
+    navigate('/mypage/edit-email');
   };
 
   const handleSubmit = async () => {
@@ -250,7 +307,7 @@ export default function EditProfile() {
     setSubmitError(null);
 
     try {
-      // 기본 정보 저장 (이메일은 이 API에 포함되지 않음 — 별도 이메일 변경 플로우에서 처리)
+      // 기본 정보 저장 (이메일은 이 API에 포함되지 않음 — 별도 이메일 변경 화면에서 처리)
       await putBasicProfile({
         name: form.name,
         birthYear: form.birthYear,
@@ -290,7 +347,12 @@ export default function EditProfile() {
         {/* 상단바 */}
         <header className="h-20 w-full">
           <div className="flex h-full items-center px-16">
-            <img src={logo} alt="WISHCONNECT" className="h-8" />
+            <img
+              src={logo}
+              alt="WISHCONNECT"
+              className="h-8 cursor-pointer"
+              onClick={() => navigate('/')}
+            />
           </div>
         </header>
 
@@ -305,7 +367,13 @@ export default function EditProfile() {
             </p>
           </div>
 
-          <div className="flex w-full flex-col gap-8">
+          {loadError && (
+            <div className="flex w-full items-center gap-2 rounded-lg bg-[#FEF2F2] px-6 py-3">
+              <p className="text-[14px] font-medium leading-5 text-[#FA5862]">{loadError}</p>
+            </div>
+          )}
+
+          <div className={`flex w-full flex-col gap-8 ${isLoadingProfile ? 'opacity-60' : ''}`}>
             {/* 이메일 주소 */}
             <div className="flex w-full flex-col items-start gap-2">
               <FieldLabel required>이메일 주소</FieldLabel>
@@ -315,13 +383,15 @@ export default function EditProfile() {
                   value={form.email}
                   onChange={updateField('email')}
                   placeholder="이메일을 입력하세요"
+                  readOnly
                 />
                 <button
                   type="button"
+                  onClick={handleGoToEditEmail}
                   style={{ backgroundColor: '#F3F4F6', border: '1px solid transparent' }}
-                  className="flex h-12 w-[140px] shrink-0 items-center justify-center rounded-lg px-4 py-2 text-[16px] font-medium leading-6 text-[#9DA1AC]"
+                  className="flex h-12 w-[140px] shrink-0 items-center justify-center rounded-lg px-4 py-2 text-[16px] font-medium leading-6 text-[#9DA1AC] whitespace-nowrap"
                 >
-                  중복 확인
+                  이메일 수정하기
                 </button>
               </div>
             </div>

@@ -85,14 +85,30 @@ export default function LoginForm() {
       </div>
 
       <div className="flex items-center justify-between">
-        {/* 아이디 찾기로 보낸다. 아이디 찾기 결과 화면에서 비밀번호 찾기로 이어갈 수 있다. */}
-        <button
-          type="button"
-          onClick={() => navigate('/find-id')}
-          className="text-base font-medium text-[#747883] underline"
-        >
-          아이디/비밀번호 찾기
-        </button>
+        {/* 아이디 찾기 · 비밀번호 찾기 (Figma 1314:2713)
+            예전엔 "아이디/비밀번호 찾기" 하나로 묶여 /find-id로만 보냈는데,
+            시안대로 3px 점을 사이에 두고 각각의 화면으로 따로 연결한다. 간격은 8px. */}
+        <div className="flex items-center gap-[8px]">
+          <button
+            type="button"
+            onClick={() => navigate('/find-id')}
+            className="text-base font-medium text-[#747883] underline"
+          >
+            아이디 찾기
+          </button>
+
+          {/* 구분점: 링크가 아니라 장식이라 밑줄을 빼고 스크린리더에서도 숨긴다 */}
+          <span aria-hidden="true" className="size-[3px] rounded-full bg-[#747883]" />
+
+          <button
+            type="button"
+            onClick={() => navigate('/find-password')}
+            className="text-base font-medium text-[#747883] underline"
+          >
+            비밀번호 찾기
+          </button>
+        </div>
+
         <button
           type="button"
           onClick={() => navigate('/sign')}

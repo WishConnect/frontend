@@ -14,10 +14,9 @@ import LeftSidebar from '../components/LeftSidebar';
 import Header from '../components/common/Header/Header';
 import { useUserStore } from '../store/user/user';
 import { tokenStorage } from '../utils/token';
-// import { logout } from '../api/login/auth';
+import { logout } from '../api/login/auth';
 import { getMyPageSummary, deleteMyAccount } from '../api/mypage/mypage';
 import type { MyPageSummary } from '../types/mypage/mypage';
-import { logout } from '../api/login/auth';
 
 // API 응답을 받아오기 전/실패했을 때, 그리고 온보딩 미완료로 추천기준이 없을 때 보여줄 기본값
 const DEFAULT_USER_PROFILE = {
@@ -227,7 +226,7 @@ export default function MyPage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => navigate('/mypage/edit')}
+                      onClick={() => navigate('/onboarding')}
                       style={{ border: '1px solid #9DA1AC' }}
                       className="flex h-9 shrink-0 items-center justify-center gap-1 rounded-lg bg-white px-4 py-2 text-[14px] font-medium leading-5 text-[#555964]"
                     >

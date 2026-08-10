@@ -1,5 +1,6 @@
 import { useState, useEffect, type ReactNode, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+//import Header from '../../components/common/Header/Header';
 import logo from '../../assets/logo.svg';
 import capIcon from '../../assets/onboarding/graduation-cap.svg';
 import helpIcon from '../../assets/onboarding/circle-question-mark.svg';
