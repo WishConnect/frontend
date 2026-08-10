@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.svg';
 import partyPopperIcon from '../../assets/onboarding/party-popper.svg';
@@ -106,24 +106,34 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
 export default function OnboardingComplete() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
-  const user = useUserStore((s) => s.user);
   const setUser = useUserStore((s) => s.setUser);
 
   // 화면 진입 시 온보딩 완료 처리 API를 자동 호출.
   // 이전 STEP1~3이 모두 저장돼 있어야 정상 동작하는 API임.
   // 성공하면 3초 뒤 큐레이션 화면(/curation)으로 자동 이동.
+  const hasCompletedRef = useRef(false);
+
   useEffect(() => {
+    // React StrictMode에서도 complete API가 중복 호출되지 않도록 방지
+    if (hasCompletedRef.current) return;
+    hasCompletedRef.current = true;
+
     let timer: ReturnType<typeof setTimeout>;
 
     const finishOnboarding = async () => {
       try {
         const res = await completeOnboarding();
+
         console.log('온보딩 완료 처리 성공:', res.data.data);
 
-        // 전역 유저 상태에도 온보딩 완료 여부 반영 (다른 화면에서 이 값을 참조하기 때문)
-        // NOTE: User 타입에 실제 필드명이 다르면(onboarding, isOnboarded 등) 키만 맞춰 바꾸면 됨
-        if (user) {
-          setUser({ ...user, onboardingCompleted: res.data.data.onboardingCompleted });
+        // 현재 유저 상태를 직접 가져옴
+        const currentUser = useUserStore.getState().user;
+
+        if (currentUser) {
+          setUser({
+            ...currentUser,
+            onboardingCompleted: res.data.data.onboardingCompleted,
+          });
         }
 
         timer = setTimeout(() => {
@@ -131,14 +141,19 @@ export default function OnboardingComplete() {
         }, 3000);
       } catch (err) {
         console.error('온보딩 완료 처리 실패:', err);
+
         setError('맞춤 추천을 준비하는 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.');
       }
     };
 
     finishOnboarding();
 
-    return () => clearTimeout(timer);
-  }, [navigate, user, setUser]);
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [navigate, setUser]);
 
   return (
     <div className="relative left-1/2 w-screen -ml-[50vw] min-h-screen bg-white text-left font-['Pretendard',sans-serif]">

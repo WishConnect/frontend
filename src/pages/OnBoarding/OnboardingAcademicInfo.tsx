@@ -188,16 +188,6 @@ const STEPS = [
 ];
 
 // ------------------------------------------------------------------
-// 복수전공/부전공 boolean 두 개를 API의 dualMajor 문자열 하나로 합쳐주는 헬퍼
-// ------------------------------------------------------------------
-function getDualMajorLabel(doubleMajor: boolean, minorMajor: boolean): string {
-  if (doubleMajor && minorMajor) return '복수전공,부전공';
-  if (doubleMajor) return '복수전공';
-  if (minorMajor) return '부전공';
-  return '';
-}
-
-// ------------------------------------------------------------------
 // 아이콘
 // ------------------------------------------------------------------
 function ChevronDownIcon() {

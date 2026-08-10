@@ -126,136 +126,132 @@ export default function MonthlySchedule({
       </div>
 
       {/* 제목 아래 영역 */}
-      <div className="relative mt-[12px] min-h-0 flex-1 overflow-hidden">
-        {/* 실제 달력 + 일정 */}
-        <div className={`flex h-full min-h-0 ${isLocked ? 'pointer-events-none' : ''}`}>
-          {/* 왼쪽 달력 */}
-          <div className="w-fit shrink-0">
-            {/* 요일 */}
-            <div className="grid grid-cols-7 gap-x-[20px] text-center">
-              {DAYS.map((day) => (
-                <span
-                  key={day}
-                  className="flex h-[20px] w-[24px] items-center justify-center text-[14px] font-medium leading-[20px] text-[#9DA1AC]"
-                >
-                  {day}
-                </span>
-              ))}
-            </div>
+      <div className="relative mt-[12px] min-h-0 flex-1">
+        {isLocked ? (
+          /* 로그인하지 않은 상태 */
+          <div className="flex h-full w-full flex-col items-center justify-center text-center">
+            <p className="text-[14px] font-semibold leading-[20px] text-[#10131A]">
+              로그인하고 맞춤
+              <br />
+              장학금 일정 관리를 시작해 보세요.
+            </p>
 
-            {/* 날짜 */}
-            <div className="mt-[4px] grid grid-cols-7 gap-x-[20px] gap-y-[2px]">
-              {calendarDates.map((date, index) => {
-                if (date === null) {
-                  return <span key={`empty-${index}`} className="h-[24px] w-[24px]" />;
-                }
-
-                const dateKey = createDateKey(year, month, date);
-                const hasSchedule = scheduleDateSet.has(dateKey);
-
-                return (
-                  <span
-                    key={dateKey}
-                    className={`flex h-[24px] w-[24px] items-center justify-center rounded-[4px] text-[14px] font-medium ${
-                      hasSchedule ? 'bg-[#7962ED] text-white' : 'text-[#555964]'
-                    }`}
-                  >
-                    {date}
-                  </span>
-                );
-              })}
-            </div>
+            <button
+              type="button"
+              onClick={onLockedClick}
+              className="mt-[16px] h-[40px] rounded-[8px] bg-[#7962ED] px-[20px] text-[14px] font-semibold text-white"
+            >
+              로그인하고 시작하기
+            </button>
           </div>
+        ) : (
+          /* 로그인한 상태에서만 실제 달력 + 일정 렌더링 */
+          <div className="flex h-full min-h-0">
+            {/* 왼쪽 달력 */}
+            <div className="w-fit shrink-0">
+              {/* 요일 */}
+              <div className="grid grid-cols-7 gap-x-[20px] text-center">
+                {DAYS.map((day) => (
+                  <span
+                    key={day}
+                    className="flex h-[20px] w-[24px] items-center justify-center text-[14px] font-medium leading-[20px] text-[#9DA1AC]"
+                  >
+                    {day}
+                  </span>
+                ))}
+              </div>
 
-          {/* 달력에서 50px 떨어진 중앙선 */}
-          <div className="ml-[50px] h-full w-px shrink-0 bg-[#747883]" />
+              {/* 날짜 */}
+              <div className="mt-[4px] grid grid-cols-7 gap-x-[20px] gap-y-[2px]">
+                {calendarDates.map((date, index) => {
+                  if (date === null) {
+                    return <span key={`empty-${index}`} className="h-[24px] w-[24px]" />;
+                  }
 
-          {/* 중앙선에서 49px 떨어진 오른쪽 일정 */}
-          <div className="relative ml-[49px] flex min-w-0 flex-1 flex-col">
-            {visibleSchedules.length > 0 ? (
-              <div className="grid grid-cols-2 gap-x-[32px] gap-y-[16px]">
-                {visibleSchedules.map((schedule) => {
-                  const scheduleDate = parseDate(schedule.date);
-                  const weekDay = DAYS[scheduleDate.getDay()];
+                  const dateKey = createDateKey(year, month, date);
+                  const hasSchedule = scheduleDateSet.has(dateKey);
 
                   return (
-                    <div key={schedule.id} className="min-w-0">
-                      <p className="text-[16px] font-bold leading-[24px] text-[#10131A]">
-                        {scheduleDate.getMonth() + 1}/{scheduleDate.getDate()} ({weekDay})
-                      </p>
-
-                      <p className="mt-[4px] truncate text-[16px] font-medium leading-[24px] text-[#555964]">
-                        {schedule.title}
-                      </p>
-                    </div>
+                    <span
+                      key={dateKey}
+                      className={`flex h-[24px] w-[24px] items-center justify-center rounded-[4px] text-[14px] font-medium ${
+                        hasSchedule ? 'bg-[#7962ED] text-white' : 'text-[#555964]'
+                      }`}
+                    >
+                      {date}
+                    </span>
                   );
                 })}
               </div>
-            ) : (
-              <div className="flex flex-1 items-center justify-center">
-                <p className="text-[14px] font-medium text-[#9DA1AC]">
-                  이번 달 등록된 일정이 없어요.
-                </p>
+            </div>
+
+            {/* 달력에서 50px 떨어진 중앙선 */}
+            <div className="ml-[50px] h-full w-px shrink-0 bg-[#747883]" />
+
+            {/* 중앙선에서 49px 떨어진 오른쪽 일정 */}
+            <div className="relative ml-[49px] flex min-w-0 flex-1 flex-col">
+              {visibleSchedules.length > 0 ? (
+                <div className="grid grid-cols-2 gap-x-[32px] gap-y-[16px]">
+                  {visibleSchedules.map((schedule) => {
+                    const scheduleDate = parseDate(schedule.date);
+                    const weekDay = DAYS[scheduleDate.getDay()];
+
+                    return (
+                      <div key={schedule.id} className="min-w-0">
+                        <p className="text-[16px] font-bold leading-[24px] text-[#10131A]">
+                          {scheduleDate.getMonth() + 1}/{scheduleDate.getDate()} ({weekDay})
+                        </p>
+
+                        <p className="mt-[4px] truncate text-[16px] font-medium leading-[24px] text-[#555964]">
+                          {schedule.title}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-1 items-center justify-center">
+                  <p className="text-[14px] font-medium text-[#9DA1AC]">
+                    이번 달 등록된 일정이 없어요.
+                  </p>
+                </div>
+              )}
+
+              {/* 일정 페이지 이동 */}
+              {totalPages > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handlePrevSchedule}
+                    className="absolute inset-y-0 left-0 z-10 w-1/2 cursor-pointer bg-transparent"
+                    aria-label="이전 일정"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={handleNextSchedule}
+                    className="absolute inset-y-0 right-0 z-10 w-1/2 cursor-pointer bg-transparent"
+                    aria-label="다음 일정"
+                  />
+                </>
+              )}
+
+              {/* 페이지 점 */}
+              <div className="relative z-0 mt-auto flex justify-center gap-[6px]">
+                {Array.from({ length: totalPages }, (_, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setSchedulePage(index)}
+                    className={`h-[6px] w-[6px] cursor-pointer rounded-full ${
+                      schedulePage === index ? 'bg-[#7962ED]' : 'bg-[#D2D4DA]'
+                    }`}
+                    aria-label={`${index + 1}번째 일정`}
+                  />
+                ))}
               </div>
-            )}
-
-            {/* 왼쪽/오른쪽 영역 클릭 시 일정 페이지 이동 */}
-            {totalPages > 1 && (
-              <>
-                <button
-                  type="button"
-                  onClick={handlePrevSchedule}
-                  className="absolute inset-y-0 left-0 z-10 w-1/2 cursor-pointer bg-transparent"
-                  aria-label="이전 일정"
-                />
-
-                <button
-                  type="button"
-                  onClick={handleNextSchedule}
-                  className="absolute inset-y-0 right-0 z-10 w-1/2 cursor-pointer bg-transparent"
-                  aria-label="다음 일정"
-                />
-              </>
-            )}
-
-            {/* 페이지 점 */}
-            <div className="relative z-0 mt-auto flex justify-center gap-[6px]">
-              {Array.from({ length: totalPages }, (_, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => setSchedulePage(index)}
-                  className={`h-[6px] w-[6px] cursor-pointer rounded-full ${
-                    schedulePage === index ? 'bg-[#7962ED]' : 'bg-[#D2D4DA]'
-                  }`}
-                  aria-label={`${index + 1}번째 일정`}
-                />
-              ))}
             </div>
           </div>
-        </div>
-
-        {/* 로그인하지 않았을 때 흰 배경으로 내용 영역을 덮음 */}
-        {isLocked && (
-          <>
-            <div className="absolute inset-0 z-10 bg-white" />
-
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center">
-              <p className="text-[14px] font-semibold leading-[20px] text-[#10131A]">
-                로그인하고 맞춤
-                <br />
-                장학금 일정 관리를 시작해 보세요.
-              </p>
-
-              <button
-                type="button"
-                onClick={onLockedClick}
-                className="mt-[16px] h-[40px] rounded-[8px] bg-[#7962ED] px-[20px] text-[14px] font-semibold text-white"
-              >
-                로그인하고 시작하기
-              </button>
-            </div>
-          </>
         )}
       </div>
     </article>
