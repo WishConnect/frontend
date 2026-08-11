@@ -371,13 +371,24 @@ export default function Detail() {
     }
 
     if (applicationId) {
-      navigate(`/write/${applicationId}`, {
-        state: {
-          scholarshipId: detail.scholarshipId,
-          scholarshipTitle: detail.title,
-          applicationStatus,
-        },
-      });
+      if (applicationStatus === 'COMPLETED') {
+        // 임시 경로
+        navigate(`/complete/${applicationId}`, {
+          state: {
+            scholarshipId: detail.scholarshipId,
+            scholarshipTitle: detail.title,
+            applicationStatus,
+          },
+        });
+      } else {
+        navigate(`/write/${applicationId}`, {
+          state: {
+            scholarshipId: detail.scholarshipId,
+            scholarshipTitle: detail.title,
+            applicationStatus,
+          },
+        });
+      }
       return;
     }
 
