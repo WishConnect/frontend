@@ -123,10 +123,11 @@ export default function ArchivingPage() {
         onQueryChange={setSearchQuery}
       />
 
-      <div className="flex gap-8 px-16 py-6">
+      <div className="flex gap-8 ml-[64px] mr-[32px]">
+        <div className="h-[896px] w-[237px]"></div>
         <LeftSidebar activeId="archiving" />
 
-        <main className="flex w-[1139px] flex-col gap-8">
+        <main className="flex w-[1139px] flex-col gap-8 pl-[18px]">
           <div className="flex flex-col gap-2">
             <h1 className="text-[40px] font-bold leading-[52px] tracking-[-0.02em] text-[#10131A]">
               아카이빙
