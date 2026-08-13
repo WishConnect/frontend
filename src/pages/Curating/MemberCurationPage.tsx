@@ -202,7 +202,7 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
           <LeftSidebar activeId="curating" />
 
           {!isOnboarded && (
-            <div className="absolute bottom-[16px] left-[14px] z-10 h-[224px] w-[208px] rounded-[16px] bg-white px-[20px] pt-[20px] pb-[16px] shadow-[0_1px_7px_0_rgba(0,0,0,0.08)]">
+            <div className="fixed bottom-[16px] left-[78px] z-10 h-[224px] w-[208px] rounded-[16px] bg-white px-[20px] pt-[20px] pb-[16px] shadow-[0_1px_7px_0_rgba(0,0,0,0.08)]">
               <p className="h-[16px] w-[105px] text-[12px] font-medium leading-[16px] text-[#555964]">
                 더 정확한 추천을 위해
               </p>
@@ -213,7 +213,7 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
                 해보세요!
               </p>
 
-              <div className="mt-[50px]">
+              <div className="invisible mt-[50px]">
                 <span className="block h-[16px] text-[12px] font-semibold leading-[16px] text-[#7962ED]">
                   {profileCompletionRate}%
                 </span>
