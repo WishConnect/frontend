@@ -18,6 +18,7 @@ import OnboardingComplete from './pages/OnBoarding/OnboardingComplete';
 import MyPage from './pages/MyPage';
 import EditProfile from './pages/EditProfile';
 import EditProfileEmail from './pages/EditProfileEmail';
+import Recommend from './pages/Curating/Recommend';
 import './App.css';
 
 import Complete from './pages/WritePage/Complete';
@@ -49,7 +50,8 @@ function App() {
       <Route path="/curation" element={<CurationPage />} />
       {/* 장학금 상세 (:id는 장학금 식별자) */}
       <Route path="/curation/:id" element={<Detail />} />
-
+      {/* 장학금 추천 페이지 */}
+      <Route path="/curation/recommended" element={<Recommend />} />
       {/* 자기소개서 작성 */}
       <Route path="/write/:applicationId" element={<WritePage />} />
       <Route path="/complete/:applicationId" element={<Complete />} />

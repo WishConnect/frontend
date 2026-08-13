@@ -14,6 +14,8 @@ import UpdateRight from '../../assets/icons/UpdateRight.svg';
 import { fetchCuratedScholarships } from '../../api/Curation/Curated';
 import { scrapScholarship, unscrapScholarship } from '../../api/Curation/Scrap';
 import { useUserStore } from '../../store/user/user';
+import Button from '../../components/Button/Button';
+import ChevronRight from '../../assets/icons/ChevronRight';
 
 import type {
   CuratedCampusScholarship,
@@ -53,7 +55,7 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
   const [errorMessage, setErrorMessage] = useState('');
 
   const featured = featuredScholarships[currentFeaturedIndex] ?? null;
-
+  const isMoreSlide = currentFeaturedIndex === featuredScholarships.length;
   const isOnboarded = Boolean(user?.onboardingCompleted);
   const isLocked = !isOnboarded;
 
@@ -73,7 +75,7 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
 
         if (isCancelled) return;
 
-        setFeaturedScholarships(data.featured ?? []);
+        setFeaturedScholarships((data.featured ?? []).slice(0, 5));
         setCurrentFeaturedIndex(0);
 
         setProfileCompletionRate(data.profileCompletionRate);
@@ -110,19 +112,31 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
   }, [location.key]);
 
   const handleFeaturedPrev = () => {
-    if (featuredScholarships.length <= 1) {
+    if (featuredScholarships.length === 0) {
       return;
     }
 
-    setCurrentFeaturedIndex((prev) => (prev === 0 ? featuredScholarships.length - 1 : prev - 1));
+    setCurrentFeaturedIndex((prev) => {
+      if (prev === 0) {
+        return featuredScholarships.length;
+      }
+
+      return prev - 1;
+    });
   };
 
   const handleFeaturedNext = () => {
-    if (featuredScholarships.length <= 1) {
+    if (featuredScholarships.length === 0) {
       return;
     }
 
-    setCurrentFeaturedIndex((prev) => (prev === featuredScholarships.length - 1 ? 0 : prev + 1));
+    setCurrentFeaturedIndex((prev) => {
+      if (prev === featuredScholarships.length) {
+        return 0;
+      }
+
+      return prev + 1;
+    });
   };
 
   const handleFeaturedDotClick = (index: number) => {
@@ -274,26 +288,75 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
               </div>
             )}
 
-            {!isLoading && !errorMessage && featured && (
+            {!isLoading && !errorMessage && featuredScholarships.length > 0 && (
               <>
-                <RecommendCard
-                  scholarship={featured}
-                  onDetailClick={handleDetailClick}
-                  onScrapClick={handleScrapClick}
-                  onPrev={handleFeaturedPrev}
-                  onNext={handleFeaturedNext}
-                  isScrapLoading={isScrapLoading}
-                />
+                {isMoreSlide ? (
+                  <div
+                    onClick={(event) => {
+                      const target = event.target as HTMLElement;
 
-                {featuredScholarships.length > 1 && (
-                  <div className="flex justify-center">
-                    <DotIndicator
-                      total={featuredScholarships.length}
-                      current={currentFeaturedIndex + 1}
-                      onDotClick={handleFeaturedDotClick}
-                    />
+                      // 버튼을 클릭했을 때는 슬라이드가 넘어가지 않음
+                      if (target.closest('button, a')) {
+                        return;
+                      }
+
+                      const cardRect = event.currentTarget.getBoundingClientRect();
+                      const cardCenterX = cardRect.left + cardRect.width / 2;
+
+                      if (event.clientX < cardCenterX) {
+                        handleFeaturedPrev();
+                        return;
+                      }
+
+                      handleFeaturedNext();
+                    }}
+                    className="flex h-[528px] w-[1043px] cursor-pointer items-center justify-center rounded-[16px] border border-[#E6E7EB] bg-white"
+                  >
+                    <div className="flex flex-col items-center">
+                      <h2 className="h-[40px] w-[400px] text-center text-[28px] font-bold leading-[40px] text-[#10131A]">
+                        지원 가능한 더 많은 장학금 확인하기
+                      </h2>
+
+                      <p className="h-[24px] whitespace-nowrap text-center text-[16px] font-medium leading-[24px] text-[#555964]">
+                        {user?.name ?? '회원'}님이 지원가능한 50종의 장학금을 더 확인해보세요.
+                      </p>
+
+                      <Button
+                        size="md"
+                        variant="primary"
+                        weight="medium"
+                        width="228px"
+                        paddingLeft="16px"
+                        paddingRight="16px"
+                        iconGap={12}
+                        rightIcon={<ChevronRight />}
+                        className="mt-[24px] leading-[26px]"
+                        onClick={() => navigate('/curation/recommended')}
+                      >
+                        장학금 확인하러 가기
+                      </Button>
+                    </div>
                   </div>
+                ) : (
+                  featured && (
+                    <RecommendCard
+                      scholarship={featured}
+                      onDetailClick={handleDetailClick}
+                      onScrapClick={handleScrapClick}
+                      onPrev={handleFeaturedPrev}
+                      onNext={handleFeaturedNext}
+                      isScrapLoading={isScrapLoading}
+                    />
+                  )
                 )}
+
+                <div className="flex justify-center">
+                  <DotIndicator
+                    total={featuredScholarships.length + 1}
+                    current={currentFeaturedIndex + 1}
+                    onDotClick={handleFeaturedDotClick}
+                  />
+                </div>
               </>
             )}
           </div>
