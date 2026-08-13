@@ -198,7 +198,7 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
       />
 
       <div className="flex">
-        <div className="relative ml-[64px] h-[896px] w-[237px] shrink-0 self-start">
+        <div className="relative ml-[64px] min-h-screen w-[237px] shrink-0">
           <LeftSidebar activeId="curating" />
 
           {!isOnboarded && (
@@ -241,7 +241,7 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
           )}
         </div>
 
-        <main className="flex w-[1139px] flex-col gap-[52px] pl-[32px] pr-[64px] pb-[64px]">
+        <main className="flex w-[1139px] flex-col gap-[52px] pt-[16px] pl-[32px] pr-[64px] pb-[64px]">
           <div className="flex w-[1043px] flex-col gap-[32px]">
             <div className="flex w-[1000px] flex-col gap-[4px]">
               <span className="h-[104px] text-[40px] font-bold leading-[52px] text-[#10131A]">

@@ -17,21 +17,22 @@ interface QuickMenu {
 const quickMenus: QuickMenu[] = [
   {
     id: 'curation',
-    title: '큐레이션',
+    title: '추천 장학금',
     description: 'AI가 추천하는 맞춤\n장학금을 둘러보세요.',
     path: '/curation',
     icon: CurationIcon,
   },
   {
+    // desc 수정 필요
     id: 'application',
-    title: '자기소개서 작성',
-    description: 'AI 초안 생성으로 지원서를\n빠르고 쉽게 작성하세요.',
-    path: '/write',
+    title: '마이페이지',
+    description: '내 정보를 관리하고,\n맞춤 추천 기준을 확인해보세요.',
+    path: '/mypage',
     icon: WriteIcon,
   },
   {
     id: 'archiving',
-    title: '아카이빙',
+    title: '보관함',
     description: '스크랩한 장학금과 작성한\n지원서를 한눈에 관리해요.',
     path: '/archiving',
     icon: ArchivingIcon,

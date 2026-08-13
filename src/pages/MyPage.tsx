@@ -160,9 +160,8 @@ export default function MyPage() {
           <Header logoOnly={true} />
         </header>
 
-        <div className="flex">
+        <div className="flex min-h-screen">
           <aside className="ml-[64px] mr-[32px]">
-            <div className="h-[896px] w-[237px]"></div>
             <LeftSidebar activeId="mypage" />
           </aside>
 

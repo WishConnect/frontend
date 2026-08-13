@@ -195,27 +195,29 @@ export default function WritePage() {
       </header>
 
       <div className="flex flex-1 relative">
-        <aside className="relative ml-[64px] h-full">
+        <aside className="relative ml-[64px] ">
           <LeftSidebar />
 
           {/* 작성 도움말 */}
           {currentStep === 1 ? (
-            <div className="absolute bottom-[16px] left-[15px] z-10 w-[208px] h-[303px] rounded-[16px] pl-[19px] pr-[43px] pt-[24px] pb-[36px] bg-[#FFF]">
-              <span className="block text-[#181C25] text-[16px] font-[700] mb-[20px]">
-                작성 도움말
-              </span>
-              <div className="flex flex-col gap-[21px]">
-                {tips.map((item, idx) => (
-                  <div key={idx} className="flex gap-[4px] items-start">
-                    <div>{item.icon}</div>
-                    <div className="flex flex-col gap-[4px]">
-                      <span className="text-[#373B46] text-[12px] font-[600]">{item.title}</span>
-                      <span className="text-[#747883] text-[12px] font-[500] whitespace-pre-line">
-                        {item.desc}
-                      </span>
+            <div className='fixed'>
+              <div className="absolute bottom-[32px] left-[15px] z-10 w-[208px] h-[303px] rounded-[16px] pl-[19px] pr-[43px] pt-[24px] pb-[36px] bg-[#FFF]">
+                <span className="block text-[#181C25] text-[16px] font-[700] mb-[20px]">
+                  작성 도움말
+                </span>
+                <div className="flex flex-col gap-[21px]">
+                  {tips.map((item, idx) => (
+                    <div key={idx} className="flex gap-[4px] items-start">
+                      <div>{item.icon}</div>
+                      <div className="flex flex-col gap-[4px]">
+                        <span className="text-[#373B46] text-[12px] font-[600]">{item.title}</span>
+                        <span className="text-[#747883] text-[12px] font-[500] whitespace-pre-line">
+                          {item.desc}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           ) : (

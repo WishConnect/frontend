@@ -52,7 +52,7 @@ export default function GuestCurationPage() {
       />
 
       <div className="flex">
-        <div className="relative ml-[64px] h-[896px] w-[237px] shrink-0 self-start">
+        <div className="relative ml-[64px] w-[237px] shrink-0">
           <LeftSidebar activeId="curating" />
         </div>
 
