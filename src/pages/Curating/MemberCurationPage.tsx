@@ -53,9 +53,8 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
   const [isScrapLoading, setIsScrapLoading] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState('');
+  const SLIDE_WIDTH = 1043;
 
-  const featured = featuredScholarships[currentFeaturedIndex] ?? null;
-  const isMoreSlide = currentFeaturedIndex === featuredScholarships.length;
   const isOnboarded = Boolean(user?.onboardingCompleted);
   const isLocked = !isOnboarded;
 
@@ -138,7 +137,25 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
       return prev + 1;
     });
   };
+  useEffect(() => {
+    if (featuredScholarships.length === 0) {
+      return;
+    }
 
+    const interval = window.setInterval(() => {
+      setCurrentFeaturedIndex((prev) => {
+        if (prev === featuredScholarships.length) {
+          return 0;
+        }
+
+        return prev + 1;
+      });
+    }, 5000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [featuredScholarships.length]);
   const handleFeaturedDotClick = (index: number) => {
     setCurrentFeaturedIndex(index - 1);
   };
@@ -149,12 +166,6 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
         profileCompletionRate,
       },
     });
-  };
-
-  const handleDetailClick = () => {
-    if (!featured) return;
-
-    handleScholarshipDetailClick(featured.scholarshipId);
   };
 
   const handleScrapClick = async (scholarshipId: number) => {
@@ -290,65 +301,77 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
 
             {!isLoading && !errorMessage && featuredScholarships.length > 0 && (
               <>
-                {isMoreSlide ? (
+                <div className="w-[1043px] overflow-hidden rounded-[16px]">
                   <div
-                    onClick={(event) => {
-                      const target = event.target as HTMLElement;
-
-                      // 버튼을 클릭했을 때는 슬라이드가 넘어가지 않음
-                      if (target.closest('button, a')) {
-                        return;
-                      }
-
-                      const cardRect = event.currentTarget.getBoundingClientRect();
-                      const cardCenterX = cardRect.left + cardRect.width / 2;
-
-                      if (event.clientX < cardCenterX) {
-                        handleFeaturedPrev();
-                        return;
-                      }
-
-                      handleFeaturedNext();
+                    className="flex transition-transform duration-500 ease-in-out"
+                    style={{
+                      transform: `translateX(-${currentFeaturedIndex * SLIDE_WIDTH}px)`,
                     }}
-                    className="flex h-[528px] w-[1043px] cursor-pointer items-center justify-center rounded-[16px] border border-[#E6E7EB] bg-white"
                   >
-                    <div className="flex flex-col items-center">
-                      <h2 className="h-[40px] w-[400px] text-center text-[28px] font-bold leading-[40px] text-[#10131A]">
-                        지원 가능한 더 많은 장학금 확인하기
-                      </h2>
+                    {featuredScholarships.map((scholarship) => (
+                      <div key={scholarship.scholarshipId} className="w-[1043px] shrink-0">
+                        <RecommendCard
+                          scholarship={scholarship}
+                          onDetailClick={() =>
+                            handleScholarshipDetailClick(scholarship.scholarshipId)
+                          }
+                          onScrapClick={handleScrapClick}
+                          onPrev={handleFeaturedPrev}
+                          onNext={handleFeaturedNext}
+                          isScrapLoading={isScrapLoading}
+                        />
+                      </div>
+                    ))}
 
-                      <p className="h-[24px] whitespace-nowrap text-center text-[16px] font-medium leading-[24px] text-[#555964]">
-                        {user?.name ?? '회원'}님이 지원가능한 50종의 장학금을 더 확인해보세요.
-                      </p>
+                    <div className="w-[1043px] shrink-0">
+                      <div
+                        onClick={(event) => {
+                          const target = event.target as HTMLElement;
 
-                      <Button
-                        size="md"
-                        variant="primary"
-                        weight="medium"
-                        width="228px"
-                        paddingLeft="16px"
-                        paddingRight="16px"
-                        iconGap={12}
-                        rightIcon={<ChevronRight />}
-                        className="mt-[24px] leading-[26px]"
-                        onClick={() => navigate('/curation/recommended')}
+                          if (target.closest('button, a')) {
+                            return;
+                          }
+
+                          const cardRect = event.currentTarget.getBoundingClientRect();
+                          const cardCenterX = cardRect.left + cardRect.width / 2;
+
+                          if (event.clientX < cardCenterX) {
+                            handleFeaturedPrev();
+                            return;
+                          }
+
+                          handleFeaturedNext();
+                        }}
+                        className="flex h-[528px] w-[1043px] cursor-pointer items-center justify-center rounded-[16px] border border-[#E6E7EB] bg-white"
                       >
-                        장학금 확인하러 가기
-                      </Button>
+                        <div className="flex flex-col items-center">
+                          <h2 className="h-[40px] w-[400px] text-center text-[28px] font-bold leading-[40px] text-[#10131A]">
+                            지원 가능한 더 많은 장학금 확인하기
+                          </h2>
+
+                          <p className="h-[24px] whitespace-nowrap text-center text-[16px] font-medium leading-[24px] text-[#555964]">
+                            {user?.name ?? '회원'}님이 지원가능한 50종의 장학금을 더 확인해보세요.
+                          </p>
+
+                          <Button
+                            size="md"
+                            variant="primary"
+                            weight="medium"
+                            width="228px"
+                            paddingLeft="16px"
+                            paddingRight="16px"
+                            iconGap={12}
+                            rightIcon={<ChevronRight />}
+                            className="mt-[24px] leading-[26px]"
+                            onClick={() => navigate('/curation/recommended')}
+                          >
+                            장학금 확인하러 가기
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                ) : (
-                  featured && (
-                    <RecommendCard
-                      scholarship={featured}
-                      onDetailClick={handleDetailClick}
-                      onScrapClick={handleScrapClick}
-                      onPrev={handleFeaturedPrev}
-                      onNext={handleFeaturedNext}
-                      isScrapLoading={isScrapLoading}
-                    />
-                  )
-                )}
+                </div>
 
                 <div className="flex justify-center">
                   <DotIndicator
