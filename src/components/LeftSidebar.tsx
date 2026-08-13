@@ -34,8 +34,8 @@ const MypageIcon = () => (
 )
 
 const MENU_ITEMS: MenuItem[] = [
-    {id: 'curating', label: '큐레이팅', icon: <CuratingIcon />},
-    {id: 'archiving', label: '아카이빙', icon:<ArchivingIcon />},
+    {id: 'curating', label: '추천 장학금', icon: <CuratingIcon />},
+    {id: 'archiving', label: '보관함', icon:<ArchivingIcon />},
     {id: 'insight', label: '인사이트', icon: <InsightIcon />},
     {id: 'mypage', label: '마이페이지', icon: <MypageIcon />},
 ];
@@ -47,9 +47,9 @@ interface SidebarItemProps {
 }
 
 function SidebarItem({ item, isActive, onClick }: SidebarItemProps) {
-    const baseStyle = "flex items-center w-full pl-[19px] pt-[8.5px] pb-[9.5px] gap-[14px] rounded-lg font-['Pretendard'] transtition-colors"; 
-    const activeStyle = "bg-gradient-to-r from-[#7962ED] to-[#BDB9F9] text-white shadow-[0_1px_7px_0_rgba(0,0,0,0.1)]";
-    const inactiveStyle = "bg-transparent text-[#9DA1AC] hover:bg-gray-100";
+    const baseStyle = "relative z-10 flex items-center w-full pl-[19px] pt-[8.5px] pb-[9.5px] gap-[14px] rounded-lg font-['Pretendard'] transtition-colors"; 
+    const activeStyle = "text-white";
+    const inactiveStyle = "text-[#9DA1AC] hover:text-[#320095]";
 
     return (
         <button
@@ -68,10 +68,12 @@ interface LeftSidebarProps {
     activeId?: MenuId;
 }
 
+const FADE_MS = 300;
+
 export default function LeftSidebar({ activeId: initialActiveId }: LeftSidebarProps = {}) {
     const [activeId, setActiveId] = useState<MenuId>(initialActiveId ?? MENU_ITEMS[0].id);
     const navigate = useNavigate();
-    const getPath = (id: MenuId) => {
+   const getPath = (id: MenuId) => {
         switch (id) {
             case 'curating' : return '/curation';
             case 'archiving' : return '/archiving';
@@ -80,23 +82,74 @@ export default function LeftSidebar({ activeId: initialActiveId }: LeftSidebarPr
         }
     }
 
+    const activeIndex = MENU_ITEMS.findIndex(item => item.id === activeId);
+
+    const handleNavigate = (id: MenuId) => {
+        if (id === activeId) return;
+
+        setActiveId(id);
+
+        const mainContent = document.querySelector('main') as HTMLElement | null;
+
+        if (mainContent) {
+            mainContent.style.transition = `opacity ${FADE_MS}ms ease-out`;
+            mainContent.style.opacity = '0';
+
+            setTimeout(() => {
+                navigate(getPath(id));
+
+                setTimeout(() => {
+                    const newMain = document.querySelector('main') as HTMLElement | null;
+                    if (newMain) {
+                        newMain.style.transition = 'none';
+                        newMain.style.opacity = '0';
+                        
+                        setTimeout(() => {
+                            newMain.style.transition = `opacity ${FADE_MS}ms ease-in`;
+                            newMain.style.opacity = '1';
+                        }, 50); 
+                    }
+                }, 50); 
+
+            }, FADE_MS);
+        } else {
+            navigate(getPath(id));
+        }
+    };
+
     return(
-        <aside className='
-        w-[237px] h-[896px]
-        bg-gray-50 rounded-[16px]
-        flex flex-col
-        pt-[17px] px-[14px] gap-[8px]'>
-            {MENU_ITEMS.map((item) => (
-                <SidebarItem
-                    key={item.id}
-                    item={item}
-                    isActive={item.id === activeId}
-                    onClick={() => {
-                        setActiveId(item.id);
-                        navigate(getPath(item.id));
-                    }}
-                />
-            ))}
-        </aside>
+       <>
+         <div className="w-[237px] h-[896px] shrink-0" aria-hidden="true" />
+
+            <aside className='
+            fixed top-[80px]
+            w-[237px] h-[896px]
+            bg-gray-50 rounded-[16px]
+            flex flex-col
+            pt-[17px] px-[14px] gap-[8px]'>
+                <div className="relative flex flex-col gap-[8px]">
+                    <div 
+                        className="absolute left-0 top-0 w-full h-[50px] bg-gradient-to-r from-[#7962ED] to-[#BDB9F9] shadow-[0_1px_7px_0_rgba(0,0,0,0.1)] rounded-lg transition-transform duration-500"
+                        style={{ 
+                            transform: `translate3d(0, ${activeIndex * 58}px, 0)`,
+                            transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                            willChange: 'transform',
+                            backfaceVisibility: 'hidden',
+                            contain: 'layout paint',
+                            isolation: 'isolate',
+                        }}
+                    />
+
+                    {MENU_ITEMS.map((item) => (
+                        <SidebarItem
+                            key={item.id}
+                            item={item}
+                            isActive={item.id === activeId}
+                            onClick={() => handleNavigate(item.id)}
+                        />
+                    ))}
+                </div>
+            </aside>
+       </>
     );
 }

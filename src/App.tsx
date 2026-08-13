@@ -25,8 +25,6 @@ import Complete from './pages/WritePage/Complete';
 function App() {
   return (
     <Routes>
-      <Route path="/complete" element={<Complete />} />
-
       {/* 홈 */}
       <Route path="/" element={<Home />} />
 
@@ -54,6 +52,7 @@ function App() {
 
       {/* 자기소개서 작성 */}
       <Route path="/write/:applicationId" element={<WritePage />} />
+      <Route path="/complete/:applicationId" element={<Complete />} />
 
       {/* 이메일 수정하기*/}
       <Route path="/mypage/edit-email" element={<EditProfileEmail />} />

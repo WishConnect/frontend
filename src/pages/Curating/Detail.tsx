@@ -21,6 +21,7 @@ import DdayStatus from '../../components/DdayStatus';
 import { fetchScholarshipDetail } from '../../api/Curation/Detail';
 import { scrapScholarship, unscrapScholarship } from '../../api/Curation/Scrap';
 import { useUserStore } from '../../store/user/user';
+import { postStartApplication } from '../../api/archiving/start';
 
 import type {
   ScholarshipDetailResponse,
@@ -359,7 +360,7 @@ export default function Detail() {
     }
   };
 
-  const handleApplicationButtonClick = () => {
+  const handleApplicationButtonClick = async () => {
     if (!isLoggedIn) {
       navigate('/login', {
         state: {
@@ -369,14 +370,58 @@ export default function Detail() {
       return;
     }
 
-    navigate('/write', {
-      state: {
-        scholarshipId: detail.scholarshipId,
-        scholarshipTitle: detail.title,
-        applicationId,
-        applicationStatus,
-      },
-    });
+    if (applicationId) {
+      if (applicationStatus === 'COMPLETED') {
+        // 임시 경로
+        navigate(`/complete/${applicationId}`, {
+          state: {
+            scholarshipId: detail.scholarshipId,
+            scholarshipTitle: detail.title,
+            applicationStatus,
+          },
+        });
+      } else {
+        navigate(`/write/${applicationId}`, {
+          state: {
+            scholarshipId: detail.scholarshipId,
+            scholarshipTitle: detail.title,
+            applicationStatus,
+          },
+        });
+      }
+      return;
+    }
+
+    try {
+      const cleanId = Number(String(detail.scholarshipId).replace("sch-", ""));
+
+      const response = await postStartApplication({ 
+        scholarshipId: cleanId 
+      });
+
+      if (response.success && response.data) {
+        const newApplicationId = response.data.applicationId;
+        
+        navigate(`/write/${newApplicationId}`, {
+          state: {
+            scholarshipId: detail.scholarshipId,
+            scholarshipTitle: detail.title,
+            applicationStatus,
+          },
+        });
+      }
+    } catch (error) {
+      console.error('지원서 생성 실패:', error);
+    }
+
+    // navigate('/write', {
+    //   state: {
+    //     scholarshipId: detail.scholarshipId,
+    //     scholarshipTitle: detail.title,
+    //     applicationId,
+    //     applicationStatus,
+    //   },
+    // });
   };
 
   return (
@@ -390,7 +435,8 @@ export default function Detail() {
         </div>
       )}
       <div className="flex">
-        <div className="relative ml-[64px] h-[896px] w-[237px] shrink-0 self-start">
+        <div className="relative ml-[64px] w-[237px] shrink-0">
+          
           <LeftSidebar activeId="curating" />
 
           {isLoggedIn && !isOnboarded && (

@@ -200,7 +200,7 @@ export default function Complete() {
       </header>
 
       <div className="flex flex-1 relative">
-        <aside className="relative ml-[64px] h-full">
+        <aside className="relative ml-[64px] min-h-screen">
           <LeftSidebar />
         </aside>
 
