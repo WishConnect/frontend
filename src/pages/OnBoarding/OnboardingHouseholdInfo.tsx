@@ -1,10 +1,10 @@
-import { useState, type ReactNode, type ChangeEvent } from 'react';
+import { useEffect, useState, type ReactNode, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.svg';
 import heartIcon from '../../assets/onboarding/heart.svg';
 import helpIcon from '../../assets/onboarding/circle-question-mark.svg';
 import clockIcon from '../../assets/onboarding/clock.svg';
-import { putHouseholdProfile } from '../../api/onboarding/profile';
+import { getMyProfile, putHouseholdProfile } from '../../api/onboarding/profile';
 
 function CloseIcon() {
   return (
@@ -514,7 +514,68 @@ export default function OnboardingHouseholdInfo() {
   const [selfStatusCustom, setSelfStatusCustom] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
   const [interestCustom, setInterestCustom] = useState('');
+  useEffect(() => {
+    const loadHouseholdProfile = async () => {
+      try {
+        const res = await getMyProfile();
+        const profile = res.data.data;
+        const household = profile.household;
 
+        if (!household) return;
+
+        // 소득 분위
+        if (household.incomeLevel === INCOME_LEVEL_UNKNOWN_VALUE) {
+          setIncomeUnknown(true);
+          setIncomeLevel('');
+        } else {
+          setIncomeUnknown(false);
+          setIncomeLevel(household.incomeLevel ?? '');
+        }
+
+        // 가구원 수
+        if (household.familySize) {
+          setHouseholdSize(
+            household.familySize >= 5 ? '5인 이상 가구' : `${household.familySize}인 가구`,
+          );
+        }
+
+        // 가정 형태
+        setHousingTypes(household.familyTypes ?? []);
+
+        // 본인 해당 항목
+        const savedPersonalStatuses = household.personalStatuses ?? [];
+
+        const predefinedPersonalStatuses = savedPersonalStatuses.filter((status) =>
+          SELF_STATUS_OPTIONS.includes(status),
+        );
+
+        const customPersonalStatus = savedPersonalStatuses.find(
+          (status) => !SELF_STATUS_OPTIONS.includes(status),
+        );
+
+        setSelfStatuses(predefinedPersonalStatuses);
+        setSelfStatusCustom(customPersonalStatus ?? '');
+
+        // 관심 분야
+        const savedInterests = profile.interests ?? [];
+
+        const predefinedInterests = savedInterests.filter((interest) =>
+          INTEREST_OPTIONS.includes(interest),
+        );
+
+        const customInterest = savedInterests.find(
+          (interest) => !INTEREST_OPTIONS.includes(interest),
+        );
+
+        setInterests(predefinedInterests);
+        setInterestCustom(customInterest ?? '');
+      } catch (err) {
+        console.error('기존 가구 정보 & 관심사 조회 실패:', err);
+      }
+    };
+
+    loadHouseholdProfile();
+  }, []);
   const toggleInList = (list: string[], setList: (v: string[]) => void, value: string) => {
     setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   };
@@ -533,7 +594,7 @@ export default function OnboardingHouseholdInfo() {
   };
 
   const handlePrev = () => {
-    navigate('/onboarding');
+    navigate(-1);
   };
 
   const handleNext = async () => {
