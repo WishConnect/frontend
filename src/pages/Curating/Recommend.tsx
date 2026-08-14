@@ -1,18 +1,23 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useUserStore } from '../../store/user/user';
 import Down from '../../assets/icons/CategoryDown.svg';
 import Up from '../../assets/icons/CategoryUp.svg';
+
 import { scholarships } from '../../mock/scholarships';
-import { useNavigate } from 'react-router-dom';
+
 import Header from '../../components/common/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar';
 import DdayStatus from '../../components/DdayStatus';
 import Pagination from '../../components/common/Pagination/Pagination';
 
-const ITEMS_PER_PAGE = 9;
+const ITEMS_PER_PAGE = 6;
 
 type SortOption = '마감 임박순' | '최신순' | '높은 금액순';
 
-export default function GuestCurationPage() {
+export default function RecommendedScholarshipPage() {
+  const navigate = useNavigate();
+  const user = useUserStore((state) => state.user);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOption, setSortOption] = useState<SortOption>('마감 임박순');
   const [isSortOpen, setIsSortOpen] = useState(false);
@@ -27,6 +32,7 @@ export default function GuestCurationPage() {
     if (sortOption === '높은 금액순') {
       const aAmount = Number(a.summary.amount.replace(/[^0-9]/g, ''));
       const bAmount = Number(b.summary.amount.replace(/[^0-9]/g, ''));
+
       return bAmount - aAmount;
     }
 
@@ -39,12 +45,12 @@ export default function GuestCurationPage() {
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE,
   );
-  const navigate = useNavigate();
+
   return (
-    <div className="h-[1024px] w-[1440px] bg-white font-['Pretendard']">
+    <div className="min-h-[1024px] w-[1440px] bg-white font-['Pretendard']">
       <Header
         searchPlaceholder="장학금 찾아보기"
-        isLoggedIn={false}
+        isLoggedIn
         isSearchMode={false}
         onSearch={(query) => {
           navigate(`/curation?keyword=${query}`);
@@ -58,17 +64,13 @@ export default function GuestCurationPage() {
 
         <main className="mt-[16px] flex w-[1139px] flex-col pb-[64px] pl-[32px] pr-[64px]">
           {/* 제목 + 정렬 */}
-          <div className="flex items-end gap-[462px]">
-            <div className="flex w-[416px] flex-col gap-[4px]">
-              <h1 className="h-[104px] text-[40px] font-bold leading-[52px] tracking-[-0.02em] text-[#10131A]">
-                지금 <span className="text-[#7962ED]">지원 가능한</span>
-                <br />
-                장학금을 확인해보세요!
+          <div className="flex items-end justify-between">
+            <div className="flex flex-col gap-[8px]">
+              <h1 className="text-[40px] font-bold leading-[52px] tracking-[-0.02em] text-[#10131A]">
+                추천 장학금
               </h1>
 
-              <span className="text-[16px] font-medium leading-[24px] text-[#555964]">
-                위시커넥트가 추천하는 장학금을 확인해보세요.
-              </span>
+              <p>위시커넥트가 확인한 {user?.name ?? '회원'}님이 지금 지원 가능한 장학금이에요.</p>
             </div>
 
             <div className="relative">
@@ -78,6 +80,7 @@ export default function GuestCurationPage() {
                 className="flex h-[48px] w-[164px] items-center justify-between rounded-[8px] bg-[#F9FAFC] px-[24px] text-[16px] font-medium text-[#555964]"
               >
                 {sortOption}
+
                 <img src={isSortOpen ? Up : Down} alt={isSortOpen ? '위 화살표' : '아래 화살표'} />
               </button>
 
@@ -104,8 +107,8 @@ export default function GuestCurationPage() {
             </div>
           </div>
 
-          {/* 카드 목록 */}
-          <div className="mt-[44px] grid grid-cols-3 gap-[32px]">
+          {/* 장학금 카드 */}
+          <div className="mt-[32px] grid grid-cols-3 gap-x-[32px] gap-y-[32px]">
             {currentScholarships.map((scholarship) => (
               <article
                 key={scholarship.id}
@@ -148,13 +151,16 @@ export default function GuestCurationPage() {
             ))}
           </div>
 
-          <aside className="mt-[60px] flex items-center justify-center">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
-          </aside>
+          {/* 페이지네이션 */}
+          {totalPages > 1 && (
+            <div className="mt-[48px] flex justify-center">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
         </main>
       </div>
     </div>

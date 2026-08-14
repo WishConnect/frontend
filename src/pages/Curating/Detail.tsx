@@ -21,6 +21,7 @@ import DdayStatus from '../../components/DdayStatus';
 import { fetchScholarshipDetail } from '../../api/Curation/Detail';
 import { scrapScholarship, unscrapScholarship } from '../../api/Curation/Scrap';
 import { useUserStore } from '../../store/user/user';
+import { postStartApplication } from '../../api/archiving/start';
 
 import type {
   ScholarshipDetailResponse,
@@ -359,7 +360,7 @@ export default function Detail() {
     }
   };
 
-  const handleApplicationButtonClick = () => {
+  const handleApplicationButtonClick = async () => {
     if (!isLoggedIn) {
       navigate('/login', {
         state: {
@@ -369,14 +370,58 @@ export default function Detail() {
       return;
     }
 
-    navigate('/write', {
-      state: {
-        scholarshipId: detail.scholarshipId,
-        scholarshipTitle: detail.title,
-        applicationId,
-        applicationStatus,
-      },
-    });
+    if (applicationId) {
+      if (applicationStatus === 'COMPLETED') {
+        // 임시 경로
+        navigate(`/complete/${applicationId}`, {
+          state: {
+            scholarshipId: detail.scholarshipId,
+            scholarshipTitle: detail.title,
+            applicationStatus,
+          },
+        });
+      } else {
+        navigate(`/write/${applicationId}`, {
+          state: {
+            scholarshipId: detail.scholarshipId,
+            scholarshipTitle: detail.title,
+            applicationStatus,
+          },
+        });
+      }
+      return;
+    }
+
+    try {
+      const cleanId = Number(String(detail.scholarshipId).replace('sch-', ''));
+
+      const response = await postStartApplication({
+        scholarshipId: cleanId,
+      });
+
+      if (response.success && response.data) {
+        const newApplicationId = response.data.applicationId;
+
+        navigate(`/write/${newApplicationId}`, {
+          state: {
+            scholarshipId: detail.scholarshipId,
+            scholarshipTitle: detail.title,
+            applicationStatus,
+          },
+        });
+      }
+    } catch (error) {
+      console.error('지원서 생성 실패:', error);
+    }
+
+    // navigate('/write', {
+    //   state: {
+    //     scholarshipId: detail.scholarshipId,
+    //     scholarshipTitle: detail.title,
+    //     applicationId,
+    //     applicationStatus,
+    //   },
+    // });
   };
 
   return (
@@ -390,11 +435,11 @@ export default function Detail() {
         </div>
       )}
       <div className="flex">
-        <div className="relative ml-[64px] h-[896px] w-[237px] shrink-0 self-start">
+        <div className="relative ml-[64px] w-[237px] shrink-0">
           <LeftSidebar activeId="curating" />
 
           {isLoggedIn && !isOnboarded && (
-            <div className="absolute bottom-[16px] left-[14px] z-10 h-[224px] w-[208px] rounded-[16px] bg-white px-[20px] pt-[20px] pb-[16px] shadow-[0_1px_7px_0_rgba(0,0,0,0.08)]">
+            <div className="fixed bottom-[16px] left-[78px] z-10 h-[224px] w-[208px] rounded-[16px] bg-white px-[20px] pt-[20px] pb-[16px] shadow-[0_1px_7px_0_rgba(0,0,0,0.08)]">
               <p className="text-[12px] font-medium leading-[16px] text-[#555964]">
                 더 정확한 추천을 위해
               </p>
@@ -405,7 +450,7 @@ export default function Detail() {
                 해보세요!
               </p>
 
-              <div className="mt-[50px]">
+              <div className="invisible mt-[50px]">
                 <span className="block text-[12px] font-semibold leading-[16px] text-[#7962ED]">
                   {profileProgress}%
                 </span>

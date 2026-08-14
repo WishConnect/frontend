@@ -123,13 +123,13 @@ export default function ArchivingPage() {
         onQueryChange={setSearchQuery}
       />
 
-      <div className="flex gap-8 px-16 py-6">
+      <div className="min-h-screen flex ml-[64px] mr-[32px]">
         <LeftSidebar activeId="archiving" />
 
-        <main className="flex w-[1139px] flex-col gap-8">
+        <main className="flex w-[1139px] flex-col gap-8 pt-[16px] pl-[32px]">
           <div className="flex flex-col gap-2">
             <h1 className="text-[40px] font-bold leading-[52px] tracking-[-0.02em] text-[#10131A]">
-              아카이빙
+              보관함
             </h1>
             <p className="text-base font-medium text-[#555964]">
               스크랩한 장학금과 자기소개서 진행 현황을 한 눈에 관리해보세요.

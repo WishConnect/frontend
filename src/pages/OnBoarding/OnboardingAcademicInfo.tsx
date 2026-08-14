@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode, type ChangeEvent } from 'react';
+import { useState, useEffect, useRef, type ReactNode, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 //import Header from '../../components/common/Header/Header';
 import logo from '../../assets/logo.svg';
@@ -6,7 +6,12 @@ import capIcon from '../../assets/onboarding/graduation-cap.svg';
 import helpIcon from '../../assets/onboarding/circle-question-mark.svg';
 import searchIcon from '../../assets/onboarding/magnifyingglass.svg';
 import clockIcon from '../../assets/onboarding/clock.svg';
-import { putAcademicProfile, searchUniversities, searchMajors } from '../../api/onboarding/profile';
+import {
+  getMyProfile,
+  putAcademicProfile,
+  searchUniversities,
+  searchMajors,
+} from '../../api/onboarding/profile';
 import type { University, Major } from '../../types/onboarding/profile';
 
 function CloseIcon() {
@@ -402,7 +407,42 @@ export default function OnboardingAcademicInfo() {
   // 전공명 검색 자동완성
   const [majorResults, setMajorResults] = useState<Major[]>([]);
   const [showMajorDropdown, setShowMajorDropdown] = useState(false);
+  const skipUniversitySearchRef = useRef(false);
+  const skipMajorSearchRef = useRef(false);
+  // 기존에 저장된 학적 정보 불러오기
+  useEffect(() => {
+    const loadAcademicProfile = async () => {
+      try {
+        const res = await getMyProfile();
+        const academic = res.data.data.academic;
 
+        if (!academic) return;
+
+        const enrollmentStatusLabel =
+          Object.entries(ENROLLMENT_STATUS_MAP).find(
+            ([, value]) => value === academic.enrollmentStatus,
+          )?.[0] ?? '';
+        skipUniversitySearchRef.current = true;
+        skipMajorSearchRef.current = true;
+        setForm({
+          school: academic.university ?? '',
+          majorCategory: academic.majorCategory ?? '',
+          majorName: academic.majorName ?? '',
+          enrollmentStatus: enrollmentStatusLabel,
+          gradeSemester: academic.grade ?? '',
+          lastSemesterGpa: academic.semesterGpa != null ? String(academic.semesterGpa) : '',
+          cumulativeGpa: academic.cumulativeGpa != null ? String(academic.cumulativeGpa) : '',
+        });
+
+        setDoubleMajor(academic.dualMajor === 'DOUBLE');
+        setMinorMajor(academic.dualMajor === 'MINOR');
+      } catch (err) {
+        console.error('기존 학적 정보 조회 실패:', err);
+      }
+    };
+
+    loadAcademicProfile();
+  }, []);
   const updateField =
     (field: keyof AcademicForm) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -410,7 +450,14 @@ export default function OnboardingAcademicInfo() {
 
   // 학교명 입력 → 0.3초 디바운스 후 검색
   useEffect(() => {
+    if (skipUniversitySearchRef.current) {
+      skipUniversitySearchRef.current = false;
+      setShowUniversityDropdown(false);
+      return;
+    }
+
     const keyword = form.school.trim();
+
     if (!keyword) {
       setUniversityResults([]);
       return;
@@ -431,7 +478,14 @@ export default function OnboardingAcademicInfo() {
 
   // 전공명 입력 → 0.3초 디바운스 후 검색
   useEffect(() => {
+    if (skipMajorSearchRef.current) {
+      skipMajorSearchRef.current = false;
+      setShowMajorDropdown(false);
+      return;
+    }
+
     const keyword = form.majorName.trim();
+
     if (!keyword) {
       setMajorResults([]);
       return;
