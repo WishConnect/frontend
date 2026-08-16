@@ -97,8 +97,10 @@ export default function FindIdPage() {
   };
 
   // 3단계: 인증코드 확인. 통과하면 이메일 소유가 증명된 것으로 본다.
-  const handleCodeNext = async () => {
-    if (code.length < 6) {
+  // 검사·전송 모두 인자로 받은 값을 쓴다. CodeInput의 onComplete는 state 반영 전에 호출되므로
+  // code state를 읽으면 6자리를 다 채워도 5자리가 잡혀 서버에도 잘린 코드가 나간다.
+  const handleCodeNext = async (submittedCode: string) => {
+    if (submittedCode.length < 6) {
       setError('인증번호 6자리를 모두 입력해 주세요.');
       return;
     }
@@ -106,7 +108,7 @@ export default function FindIdPage() {
     setIsLoading(true);
     setError('');
     try {
-      await verifyEmailCode(email.trim(), code);
+      await verifyEmailCode(email.trim(), submittedCode);
       setStep('done');
     } catch (err) {
       setError(getApiErrorMessage(err, '인증코드 확인에 실패했습니다.'));
@@ -176,7 +178,7 @@ export default function FindIdPage() {
                   setError('');
                   setStep('name');
                 }}
-                onNext={handleCodeNext}
+                onNext={() => handleCodeNext(code)}
                 disabled={isLoading}
               />
             }
