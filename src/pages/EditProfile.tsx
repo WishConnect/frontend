@@ -324,12 +324,6 @@ export default function EditProfile() {
     navigate('/mypage');
   };
 
-  // 이메일은 이 화면에서 직접 수정하지 않고, 인증 절차가 있는 별도 화면으로 이동해서 처리.
-  // TODO: 실제 라우트 경로는 회의 후 확정되면 여기만 수정하면 됨
-  const handleGoToEditEmail = () => {
-    navigate('/mypage/edit-email');
-  };
-
   const handleSubmit = async () => {
     // 비밀번호 필드는 이제 선택 입력. 셋 중 하나라도 입력했을 때만
     // "비밀번호 변경 의사가 있다"고 보고, 그때만 세 값이 모두 채워졌는지 검증한다.
@@ -427,26 +421,16 @@ export default function EditProfile() {
           )}
 
           <div className={`flex w-full flex-col gap-8 ${isLoadingProfile ? 'opacity-60' : ''}`}>
-            {/* 이메일 주소 */}
+            {/* 이메일 주소 — 이 화면에서는 조회만 가능, 수정 기능 없음 */}
             <div className="flex w-full flex-col items-start gap-2">
               <FieldLabel required>이메일 주소</FieldLabel>
-              <div className="flex w-full items-center gap-6">
-                <TextInput
-                  type="email"
-                  value={form.email}
-                  onChange={updateField('email')}
-                  placeholder="이메일을 입력하세요"
-                  readOnly
-                />
-                <button
-                  type="button"
-                  onClick={handleGoToEditEmail}
-                  style={{ backgroundColor: '#F3F4F6', border: '1px solid transparent' }}
-                  className="flex h-12 w-[140px] shrink-0 items-center justify-center rounded-lg px-4 py-2 text-[16px] font-medium leading-6 text-[#9DA1AC] whitespace-nowrap"
-                >
-                  이메일 수정하기
-                </button>
-              </div>
+              <TextInput
+                type="email"
+                value={form.email}
+                onChange={updateField('email')}
+                placeholder="이메일을 입력하세요"
+                readOnly
+              />
             </div>
 
             {/* 현재 비밀번호 / 새 비밀번호 / 새 비밀번호 확인 — 선택 입력 */}
@@ -512,6 +496,72 @@ export default function EditProfile() {
               </div>
             </div>
 
+<<<<<<< Updated upstream
+            {/* 현재 비밀번호 / 새 비밀번호 / 새 비밀번호 확인 — 선택 입력 */}
+            <div className="flex w-full flex-col items-start gap-2">
+              <p className="text-[14px] font-medium leading-5 text-[#747883]">
+                비밀번호를 바꾸고 싶을 때만 아래 세 항목을 모두 입력해 주세요.
+              </p>
+              <div className="flex w-full items-start gap-6">
+                <div className="flex flex-1 flex-col items-start gap-2">
+                  <FieldLabel>현재 비밀번호</FieldLabel>
+                  <TextInput
+                    type={showCurrentPw ? 'text' : 'password'}
+                    value={form.currentPassword}
+                    onChange={updateField('currentPassword')}
+                    placeholder="비밀번호를 다시 입력하세요"
+                    rightSlot={
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPw((v) => !v)}
+                        className="text-[#9DA1AC]"
+                      >
+                        {showCurrentPw ? <EyeOffIcon /> : <EyeIcon />}
+                      </button>
+                    }
+                  />
+                </div>
+                <div className="flex flex-1 flex-col items-start gap-2">
+                  <FieldLabel>새 비밀번호</FieldLabel>
+                  <TextInput
+                    type={showNewPw ? 'text' : 'password'}
+                    value={form.newPassword}
+                    onChange={updateField('newPassword')}
+                    placeholder="비밀번호를 다시 입력하세요"
+                    rightSlot={
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPw((v) => !v)}
+                        className="text-[#9DA1AC]"
+                      >
+                        {showNewPw ? <EyeOffIcon /> : <EyeIcon />}
+                      </button>
+                    }
+                  />
+                </div>
+                <div className="flex flex-1 flex-col items-start gap-2">
+                  <FieldLabel>새 비밀번호 확인</FieldLabel>
+                  <TextInput
+                    type={showNewPwConfirm ? 'text' : 'password'}
+                    value={form.newPasswordConfirm}
+                    onChange={updateField('newPasswordConfirm')}
+                    placeholder="비밀번호를 다시 입력하세요"
+                    rightSlot={
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPwConfirm((v) => !v)}
+                        className="text-[#9DA1AC]"
+                      >
+                        {showNewPwConfirm ? <EyeOffIcon /> : <EyeIcon />}
+                      </button>
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+=======
+>>>>>>> Stashed changes
             {/* 이름 / 생년월일 */}
             <div className="flex w-full items-start gap-8">
               <div className="flex flex-1 flex-col items-start gap-2">
