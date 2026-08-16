@@ -1,122 +1,136 @@
 import { useEffect, useState } from 'react';
-// import { useNavigate } from 'react-router-dom';
-// import { useUserStore } from '../../store/user/user';
-// import { useScrapStore } from '../../store/useScrapStore';
+import { unscrapScholarship } from '../../api/Curation/Scrap';
 import Header from '../../components/common/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar';
 import FilterTabs, { type ArchivingFilter } from '../../components/archiving/FilterTabs';
 import ScholarshipCard from '../../components/archiving/ScholarshipCard';
-import {
-  getApplications,
-  type ApplicationItem,
-  type ApplicationStatus,
-} from '../../api/archiving/list';
+
+import { getArchive } from '../../api/archiving/archive';
+
+import type { ArchiveItem, ArchiveStatus } from '../../types/Archiving/archive';
 
 // 아카이빙 페이지: Figma node 1393:6451(전체)/6474(작성 전)/6657(진행 중)/6859(완료)
-// scholarships는 지금 mock 배열, 백엔드 API 준비되면 이 부분만 fetch 결과로 교체하면 됨
 export default function ArchivingPage() {
-  // const navigate = useNavigate();
   const [filter, setFilter] = useState<ArchivingFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  // const scrappedIds = useScrapStore((state) => state.scrappedIds);
-  // // 아카이빙은 "내 스크랩" 개인 페이지라 비로그인 상태에선 목록 대신 로그인 유도만 보여줌
-  // const isLoggedIn = useUserStore((state) => state.isLoggedIn);
 
-  // const scrappedIds = useScrapStore((state) => state.scrappedIds);
+  const [archiveItems, setArchiveItems] = useState<ArchiveItem[]>([]);
 
-  // // 아카이빙 = "내가 스크랩한 장학금" 목록이므로 스크랩 해제된 항목은 여기서 제외
-  // const scrappedScholarships = useMemo(
-  //   () => mockScholarships.filter((s) => scrappedIds.has(s.id)),
-  //   [scrappedIds],
-  // );
+  const [counts, setCounts] = useState({
+    all: 0,
+    before: 0,
+    'in-progress': 0,
+    done: 0,
+  });
 
-  // const counts = useMemo(
-  //   () => ({
-  //     all: scrappedScholarships.length,
-  //     before: scrappedScholarships.filter((s) => s.status === 'before').length,
-  //     'in-progress': scrappedScholarships.filter((s) => s.status === 'in-progress').length,
-  //     done: scrappedScholarships.filter((s) => s.status === 'done').length,
-  //   }),
-  //   [scrappedScholarships],
-  // );
-
-  // const filteredScholarships = useMemo(() => {
-  //   const byStatus =
-  //     filter === 'all' ? scrappedScholarships : scrappedScholarships.filter((s) => s.status === filter);
-
-  //   const trimmedQuery = searchQuery.trim();
-  //   return trimmedQuery ? byStatus.filter((s) => s.title.includes(trimmedQuery)) : byStatus;
-  // }, [filter, scrappedScholarships, searchQuery]);
-
-  const [applications, setApplications] = useState<ApplicationItem[]>([]);
-
-  const getBackendStatus = (f: ArchivingFilter): ApplicationStatus => {
-    switch (f) {
+  const getBackendStatus = (selectedFilter: ArchivingFilter): ArchiveStatus | undefined => {
+    switch (selectedFilter) {
       case 'before':
         return 'NOT_STARTED';
+
       case 'in-progress':
         return 'IN_PROGRESS';
+
       case 'done':
         return 'COMPLETED';
+
       default:
         return undefined;
     }
   };
 
   useEffect(() => {
-    const fetchApplications = async () => {
+    const fetchArchive = async () => {
       try {
         const targetStatus = getBackendStatus(filter);
-        const res = await getApplications(targetStatus, 0, 100);
 
-        if (res.success && res.data) {
-          setApplications(res.data.content);
-        }
+        const data = await getArchive({
+          status: targetStatus,
+          keyword: searchQuery.trim() || undefined,
+          page: 1,
+          size: 100,
+        });
+
+        setArchiveItems(data.items);
+
+        setCounts({
+          all: data.counts.all,
+          before: data.counts.notStarted,
+          'in-progress': data.counts.inProgress,
+          done: data.counts.completed,
+        });
       } catch (error) {
-        console.error('지원서 목록 조회 실패', error);
+        console.error('아카이빙 목록 조회 실패:', error);
+
+        setArchiveItems([]);
       }
     };
 
-    fetchApplications();
-  }, [filter]);
+    fetchArchive();
+  }, [filter, searchQuery]);
 
-  const transformToScholarship = (app: ApplicationItem): any => {
-    let status = 'in-progress';
-    if (app.status === 'IN_PROGRESS') status = 'in-progress';
-    if (app.status === 'COMPLETED') status = 'done';
+  const transformToScholarship = (item: ArchiveItem) => {
+    let status: 'before' | 'in-progress' | 'done' = 'before';
 
-    const progressPercent =
-      app.progress.total === 0
-        ? 0
-        : Math.round((app.progress.completed / app.progress.total) * 100);
+    if (item.applicationStatus === 'IN_PROGRESS') {
+      status = 'in-progress';
+    }
+
+    if (item.applicationStatus === 'COMPLETED') {
+      status = 'done';
+    }
+
+    const formattedDeadline = item.deadline ? item.deadline.slice(0, 10).replaceAll('-', '.') : '';
 
     return {
-      id: app.scholarshipId,
-      applicationId: app.applicationId,
-      title: app.scholarshipTitle,
-      status: status,
-      progressPercent: progressPercent,
-      questionLabel: `${app.progress.total}문항 중 ${app.progress.completed}문항 작성`,
-
-      imageUrl: 'https://via.placeholder.com/300x200?text=No+Image',
-      deadline: '임시데이터',
-      dDay: 3,
-      tags: ['test', 'test'],
+      id: String(item.scholarshipId),
+      applicationId: item.applicationId,
+      title: item.title,
+      imageUrl: item.posterUrl,
+      deadline: formattedDeadline,
+      dDay: item.dDay,
+      tags: item.tags,
+      status,
+      progressPercent: item.progress.percentage,
+      questionLabel: `${item.progress.totalQuestions}문항 중 ${item.progress.completedQuestions}문항 작성`,
     };
   };
 
-  const displayScholarships = applications
-    .filter((app) =>
-      searchQuery.trim() === '' ? true : app.scholarshipTitle.includes(searchQuery.trim()),
-    )
-    .map(transformToScholarship);
+  const displayScholarships = archiveItems.map(transformToScholarship);
+  const handleUnscrap = async (scholarshipId: number | string) => {
+    try {
+      await unscrapScholarship(scholarshipId);
 
-  const counts = { all: 0, before: 0, 'in-progress': 0, done: 0 };
+      setArchiveItems((prev) =>
+        prev.filter((item) => String(item.scholarshipId) !== String(scholarshipId)),
+      );
 
+      setCounts((prev) => {
+        const next = {
+          ...prev,
+          all: Math.max(0, prev.all - 1),
+        };
+
+        if (filter === 'before') {
+          next.before = Math.max(0, prev.before - 1);
+        }
+
+        if (filter === 'in-progress') {
+          next['in-progress'] = Math.max(0, prev['in-progress'] - 1);
+        }
+
+        if (filter === 'done') {
+          next.done = Math.max(0, prev.done - 1);
+        }
+
+        return next;
+      });
+    } catch (error) {
+      console.error('스크랩 해제 실패:', error);
+    }
+  };
   return (
     <div className="h-[1024px] w-[1440px] bg-white">
-      {/* isLoggedIn을 안 넘기면 Header가 유저 스토어를 따라 로그인/비로그인 상태를 알아서 표시함
-          (비로그인: 검색바 + 로그인/회원가입 버튼 / 로그인: 검색바 + 알림 벨) */}
       <Header
         searchPlaceholder="내가 스크랩한 장학금 찾아보기"
         onSearch={setSearchQuery}
@@ -131,6 +145,7 @@ export default function ArchivingPage() {
             <h1 className="text-[40px] font-bold leading-[52px] tracking-[-0.02em] text-[#10131A]">
               보관함
             </h1>
+
             <p className="text-base font-medium text-[#555964]">
               스크랩한 장학금과 자기소개서 진행 현황을 한 눈에 관리해보세요.
             </p>
@@ -138,8 +153,7 @@ export default function ArchivingPage() {
 
           <FilterTabs active={filter} onChange={setFilter} counts={counts} />
 
-          {applications.length === 0 ? (
-            // 검색/필터 결과가 0건일 때 빈 그리드만 남는 것 방지. 검색어가 있으면 검색 문구, 없으면 일반 빈 상태 문구
+          {displayScholarships.length === 0 ? (
             <p className="py-16 text-center text-base font-medium text-[#747883]">
               {searchQuery.trim()
                 ? `'${searchQuery.trim()}' 검색 결과가 없어요.`
@@ -148,7 +162,11 @@ export default function ArchivingPage() {
           ) : (
             <div className="grid grid-cols-3 items-start gap-8">
               {displayScholarships.map((scholarship) => (
-                <ScholarshipCard key={scholarship.id} scholarship={scholarship} />
+                <ScholarshipCard
+                  key={scholarship.id}
+                  scholarship={scholarship}
+                  onUnscrap={() => handleUnscrap(scholarship.id)}
+                />
               ))}
             </div>
           )}

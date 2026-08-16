@@ -14,6 +14,7 @@ interface MonthlyScheduleProps {
   schedules: HomeSchedule[];
   isLocked?: boolean;
   onLockedClick?: () => void;
+  onScheduleClick?: (scholarshipId: number) => void;
 }
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -34,6 +35,7 @@ export default function MonthlySchedule({
   schedules,
   isLocked = false,
   onLockedClick,
+  onScheduleClick,
 }: MonthlyScheduleProps) {
   const [currentDate, setCurrentDate] = useState(() => {
     const today = new Date();
@@ -202,9 +204,13 @@ export default function MonthlySchedule({
                           {scheduleDate.getMonth() + 1}/{scheduleDate.getDate()} ({weekDay})
                         </p>
 
-                        <p className="mt-[4px] truncate text-[16px] font-medium leading-[24px] text-[#555964]">
+                        <button
+                          type="button"
+                          onClick={() => onScheduleClick?.(schedule.scholarshipId)}
+                          className="relative z-20 mt-[4px] block w-full truncate text-left text-[16px] font-medium leading-[24px] text-[#555964] hover:text-[#7962ED]"
+                        >
                           {schedule.title}
-                        </p>
+                        </button>
                       </div>
                     );
                   })}
