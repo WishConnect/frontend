@@ -1,15 +1,25 @@
 import axios from '../../axios';
 
-export interface InterviewAnswerRequest {
+export interface InterviewAnswerItem {
     stepOrder: number;
     answerText: string;
+}
+
+export interface InterviewQuestionItem {
+    stepOrder: number;
+    questionText: string;
+    answerText: string | null;
+}
+
+export interface InterviewAnswerRequest {
+    answers: InterviewAnswerItem[] | null;
 }
 
 export interface InterviewAnswerResponse {
     success: boolean;
     data: {
-        nextStepOrder: number;
-        nextQuestion: string;
+        questions: InterviewQuestionItem[];
+        canGenerateDraft: boolean;
         isInterviewComplete: boolean;
     };
     message: string | null;
@@ -18,11 +28,11 @@ export interface InterviewAnswerResponse {
 export const postInterviewAnswer = async (
     applicationId: number,
     questionId: number,
-    data: InterviewAnswerRequest
+    answers: InterviewAnswerItem[] | null = null
 ): Promise<InterviewAnswerResponse> => {
     const response = await axios.post(
         `/applications/${applicationId}/questions/${questionId}/interview`,
-        data
+        { answers }
     );
     return response.data;
 };
