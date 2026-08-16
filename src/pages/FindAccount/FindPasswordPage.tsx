@@ -96,8 +96,10 @@ export default function FindPasswordPage() {
   };
 
   // 3단계: 코드는 여기서 검증할 방법이 없어 형식만 보고 넘어간다(실제 검증은 4단계).
-  const handleCodeNext = () => {
-    if (code.length < 6) {
+  // 검사 대상을 인자로 받는다. CodeInput의 onComplete는 state 반영 전에 호출되므로
+  // 여기서 code state를 읽으면 6자리를 다 채워도 5자리로 보인다.
+  const handleCodeNext = (submittedCode: string) => {
+    if (submittedCode.length < 6) {
       setError('인증번호 6자리를 모두 입력해 주세요.');
       return;
     }
@@ -187,7 +189,7 @@ export default function FindPasswordPage() {
                   setError('');
                   setStep('name');
                 }}
-                onNext={handleCodeNext}
+                onNext={() => handleCodeNext(code)}
                 disabled={isLoading}
               />
             }

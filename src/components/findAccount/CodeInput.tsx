@@ -10,8 +10,10 @@ const LENGTH = 6;
 interface CodeInputProps {
   value: string; // 항상 0~6자리 숫자 문자열
   onChange: (next: string) => void;
-  // 6자리가 다 찼을 때 호출(엔터 없이 바로 다음 단계로 넘기고 싶을 때 사용)
-  onComplete?: () => void;
+  // 6자리가 다 찼을 때 호출(엔터 없이 바로 다음 단계로 넘기고 싶을 때 사용).
+  // ⚠️ 완성된 코드를 반드시 인자로 넘긴다. onChange 직후라 부모의 state는 아직 5자리여서,
+  //    부모가 자기 state를 읽으면 "6자리를 모두 입력해 주세요"가 잘못 뜬다.
+  onComplete?: (code: string) => void;
 }
 
 export default function CodeInput({ value, onChange, onComplete }: CodeInputProps) {
@@ -42,7 +44,7 @@ export default function CodeInput({ value, onChange, onComplete }: CodeInputProp
     if (index < LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
     } else if (next.length === LENGTH) {
-      onComplete?.();
+      onComplete?.(next);
     }
   };
 
@@ -71,7 +73,7 @@ export default function CodeInput({ value, onChange, onComplete }: CodeInputProp
     onChange(pasted);
     const focusIndex = Math.min(pasted.length, LENGTH - 1);
     inputRefs.current[focusIndex]?.focus();
-    if (pasted.length === LENGTH) onComplete?.();
+    if (pasted.length === LENGTH) onComplete?.(pasted);
   };
 
   return (
