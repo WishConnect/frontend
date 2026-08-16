@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header/Header';
 import NotificationCategoryRow from '../../components/notification-settings/NotificationCategoryRow';
@@ -6,7 +6,9 @@ import Toggle from '../../components/common/Toggle';
 import bellIcon from '../../assets/notification/bell.svg';
 import infoIcon from '../../assets/notification/info.svg';
 import giftIcon from '../../assets/notification/gift.svg';
-import chevronRightIcon from '../../assets/notification/chevron-right.svg';
+// 서비스별 설정 행 아이콘. 시안이 lucide/graduation-cap·clock·pencil·file-text를 쓰므로
+// 같은 세트인 react-icons/lu에서 가져온다 (별도 svg 파일을 두지 않아도 글리프가 동일).
+import { LuGraduationCap, LuClock, LuPencil, LuFileText } from 'react-icons/lu';
 import { useNotificationSettingsStore } from '../../store/useNotificationSettingsStore';
 import { getNotificationSettings, putNotificationSettings, type NotificationSettings } from '../../api/notification/settings';
 
@@ -14,6 +16,7 @@ import { getNotificationSettings, putNotificationSettings, type NotificationSett
 export default function NotificationSettingsPage() {
   const navigate = useNavigate();
   const { showBadge, categories, toggleBadge, toggleCategory, initSettings } = useNotificationSettingsStore();
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -29,7 +32,10 @@ export default function NotificationSettingsPage() {
     fetchSettings();
   }, [initSettings]);
 
-  const syncSettingsWithBackend = async (updatedFields: Partial<NotificationSettings>) => {
+  // 저장 성공 여부를 반환한다. 실패하면 호출부에서 토글을 되돌린다.
+  const syncSettingsWithBackend = async (
+    updatedFields: Partial<NotificationSettings>,
+  ): Promise<boolean> => {
     const currentSettings: NotificationSettings = {
       notificationEnabled: showBadge,
       matchingEnabled: categories.scholarship,
@@ -42,18 +48,35 @@ export default function NotificationSettingsPage() {
 
     try {
       await putNotificationSettings(payload);
+      return true;
     } catch (error) {
-      console.error("알림 설정 변경 저장 실패:", error);    }
+      console.error('알림 설정 변경 저장 실패:', error);
+      return false;
+    }
   };
 
+  // 토글은 먼저 켜고(낙관적 업데이트) 저장이 실패하면 되돌린다.
+  // 안 되돌리면 저장된 줄 알았다가 새로고침 시 원래대로 돌아가 버린다.
   const handleToggleBadge = async () => {
+    setSaveError(null);
     toggleBadge();
-    await syncSettingsWithBackend({ notificationEnabled: !showBadge });
+
+    const saved = await syncSettingsWithBackend({ notificationEnabled: !showBadge });
+    if (!saved) {
+      toggleBadge();
+      setSaveError('알림 설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.');
+    }
   };
 
   const handleToggleCategory = async (key: 'scholarship' | 'schedule' | 'writing' | 'etc', backendKey: keyof NotificationSettings) => {
+    setSaveError(null);
     toggleCategory(key);
-    await syncSettingsWithBackend({ [backendKey]: !categories[key] });
+
+    const saved = await syncSettingsWithBackend({ [backendKey]: !categories[key] });
+    if (!saved) {
+      toggleCategory(key);
+      setSaveError('알림 설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.');
+    }
   };
 
   return (
@@ -65,6 +88,13 @@ export default function NotificationSettingsPage() {
           <h1 className="text-[36px] leading-[48px] font-bold tracking-[-0.015em] text-[#181C25]">
             알림 설정
           </h1>
+
+          {/* 저장 실패 안내: 토글이 원래 상태로 되돌아갔음을 알려준다 */}
+          {saveError && (
+            <p className="rounded-lg bg-[#FEF2F2] px-6 py-3 text-sm font-medium text-[#FA5862]">
+              {saveError}
+            </p>
+          )}
 
           <div className="flex flex-col gap-8 w-full">
             <div className="flex items-center justify-between gap-6 border border-[#D2D4DA] rounded-2xl p-6">
@@ -82,38 +112,39 @@ export default function NotificationSettingsPage() {
             </div>
 
             <div className="flex flex-col gap-6 border border-[#D2D4DA] rounded-2xl p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <img src={giftIcon} alt="" className="size-8" />
-                  <h2 className="text-xl font-semibold text-[#0A0C11]">서비스별 설정</h2>
-                </div>
-                <button type="button" className="flex items-center gap-2 text-base font-medium text-[#555964]">
-                  알림 받는 순
-                  <img src={chevronRightIcon} alt="" className="size-[18px]" />
-                </button>
+              {/* 시안(1428:4599)에는 오른쪽에 "알림 받는 순" 정렬 버튼 레이어가 있지만
+                  visible=false로 숨겨져 있어 넣지 않는다. 코드에 남아 있던 것도 onClick이 없어
+                  눌러도 아무 동작을 하지 않던 버튼이라 같이 제거했다. */}
+              <div className="flex items-center gap-3">
+                <img src={giftIcon} alt="" className="size-8" />
+                <h2 className="text-xl font-semibold text-[#0A0C11]">서비스별 설정</h2>
               </div>
 
               <div className="flex flex-col">
                 <NotificationCategoryRow
                   isFirst
+                  icon={LuGraduationCap}
                   title="맞춤 장학금"
                   description="조건에 맞는 신규 장학금, 모집 시작 알림"
                   checked={categories.scholarship}
                   onChange={() => handleToggleCategory('scholarship', 'matchingEnabled')}
                 />
                 <NotificationCategoryRow
+                  icon={LuClock}
                   title="일정"
                   description="마감 임박, 일정 변경 등의 알림"
                   checked={categories.schedule}
                   onChange={() => handleToggleCategory('schedule', 'scheduleEnabled')}
                 />
                 <NotificationCategoryRow
+                  icon={LuPencil}
                   title="작성"
                   description="지원서 작성 이어 쓰기, 임시 저장 알림"
                   checked={categories.writing}
                   onChange={() => handleToggleCategory('writing', 'essayEnabled')}
                 />
                 <NotificationCategoryRow
+                  icon={LuFileText}
                   title="기타"
                   description="공고 내용 변경, 합격 후기 등 기타 알림"
                   checked={categories.etc}
