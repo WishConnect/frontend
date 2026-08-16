@@ -26,9 +26,9 @@ export default function NotificationPanel() {
   };
 
   // 알림 CTA: 읽음 처리 후 패널 닫고 대상 페이지로 이동 (link는 스토어 각 항목에 지정)
-  const handleCtaClick = async (id: string, link: string) => {
-    try{
-      await patchMarkAsRead(Number(id));
+  const handleCtaClick = async (id: number, link: string) => {
+    try {
+      await patchMarkAsRead(id);
 
       markAsRead(id);
       togglePanel();
