@@ -1,10 +1,10 @@
-import { useState, type ReactNode, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.svg';
 import heartIcon from '../../assets/onboarding/heart.svg';
 import helpIcon from '../../assets/onboarding/circle-question-mark.svg';
 import clockIcon from '../../assets/onboarding/clock.svg';
-import { putHouseholdProfile } from '../../api/onboarding/profile';
+import { putHouseholdProfile, getMyProfile } from '../../api/onboarding/profile';
 
 function CloseIcon() {
   return (
@@ -191,12 +191,33 @@ function parseHouseholdSize(label: string): number {
   return match ? Number(match[0]) : 0;
 }
 
+// parseHouseholdSize의 역방향 — GET 응답의 familySize(number)를
+// HOUSEHOLD_SIZE_OPTIONS 라벨로 되돌린다. 5 이상은 전부 "5인 이상 가구"로 매핑.
+function familySizeToLabel(size: number | null | undefined): string {
+  if (!size || size <= 0) return '';
+  if (size >= 5) return '5인 이상 가구';
+  return `${size}인 가구`;
+}
+
 // ------------------------------------------------------------------
 // 선택된 배열 + 직접입력 값을 하나의 배열로 합치는 헬퍼
 // ------------------------------------------------------------------
 function mergeWithCustom(list: string[], custom: string): string[] {
   const trimmed = custom.trim();
   return trimmed ? [...list, trimmed] : list;
+}
+
+// mergeWithCustom의 역방향 — GET 응답 배열을 "정해진 옵션에 있는 값"과
+// "그 외 직접입력 값"으로 분리한다. 직접입력은 한 개만 지원하는 UI라
+// 옵션에 없는 값이 여러 개면 첫 번째만 커스텀 입력창에 채운다.
+function splitKnownAndCustom(
+  values: string[] | null | undefined,
+  knownOptions: string[],
+): { known: string[]; custom: string } {
+  if (!values) return { known: [], custom: '' };
+  const known = values.filter((v) => knownOptions.includes(v));
+  const custom = values.find((v) => !knownOptions.includes(v)) ?? '';
+  return { known, custom };
 }
 
 // ------------------------------------------------------------------
@@ -278,6 +299,13 @@ function FieldLabel({ children, required }: { children: ReactNode; required?: bo
   );
 }
 
+// ------------------------------------------------------------------
+// SelectField: wrapper(화살표 포함) 클릭 시에도 select가 열리도록
+// showPicker()를 시도하고, 미지원 브라우저는 focus()로 폴백.
+// (참고) `if ('showPicker' in el)` 형태의 in-내로잉은 catch 블록에서
+// el 타입을 `never`로 좁혀버리는 TS 버그성 동작이 있어, 대신
+// `typeof el.showPicker === 'function'`으로 체크한다.
+// ------------------------------------------------------------------
 function SelectField({
   value,
   onChange,
@@ -291,13 +319,35 @@ function SelectField({
   options: string[];
   disabled?: boolean;
 }) {
+  const selectRef = useRef<HTMLSelectElement>(null);
+
+  const openPicker = () => {
+    if (disabled) return;
+    const el = selectRef.current;
+    if (!el) return;
+
+    const elWithPicker = el as HTMLSelectElement & { showPicker?: () => void };
+
+    try {
+      if (typeof elWithPicker.showPicker === 'function') {
+        elWithPicker.showPicker();
+      } else {
+        el.focus();
+      }
+    } catch {
+      el.focus();
+    }
+  };
+
   return (
     <div
+      onClick={openPicker}
       className={`flex w-full flex-1 items-center gap-6 rounded-lg bg-[#F9FAFC] py-3 pl-6 pr-3 ${
-        disabled ? 'opacity-50' : ''
+        disabled ? 'opacity-50' : 'cursor-pointer'
       }`}
     >
       <select
+        ref={selectRef}
         value={value}
         onChange={onChange}
         disabled={disabled}
@@ -509,11 +559,58 @@ export default function OnboardingHouseholdInfo() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // 기존 등록 정보 불러오기 (온보딩 재진입 / 추천 기준 수정하기 진입 시 prefill)
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+
   const [housingTypes, setHousingTypes] = useState<string[]>([]);
   const [selfStatuses, setSelfStatuses] = useState<string[]>([]);
   const [selfStatusCustom, setSelfStatusCustom] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
   const [interestCustom, setInterestCustom] = useState('');
+
+  // GET /users/me/profile 의 household(+ 최상위 interests)로 폼을 채움.
+  // 처음 온보딩하는 유저는 household가 없을 수 있으므로 그 경우엔 빈 폼 그대로 둔다.
+  useEffect(() => {
+    const fetchExistingProfile = async () => {
+      try {
+        const res = await getMyProfile();
+        const profile = res.data.data;
+        const household = profile.household;
+
+        if (household) {
+          const isUnknown =
+            !household.incomeLevel || household.incomeLevel === INCOME_LEVEL_UNKNOWN_VALUE;
+          setIncomeUnknown(isUnknown);
+          setIncomeLevel(isUnknown ? '' : (household.incomeLevel ?? ''));
+          setHouseholdSize(familySizeToLabel(household.familySize));
+          setHousingTypes(household.familyTypes ?? []);
+
+          const { known: knownStatuses, custom: customStatus } = splitKnownAndCustom(
+            household.personalStatuses,
+            SELF_STATUS_OPTIONS,
+          );
+          setSelfStatuses(knownStatuses);
+          setSelfStatusCustom(customStatus);
+        }
+
+        // interests는 household와 별개로 프로필 최상위에 옴
+        const { known: knownInterests, custom: customInterest } = splitKnownAndCustom(
+          profile.interests,
+          INTEREST_OPTIONS,
+        );
+        setInterests(knownInterests);
+        setInterestCustom(customInterest);
+      } catch (err) {
+        // 기존 정보 로드 실패는 신규 온보딩과 동일하게 빈 폼으로 진행하면 되므로
+        // 에러 배너 없이 콘솔 로그만 남긴다.
+        console.error('기존 가구 정보 조회 실패:', err);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    fetchExistingProfile();
+  }, []);
 
   const toggleInList = (list: string[], setList: (v: string[]) => void, value: string) => {
     setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
@@ -585,7 +682,7 @@ export default function OnboardingHouseholdInfo() {
           </aside>
 
           {/* 우측 폼 영역 */}
-          <section className="flex flex-1 flex-col">
+          <section className={`flex flex-1 flex-col ${isLoadingProfile ? 'opacity-60' : ''}`}>
             {/* 아이콘 + 도움말 */}
             <div className="flex w-full items-start justify-between">
               <div className="flex size-20 items-center justify-center rounded-full bg-[#F9FAFC]">

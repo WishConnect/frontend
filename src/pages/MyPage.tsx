@@ -32,14 +32,17 @@ const DEFAULT_USER_PROFILE = {
 
 type UserProfileView = typeof DEFAULT_USER_PROFILE;
 
-// "3학년" 같은 문자열에서 학년 숫자만 추출
-function extractGradeNumber(grade: string): number {
+// "3학년" 같은 문자열에서 학년 숫자만 추출. null/빈 값이면 0
+function extractGradeNumber(grade: string | null): number {
+  if (!grade) return 0;
   const match = grade.match(/\d+/);
   return match ? Number(match[0]) : 0;
 }
 
-// "3분위" 같은 문자열에서 소득분위 숫자만 추출
-function extractIncomeDecile(incomeLevel: string): number {
+// "3분위" 같은 문자열에서 소득분위 숫자만 추출. null/빈 값이면 0
+// (소득분위를 "모름"으로 저장한 유저는 서버가 incomeLevel을 null로 내려줌)
+function extractIncomeDecile(incomeLevel: string | null): number {
+  if (!incomeLevel) return 0;
   const match = incomeLevel.match(/\d+/);
   return match ? Number(match[0]) : 0;
 }
@@ -52,8 +55,9 @@ function toHashtag(label: string): string {
   return `#${firstWord}`;
 }
 
-// 온보딩을 아직 완료하지 않은 유저는 recommendationCriteria가 null로 오므로
-// 그 경우 학년/학점/소득분위/관심분야는 기본값(0, 빈 배열)으로 처리한다.
+// 온보딩을 아직 완료하지 않은 유저는 recommendationCriteria 전체가 null로 오고,
+// 완료했더라도 특정 항목(예: 소득분위 "모름")만 개별적으로 null일 수 있으므로
+// criteria 객체 존재 여부와 별개로 각 필드를 따로 방어한다.
 function mapSummaryToView(summary: MyPageSummary): UserProfileView {
   const criteria = summary.recommendationCriteria;
 
@@ -61,11 +65,11 @@ function mapSummaryToView(summary: MyPageSummary): UserProfileView {
     name: summary.name,
     birthYear: Number(summary.birthYear),
     region: summary.region,
-    grade: criteria ? extractGradeNumber(criteria.grade) : 0,
-    gpa: criteria ? criteria.gpa : 0,
+    grade: extractGradeNumber(criteria?.grade ?? null),
+    gpa: criteria?.gpa ?? 0,
     gpaMax: 4.5,
-    incomeDecile: criteria ? extractIncomeDecile(criteria.incomeLevel) : 0,
-    interests: criteria ? criteria.interests.map(toHashtag) : [],
+    incomeDecile: extractIncomeDecile(criteria?.incomeLevel ?? null),
+    interests: (criteria?.interests ?? []).map(toHashtag),
   };
 }
 
@@ -280,7 +284,9 @@ export default function MyPage() {
                                 소득분위
                               </p>
                               <p className="w-full text-left font-semibold leading-6 text-[#0A0C11]">
-                                {userProfile.incomeDecile}분위
+                                {userProfile.incomeDecile > 0
+                                  ? `${userProfile.incomeDecile}분위`
+                                  : '모름'}
                               </p>
                             </div>
                           </div>
@@ -344,14 +350,20 @@ export default function MyPage() {
 
                     <div className="h-px w-full bg-[#D2D4DA]" />
 
-                    <button type="button" className="flex w-full items-center justify-between">
+                    {/* 원래 "회원가입"으로 되어있던 항목 — 로그인된 유저에게 회원가입 링크는
+                        의미가 없고, 비밀번호 변경 필드는 /mypage/edit(EditProfile.tsx)에 이미
+                        있으므로 "비밀번호 변경"으로 바꾸고 그 페이지로 연결.
+                        (참고: 원래 코드는 onClick이 바깥 button이 아니라 안쪽 span에만 걸려있어
+                        아이콘/여백 클릭 시 반응이 없던 버그가 있었음 — button으로 옮겨서 수정) */}
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between"
+                      onClick={() => navigate('/mypage/edit')}
+                    >
                       <div className="flex items-center gap-6">
                         <img src={logOutIcon1} alt="" className="size-8" />
-                        <span
-                          className="text-[16px] font-medium leading-6 text-[#747883]"
-                          onClick={() => navigate('/sign')}
-                        >
-                          회원가입
+                        <span className="text-[16px] font-medium leading-6 text-[#747883]">
+                          비밀번호 변경
                         </span>
                       </div>
                       <img src={chevronRightIcon} alt="" className="size-4" />

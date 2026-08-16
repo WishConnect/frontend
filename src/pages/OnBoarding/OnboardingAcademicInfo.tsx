@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode, type ChangeEvent } from 'react';
+import { useState, useEffect, useRef, type ReactNode, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header/Header';
 import logo from '../../assets/logo.svg';
@@ -6,7 +6,12 @@ import capIcon from '../../assets/onboarding/graduation-cap.svg';
 import helpIcon from '../../assets/onboarding/circle-question-mark.svg';
 import searchIcon from '../../assets/onboarding/magnifyingglass.svg';
 import clockIcon from '../../assets/onboarding/clock.svg';
-import { putAcademicProfile, searchUniversities, searchMajors } from '../../api/onboarding/profile';
+import {
+  putAcademicProfile,
+  searchUniversities,
+  searchMajors,
+  getMyProfile,
+} from '../../api/onboarding/profile';
 import type { University, Major } from '../../types/onboarding/profile';
 
 function CloseIcon() {
@@ -143,6 +148,14 @@ const ENROLLMENT_STATUS_MAP: Record<string, string> = {
   졸업: 'GRADUATED',
 };
 
+// PUT 전송용 매핑의 역방향 — GET /users/me/profile 응답의 academic.enrollmentStatus
+// (예: "ENROLLED")를 화면 셀렉트 값(예: "재학")으로 되돌릴 때 사용
+const ENROLLMENT_STATUS_REVERSE_MAP: Record<string, string> = {
+  ENROLLED: '재학',
+  ON_LEAVE: '휴학',
+  GRADUATED: '졸업',
+};
+
 function getDualMajorValue(doubleMajor: boolean, minorMajor: boolean): string {
   if (doubleMajor) return 'DOUBLE';
   if (minorMajor) return 'MINOR';
@@ -160,6 +173,16 @@ const GRADE_SEMESTER_OPTIONS: string[] = [
   '4학년 2학기',
   '5학년 이상',
 ];
+
+// GET /users/me/profile 의 academic.grade는 "3학년"처럼 학기 없이 학년만 내려옴.
+// GRADE_SEMESTER_OPTIONS는 "3학년 1학기"처럼 학기까지 포함하는 형식이라
+// 완전히 일치하는 값이 없다. 우선 "학년"이 일치하는 첫 옵션으로 최선 매칭하고,
+// 정확한 학기 정보가 필요하면 백엔드 응답에 학기 필드 추가를 요청해야 함.
+function matchGradeSemesterOption(grade: string | null | undefined): string {
+  if (!grade) return '';
+  const found = GRADE_SEMESTER_OPTIONS.find((opt) => opt.startsWith(grade));
+  return found ?? '';
+}
 
 interface AcademicForm {
   school: string;
@@ -271,22 +294,58 @@ function TextField({
   );
 }
 
+// ------------------------------------------------------------------
+// SelectField: wrapper(화살표 포함) 클릭 시에도 select가 열리도록
+// showPicker()를 시도하고, 미지원 브라우저는 focus()로 폴백.
+// (참고) `if ('showPicker' in el)` 형태의 in-내로잉은 catch 블록에서
+// el 타입을 `never`로 좁혀버리는 TS 버그성 동작이 있어, 대신
+// `typeof el.showPicker === 'function'`으로 체크한다.
+// ------------------------------------------------------------------
 function SelectField({
   value,
   onChange,
   placeholder,
   options,
+  disabled,
 }: {
   value: string;
   onChange: (e: ChangeEvent<HTMLSelectElement>) => void;
   placeholder: string;
   options: string[];
+  disabled?: boolean;
 }) {
+  const selectRef = useRef<HTMLSelectElement>(null);
+
+  const openPicker = () => {
+    if (disabled) return;
+    const el = selectRef.current;
+    if (!el) return;
+
+    const elWithPicker = el as HTMLSelectElement & { showPicker?: () => void };
+
+    try {
+      if (typeof elWithPicker.showPicker === 'function') {
+        elWithPicker.showPicker();
+      } else {
+        el.focus();
+      }
+    } catch {
+      el.focus();
+    }
+  };
+
   return (
-    <div className="flex w-full items-center gap-6 rounded-lg bg-[#F9FAFC] py-3 pl-6 pr-3">
+    <div
+      onClick={openPicker}
+      className={`flex w-full items-center gap-6 rounded-lg bg-[#F9FAFC] py-3 pl-6 pr-3 ${
+        disabled ? 'opacity-50' : 'cursor-pointer'
+      }`}
+    >
       <select
+        ref={selectRef}
         value={value}
         onChange={onChange}
+        disabled={disabled}
         className={`w-full flex-1 appearance-none bg-transparent text-[16px] font-medium leading-6 focus:outline-none ${
           value ? 'text-[#0A0C11]' : 'text-[#9DA1AC]'
         }`}
@@ -395,21 +454,80 @@ export default function OnboardingAcademicInfo() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // 기존 등록 정보 불러오기 (온보딩 재진입 / 추천 기준 수정하기 진입 시 prefill)
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+
   // 학교 검색 자동완성
   const [universityResults, setUniversityResults] = useState<University[]>([]);
   const [showUniversityDropdown, setShowUniversityDropdown] = useState(false);
+  const schoolInputRef = useRef<HTMLInputElement>(null);
 
   // 전공명 검색 자동완성
   const [majorResults, setMajorResults] = useState<Major[]>([]);
   const [showMajorDropdown, setShowMajorDropdown] = useState(false);
+
+  // prefill(getMyProfile로 기존 값 채우기) 직후엔 학교명/전공명 검색 effect가
+  // "사용자가 타이핑했다"고 착각해 드롭다운을 자동으로 열어버리는 문제가 있었음.
+  // prefill로 값을 세팅하는 순간 이 플래그를 켜두고, 검색 effect에서 한 번만
+  // 건너뛰도록 해서 페이지 진입 직후 드롭다운이 뜨지 않게 한다.
+  const skipNextSchoolSearchRef = useRef(false);
+  const skipNextMajorSearchRef = useRef(false);
 
   const updateField =
     (field: keyof AcademicForm) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
     };
 
+  // GET /users/me/profile 의 academic 객체로 폼을 채움.
+  // 처음 온보딩하는 유저는 academic이 없을 수 있으므로 그 경우엔 DEFAULT_FORM 그대로 둔다.
+  useEffect(() => {
+    const fetchExistingProfile = async () => {
+      try {
+        const res = await getMyProfile();
+        const academic = res.data.data.academic;
+        if (!academic) return;
+
+        // 아래 setForm으로 school/majorName이 채워지면 검색 effect가 곧바로
+        // 실행되는데, 이건 사용자가 타이핑한 게 아니라 prefill이므로 건너뛴다.
+        skipNextSchoolSearchRef.current = true;
+        skipNextMajorSearchRef.current = true;
+
+        setForm({
+          school: academic.university ?? '',
+          majorCategory: academic.majorCategory ?? '',
+          majorName: academic.majorName ?? '',
+          enrollmentStatus: ENROLLMENT_STATUS_REVERSE_MAP[academic.enrollmentStatus ?? ''] ?? '',
+          gradeSemester: matchGradeSemesterOption(academic.grade),
+          lastSemesterGpa:
+            academic.semesterGpa !== null && academic.semesterGpa !== undefined
+              ? String(academic.semesterGpa)
+              : '',
+          cumulativeGpa:
+            academic.cumulativeGpa !== null && academic.cumulativeGpa !== undefined
+              ? String(academic.cumulativeGpa)
+              : '',
+        });
+        setDoubleMajor(academic.dualMajor === 'DOUBLE');
+        setMinorMajor(academic.dualMajor === 'MINOR');
+      } catch (err) {
+        // 기존 정보 로드 실패는 신규 온보딩과 동일하게 빈 폼으로 진행하면 되므로
+        // 에러 배너 없이 콘솔 로그만 남긴다.
+        console.error('기존 학적 정보 조회 실패:', err);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    fetchExistingProfile();
+  }, []);
+
   // 학교명 입력 → 0.3초 디바운스 후 검색
   useEffect(() => {
+    if (skipNextSchoolSearchRef.current) {
+      skipNextSchoolSearchRef.current = false;
+      return;
+    }
+
     const keyword = form.school.trim();
     if (!keyword) {
       setUniversityResults([]);
@@ -431,6 +549,11 @@ export default function OnboardingAcademicInfo() {
 
   // 전공명 입력 → 0.3초 디바운스 후 검색
   useEffect(() => {
+    if (skipNextMajorSearchRef.current) {
+      skipNextMajorSearchRef.current = false;
+      return;
+    }
+
     const keyword = form.majorName.trim();
     if (!keyword) {
       setMajorResults([]);
@@ -461,6 +584,15 @@ export default function OnboardingAcademicInfo() {
     setForm((prev) => ({ ...prev, majorName: major.name }));
     setShowMajorDropdown(false);
     setMajorResults([]);
+  };
+
+  // 돋보기 아이콘 클릭 시: 이미 검색된 결과가 있으면 드롭다운을 열고,
+  // 어느 쪽이든 인풋에 포커스를 줘서 바로 이어서 입력할 수 있게 함.
+  const handleSearchIconClick = () => {
+    if (form.school.trim() && universityResults.length > 0) {
+      setShowUniversityDropdown(true);
+    }
+    schoolInputRef.current?.focus();
   };
 
   const handlePrev = () => {
@@ -520,7 +652,7 @@ export default function OnboardingAcademicInfo() {
           </aside>
 
           {/* 우측 폼 영역 */}
-          <section className="flex flex-1 flex-col">
+          <section className={`flex flex-1 flex-col ${isLoadingProfile ? 'opacity-60' : ''}`}>
             {/* 아이콘 + 도움말 */}
             <div className="flex w-full items-start justify-between">
               <div className="flex size-20 items-center justify-center rounded-full bg-[#F9FAFC]">
@@ -567,13 +699,22 @@ export default function OnboardingAcademicInfo() {
                 <FieldLabel required>소속 학교</FieldLabel>
                 <div className="flex w-full items-center gap-3 rounded-lg bg-[#F9FAFC] py-3 pl-6 pr-3">
                   <input
+                    ref={schoolInputRef}
                     value={form.school}
                     onChange={updateField('school')}
                     onFocus={() => form.school.trim() && setShowUniversityDropdown(true)}
                     placeholder="학교명을 입력해 주세요"
                     className="w-full flex-1 bg-transparent text-[16px] font-medium leading-6 text-[#0A0C11] placeholder:text-[#9DA1AC] focus:outline-none"
                   />
-                  <img src={searchIcon} alt="" className="size-[22px] shrink-0" />
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={handleSearchIconClick}
+                    aria-label="학교 검색"
+                    className="flex shrink-0 items-center justify-center rounded outline-none focus:outline-none focus-visible:outline-none"
+                  >
+                    <img src={searchIcon} alt="" className="size-[22px] shrink-0" />
+                  </button>
                 </div>
 
                 {showUniversityDropdown && universityResults.length > 0 && (

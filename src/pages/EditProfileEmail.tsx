@@ -7,7 +7,7 @@ import {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.svg';
-import { putBasicProfile } from '../api/onboarding/profile';
+import { putBasicProfile, getMyProfile } from '../api/onboarding/profile';
 import {
   updatePassword,
   updateEmail,
@@ -184,29 +184,74 @@ const BIRTH_YEAR_OPTIONS: string[] = Array.from({ length: 60 }, (_, i) =>
   String(new Date().getFullYear() - i),
 );
 
+// ------------------------------------------------------------------
+// 거주 지역: /mypage/edit(EditProfile.tsx)와 동일하게 광역자치단체(도) 단위
+// 17개로 통일. 이 페이지만 예전 시/군/구 단위 옵션으로 따로 놀고 있었음.
+// ------------------------------------------------------------------
 const REGION_OPTIONS: string[] = [
-  '서울특별시 광진구',
-  '서울특별시 강남구',
-  '서울특별시 마포구',
-  '경기도 성남시',
-  '부산광역시 해운대구',
+  '서울특별시',
+  '부산광역시',
+  '대구광역시',
+  '인천광역시',
+  '광주광역시',
+  '대전광역시',
+  '울산광역시',
+  '세종특별자치시',
+  '경기도',
+  '강원특별자치도',
+  '충청북도',
+  '충청남도',
+  '전북특별자치도',
+  '전라남도',
+  '경상북도',
+  '경상남도',
+  '제주특별자치도',
 ];
+
+// GET /api/v1/users/me/profile 의 region은 "서울" 같은 축약형으로 내려오므로
+// REGION_OPTIONS(정식 명칭)와 매칭시키기 위한 별칭 테이블.
+const REGION_ALIASES: Record<string, string> = {
+  서울: '서울특별시',
+  부산: '부산광역시',
+  대구: '대구광역시',
+  인천: '인천광역시',
+  광주: '광주광역시',
+  대전: '대전광역시',
+  울산: '울산광역시',
+  세종: '세종특별자치시',
+  경기: '경기도',
+  강원: '강원특별자치도',
+  충북: '충청북도',
+  충남: '충청남도',
+  전북: '전북특별자치도',
+  전남: '전라남도',
+  경북: '경상북도',
+  경남: '경상남도',
+  제주: '제주특별자치도',
+};
+
+function normalizeRegion(region: string | null | undefined): string {
+  if (!region) return REGION_OPTIONS[0];
+  if (REGION_OPTIONS.includes(region)) return region;
+  return REGION_ALIASES[region] ?? REGION_OPTIONS[0];
+}
 
 const VERIFICATION_DURATION_SECONDS = 180;
 
-// 지금은 하드코딩된 기본값이지만, 추후 로그인/API 응답으로 이 객체를 채우면 됩니다.
+// 지금은 하드코딩된 기본값이지만, 화면 진입 시 getMyProfile() 응답으로 덮어씌워짐.
+// API 로드가 실패했을 때만 이 값이 그대로 보임.
 const DEFAULT_FORM: ProfileForm = {
   newEmail: '',
   verificationCode: '',
   currentPassword: '',
   newPassword: '',
   newPasswordConfirm: '',
-  name: '김위시',
-  birthYear: '2004',
+  name: '',
+  birthYear: String(new Date().getFullYear()),
   contact: '',
-  gender: 'female',
+  gender: 'none',
   nationality: 'domestic',
-  region: '서울특별시 광진구',
+  region: REGION_OPTIONS[0],
 };
 
 function formatMMSS(totalSeconds: number): string {
@@ -215,15 +260,47 @@ function formatMMSS(totalSeconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-// 폼의 내부 값(female/male/none, domestic/foreign)을 API가 기대하는 문자열로 변환.
-// 정확한 값 규칙은 백엔드 확인 필요 — 우선 화면에 보이는 한글 라벨 그대로 전송.
+// ------------------------------------------------------------------
+// 연락처 자동 하이픈 포맷팅: 숫자만 입력해도(예: "01012345678")
+// "010-1234-5678" 형태로 자동 변환. 최대 11자리(휴대폰 번호)까지만 받고,
+// 10자리(구형 번호)는 3-3-4로, 11자리는 3-4-4로 나눈다.
+// ------------------------------------------------------------------
+function formatPhoneNumber(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 11);
+
+  if (digits.length < 4) return digits;
+  if (digits.length < 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  if (digits.length <= 10) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
+// ------------------------------------------------------------------
+// 폼의 내부 값(female/male/none, domestic/foreign)을 API가 기대하는
+// 값으로 변환. GET /api/v1/users/me/profile 응답 기준으로 gender/nationality는
+// "FEMALE"/"DOMESTIC" 같은 영문 enum이라 그에 맞춤.
+// (기존엔 한글 문자열('여성' 등)을 보내고 있었는데, 실제 API 응답 확인 결과와
+//  달라서 /mypage/edit(EditProfile.tsx)과 동일한 매핑으로 통일함)
+// ------------------------------------------------------------------
 function mapGenderToApiValue(gender: Gender): string {
-  const map: Record<Gender, string> = { female: '여성', male: '남성', none: '선택 안함' };
+  const map: Record<Gender, string> = { female: 'FEMALE', male: 'MALE', none: 'NONE' };
   return map[gender];
 }
 
 function mapNationalityToApiValue(nationality: Nationality): string {
-  return nationality === 'domestic' ? '내국인' : '외국인';
+  return nationality === 'domestic' ? 'DOMESTIC' : 'FOREIGN';
+}
+
+// API가 준 enum 값을 폼 내부 값으로 역변환
+function mapApiValueToGender(value: string): Gender {
+  if (value === 'FEMALE') return 'female';
+  if (value === 'MALE') return 'male';
+  return 'none';
+}
+
+function mapApiValueToNationality(value: string): Nationality {
+  return value === 'FOREIGN' ? 'foreign' : 'domestic';
 }
 
 export default function EditProfileEmailChange() {
@@ -234,6 +311,10 @@ export default function EditProfileEmailChange() {
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
   const [showNewPwConfirm, setShowNewPwConfirm] = useState(false);
+
+  // 화면 진입 시 실제 유저 프로필 로드 (이름/생년/연락처/성별/국적/지역 prefill)
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [verificationStarted, setVerificationStarted] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(VERIFICATION_DURATION_SECONDS);
@@ -256,6 +337,34 @@ export default function EditProfileEmailChange() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // GET /users/me/profile 로 이름/생년/연락처/성별/국적/지역을 채움.
+  // newEmail/인증 관련 필드는 이 화면에서 새로 입력받는 값이라 건드리지 않는다.
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await getMyProfile();
+        const profile = res.data.data;
+
+        setForm((prev) => ({
+          ...prev,
+          name: profile.name,
+          birthYear: profile.birthYear || prev.birthYear,
+          contact: formatPhoneNumber(profile.phone ?? ''),
+          gender: mapApiValueToGender(profile.gender),
+          nationality: mapApiValueToNationality(profile.nationality),
+          region: normalizeRegion(profile.region),
+        }));
+      } catch (err) {
+        console.error('프로필 정보 조회 실패:', err);
+        setLoadError('프로필 정보를 불러오지 못했어요. 기본값으로 표시됩니다.');
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
   useEffect(() => {
     if (!verificationStarted) return;
     if (secondsLeft === 0) return;
@@ -271,6 +380,11 @@ export default function EditProfileEmailChange() {
     (field: keyof ProfileForm) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
     };
+
+  // 연락처 입력 시 숫자만 추출해서 자동으로 하이픈을 다시 끼워넣는다.
+  const handleContactChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setForm((prev) => ({ ...prev, contact: formatPhoneNumber(e.target.value) }));
+  };
 
   // 이메일을 다시 입력하면 이전 중복확인/인증 상태는 전부 무효화
   const handleEmailChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -468,7 +582,13 @@ export default function EditProfileEmailChange() {
             </p>
           </div>
 
-          <div className="flex w-full flex-col gap-8">
+          {loadError && (
+            <div className="flex w-full items-center gap-2 rounded-lg bg-[#FEF2F2] px-6 py-3">
+              <p className="text-[14px] font-medium leading-5 text-[#FA5862]">{loadError}</p>
+            </div>
+          )}
+
+          <div className={`flex w-full flex-col gap-8 ${isLoadingProfile ? 'opacity-60' : ''}`}>
             {/* 이메일 주소 (변경 중 상태) */}
             <div className="flex w-full flex-col items-start gap-2">
               <FieldLabel required>이메일 주소</FieldLabel>
@@ -656,9 +776,11 @@ export default function EditProfileEmailChange() {
                 <FieldLabel required>연락처</FieldLabel>
                 <TextInput
                   type="tel"
+                  inputMode="numeric"
                   value={form.contact}
-                  onChange={updateField('contact')}
+                  onChange={handleContactChange}
                   placeholder="010-0000-0000"
+                  maxLength={13}
                 />
               </div>
               <div className="flex flex-1 flex-col items-start gap-2">
