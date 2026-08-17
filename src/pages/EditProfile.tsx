@@ -21,7 +21,9 @@ interface ProfileForm {
   newPassword: string;
   newPasswordConfirm: string;
   name: string;
-  birthYear: string;
+  // 캘린더 피커용 전체 생년월일 (yyyy-MM-dd). API도 이제 이 필드명(birthDate)과
+  // 형식을 그대로 사용하므로 별도 변환 없이 그대로 보낸다.
+  birthDate: string;
   contact: string;
   gender: Gender;
   nationality: Nationality;
@@ -172,19 +174,38 @@ function SelectToggleGroup<T extends string>({
   );
 }
 
-// 지금은 하드코딩된 임의 값이지만, 실제로는 사용자가 입력/선택하는 항목입니다.
-// 추후 API(회원가입 시 입력한 값 등)로 교체하면 됩니다.
-const BIRTH_YEAR_OPTIONS: string[] = Array.from({ length: 60 }, (_, i) =>
-  String(new Date().getFullYear() - i),
-);
-
-const REGION_OPTIONS: string[] = [
-  '서울특별시 광진구',
-  '서울특별시 강남구',
-  '서울특별시 마포구',
-  '경기도 성남시',
-  '부산광역시 해운대구',
+// ------------------------------------------------------------------
+// 거주 지역: 화면엔 정식 명칭("서울특별시")을 보여주되, 서버로는 축약형
+// 코드("서울")를 보낸다. GET /api/v1/users/me/profile 응답의 region이
+// 실제로 "서울" 같은 축약형으로 오는 걸 확인함 (PUT도 동일 형식 기대).
+// ------------------------------------------------------------------
+const REGION_OPTIONS: { code: string; label: string }[] = [
+  { code: '서울', label: '서울특별시' },
+  { code: '부산', label: '부산광역시' },
+  { code: '대구', label: '대구광역시' },
+  { code: '인천', label: '인천광역시' },
+  { code: '광주', label: '광주광역시' },
+  { code: '대전', label: '대전광역시' },
+  { code: '울산', label: '울산광역시' },
+  { code: '세종', label: '세종특별자치시' },
+  { code: '경기', label: '경기도' },
+  { code: '강원', label: '강원특별자치도' },
+  { code: '충북', label: '충청북도' },
+  { code: '충남', label: '충청남도' },
+  { code: '전북', label: '전북특별자치도' },
+  { code: '전남', label: '전라남도' },
+  { code: '경북', label: '경상북도' },
+  { code: '경남', label: '경상남도' },
+  { code: '제주', label: '제주특별자치도' },
 ];
+
+// GET 응답의 region이 이 code 목록 안에 있는지 확인하고, 없으면(예: 정식
+// 명칭으로 오거나 빈 값이면) 첫 번째 옵션으로 폴백한다.
+function normalizeRegion(region: string | null | undefined): string {
+  if (!region) return REGION_OPTIONS[0].code;
+  const matched = REGION_OPTIONS.find((r) => r.code === region || r.label === region);
+  return matched ? matched.code : REGION_OPTIONS[0].code;
+}
 
 // 지금은 하드코딩된 기본값이지만, 추후 로그인/API 응답으로 이 객체를 채우면 됩니다.
 const DEFAULT_FORM: ProfileForm = {
@@ -193,34 +214,52 @@ const DEFAULT_FORM: ProfileForm = {
   newPassword: '',
   newPasswordConfirm: '',
   name: '김위시',
-  birthYear: '2004',
+  birthDate: '2004-01-01',
   contact: '',
   gender: 'female',
   nationality: 'domestic',
-  region: '서울특별시 광진구',
+  region: REGION_OPTIONS[0].code,
 };
 
-// 폼의 내부 값(female/male/none, domestic/foreign)을 API가 기대하는 문자열로 변환.
-// 정확한 값 규칙은 백엔드 확인 필요 — 우선 화면에 보이는 한글 라벨 그대로 전송.
+// ------------------------------------------------------------------
+// 폼의 내부 값(female/male/none, domestic/foreign)을 API가 기대하는
+// 값으로 변환. GET /api/v1/users/me/profile 응답 기준으로 gender/nationality는
+// "FEMALE"/"DOMESTIC" 같은 영문 enum.
+// ------------------------------------------------------------------
 function mapGenderToApiValue(gender: Gender): string {
-  const map: Record<Gender, string> = { female: '여성', male: '남성', none: '선택 안함' };
+  const map: Record<Gender, string> = { female: 'FEMALE', male: 'MALE', none: 'NONE' };
   return map[gender];
 }
 
 function mapNationalityToApiValue(nationality: Nationality): string {
-  return nationality === 'domestic' ? '내국인' : '외국인';
+  return nationality === 'domestic' ? 'DOMESTIC' : 'FOREIGN';
 }
 
-// API가 준 한글 문자열(여성/남성/선택 안함)을 폼 내부 값으로 역변환
+// API가 준 enum 값을 폼 내부 값으로 역변환
 function mapApiValueToGender(value: string): Gender {
-  if (value === '여성') return 'female';
-  if (value === '남성') return 'male';
+  if (value === 'FEMALE') return 'female';
+  if (value === 'MALE') return 'male';
   return 'none';
 }
 
-// API가 준 한글 문자열(내국인/외국인)을 폼 내부 값으로 역변환
 function mapApiValueToNationality(value: string): Nationality {
-  return value === '외국인' ? 'foreign' : 'domestic';
+  return value === 'FOREIGN' ? 'foreign' : 'domestic';
+}
+
+// axios 에러 응답에서 서버가 내려준 실제 메시지를 최대한 뽑아낸다.
+// 우리 API 응답 포맷이 { success, data, message } 형태라 message를 우선 사용하고,
+// 없으면 axios 기본 에러 메시지, 그것도 없으면 지금까지 쓰던 기본 문구로 폴백한다.
+function extractApiErrorMessage(err: unknown, fallback: string): string {
+  if (err && typeof err === 'object') {
+    const maybeAxiosErr = err as {
+      response?: { data?: { message?: string } };
+      message?: string;
+    };
+    const serverMessage = maybeAxiosErr.response?.data?.message;
+    if (serverMessage) return serverMessage;
+    if (maybeAxiosErr.message) return maybeAxiosErr.message;
+  }
+  return fallback;
 }
 
 export default function EditProfile() {
@@ -236,8 +275,8 @@ export default function EditProfile() {
   const clearUser = useUserStore((s) => s.clearUser);
 
   // 화면 진입 시 실제 유저 프로필을 불러와서 폼에 채워넣음.
-  // getMyProfile(/users/me/profile)에서 이름/생년/연락처/성별/국적/지역을,
-  // getMyPageSummary(/users/me)에서 이메일을 각각 가져와 합친다.
+  // getMyProfile(GET /users/me/profile)에서 이름/생년월일/연락처/성별/국적/지역을,
+  // getMyPageSummary(GET /users/me)에서 이메일을 각각 가져와 합친다.
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -245,15 +284,19 @@ export default function EditProfile() {
         const profile = profileRes.data.data;
         const summary = summaryRes.data.data;
 
+        // profile.birthDate가 이미 "yyyy-MM-dd" 전체 날짜로 오므로 그대로 사용.
+        // 값이 없으면(신규 유저 등) 올해 1월 1일로 폴백.
+        const birthDate = profile.birthDate || `${new Date().getFullYear()}-01-01`;
+
         setForm((prev) => ({
           ...prev,
           email: summary.email,
           name: profile.name,
-          birthYear: profile.birthYear,
+          birthDate,
           contact: profile.phone,
           gender: mapApiValueToGender(profile.gender),
           nationality: mapApiValueToNationality(profile.nationality),
-          region: profile.region,
+          region: normalizeRegion(profile.region),
         }));
       } catch (err) {
         console.error('프로필 정보 조회 실패:', err);
@@ -275,14 +318,9 @@ export default function EditProfile() {
     navigate('/mypage');
   };
 
-  // 이메일은 이 화면에서 직접 수정하지 않고, 인증 절차가 있는 별도 화면으로 이동해서 처리.
-  // TODO: 실제 라우트 경로는 회의 후 확정되면 여기만 수정하면 됨
-  const handleGoToEditEmail = () => {
-    navigate('/mypage/edit-email');
-  };
-
   const handleSubmit = async () => {
-    // 비밀번호 필드 중 하나라도 입력했다면 비밀번호 변경도 같이 진행
+    // 비밀번호 필드는 이제 선택 입력. 셋 중 하나라도 입력했을 때만
+    // "비밀번호 변경 의사가 있다"고 보고, 그때만 세 값이 모두 채워졌는지 검증한다.
     const wantsPasswordChange =
       form.currentPassword.trim() !== '' ||
       form.newPassword.trim() !== '' ||
@@ -307,10 +345,10 @@ export default function EditProfile() {
     setSubmitError(null);
 
     try {
-      // 기본 정보 저장 (이메일은 이 API에 포함되지 않음 — 별도 이메일 변경 화면에서 처리)
+      // 이 API는 연도만이 아니라 birthDate 필드에 "yyyy-MM-dd" 전체 날짜를 기대함.
       await putBasicProfile({
         name: form.name,
-        birthYear: form.birthYear,
+        birthDate: form.birthDate,
         phone: form.contact,
         gender: mapGenderToApiValue(form.gender),
         nationality: mapNationalityToApiValue(form.nationality),
@@ -335,7 +373,9 @@ export default function EditProfile() {
       navigate('/mypage');
     } catch (err) {
       console.error('프로필 수정 실패:', err);
-      setSubmitError('저장에 실패했어요. 입력한 내용을 다시 확인해 주세요.');
+      setSubmitError(
+        extractApiErrorMessage(err, '저장에 실패했어요. 입력한 내용을 다시 확인해 주세요.'),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -374,87 +414,82 @@ export default function EditProfile() {
           )}
 
           <div className={`flex w-full flex-col gap-8 ${isLoadingProfile ? 'opacity-60' : ''}`}>
-            {/* 이메일 주소 */}
+            {/* 이메일 주소 — 이 화면에서는 조회만 가능, 수정 기능 없음 */}
             <div className="flex w-full flex-col items-start gap-2">
               <FieldLabel required>이메일 주소</FieldLabel>
-              <div className="flex w-full items-center gap-6">
-                <TextInput
-                  type="email"
-                  value={form.email}
-                  onChange={updateField('email')}
-                  placeholder="이메일을 입력하세요"
-                  readOnly
-                />
-                <button
-                  type="button"
-                  onClick={handleGoToEditEmail}
-                  style={{ backgroundColor: '#F3F4F6', border: '1px solid transparent' }}
-                  className="flex h-12 w-[140px] shrink-0 items-center justify-center rounded-lg px-4 py-2 text-[16px] font-medium leading-6 text-[#9DA1AC] whitespace-nowrap"
-                >
-                  이메일 수정하기
-                </button>
+              <TextInput
+                type="email"
+                value={form.email}
+                onChange={updateField('email')}
+                placeholder="이메일을 입력하세요"
+                readOnly
+              />
+            </div>
+
+            {/* 현재 비밀번호 / 새 비밀번호 / 새 비밀번호 확인 — 선택 입력 */}
+            <div className="flex w-full flex-col items-start gap-2">
+              <p className="text-[14px] font-medium leading-5 text-[#747883]">
+                비밀번호를 바꾸고 싶을 때만 아래 세 항목을 모두 입력해 주세요.
+              </p>
+              <div className="flex w-full items-start gap-6">
+                <div className="flex flex-1 flex-col items-start gap-2">
+                  <FieldLabel>현재 비밀번호</FieldLabel>
+                  <TextInput
+                    type={showCurrentPw ? 'text' : 'password'}
+                    value={form.currentPassword}
+                    onChange={updateField('currentPassword')}
+                    placeholder="비밀번호를 다시 입력하세요"
+                    rightSlot={
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPw((v) => !v)}
+                        className="text-[#9DA1AC]"
+                      >
+                        {showCurrentPw ? <EyeOffIcon /> : <EyeIcon />}
+                      </button>
+                    }
+                  />
+                </div>
+                <div className="flex flex-1 flex-col items-start gap-2">
+                  <FieldLabel>새 비밀번호</FieldLabel>
+                  <TextInput
+                    type={showNewPw ? 'text' : 'password'}
+                    value={form.newPassword}
+                    onChange={updateField('newPassword')}
+                    placeholder="비밀번호를 다시 입력하세요"
+                    rightSlot={
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPw((v) => !v)}
+                        className="text-[#9DA1AC]"
+                      >
+                        {showNewPw ? <EyeOffIcon /> : <EyeIcon />}
+                      </button>
+                    }
+                  />
+                </div>
+                <div className="flex flex-1 flex-col items-start gap-2">
+                  <FieldLabel>새 비밀번호 확인</FieldLabel>
+                  <TextInput
+                    type={showNewPwConfirm ? 'text' : 'password'}
+                    value={form.newPasswordConfirm}
+                    onChange={updateField('newPasswordConfirm')}
+                    placeholder="비밀번호를 다시 입력하세요"
+                    rightSlot={
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPwConfirm((v) => !v)}
+                        className="text-[#9DA1AC]"
+                      >
+                        {showNewPwConfirm ? <EyeOffIcon /> : <EyeIcon />}
+                      </button>
+                    }
+                  />
+                </div>
               </div>
             </div>
 
-            {/* 현재 비밀번호 / 새 비밀번호 / 새 비밀번호 확인 */}
-            <div className="flex w-full items-start gap-6">
-              <div className="flex flex-1 flex-col items-start gap-2">
-                <FieldLabel required>현재 비밀번호</FieldLabel>
-                <TextInput
-                  type={showCurrentPw ? 'text' : 'password'}
-                  value={form.currentPassword}
-                  onChange={updateField('currentPassword')}
-                  placeholder="비밀번호를 다시 입력하세요"
-                  rightSlot={
-                    <button
-                      type="button"
-                      onClick={() => setShowCurrentPw((v) => !v)}
-                      className="text-[#9DA1AC]"
-                    >
-                      {showCurrentPw ? <EyeOffIcon /> : <EyeIcon />}
-                    </button>
-                  }
-                />
-              </div>
-              <div className="flex flex-1 flex-col items-start gap-2">
-                <FieldLabel required>새 비밀번호</FieldLabel>
-                <TextInput
-                  type={showNewPw ? 'text' : 'password'}
-                  value={form.newPassword}
-                  onChange={updateField('newPassword')}
-                  placeholder="비밀번호를 다시 입력하세요"
-                  rightSlot={
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPw((v) => !v)}
-                      className="text-[#9DA1AC]"
-                    >
-                      {showNewPw ? <EyeOffIcon /> : <EyeIcon />}
-                    </button>
-                  }
-                />
-              </div>
-              <div className="flex flex-1 flex-col items-start gap-2">
-                <FieldLabel required>새 비밀번호 확인</FieldLabel>
-                <TextInput
-                  type={showNewPwConfirm ? 'text' : 'password'}
-                  value={form.newPasswordConfirm}
-                  onChange={updateField('newPasswordConfirm')}
-                  placeholder="비밀번호를 다시 입력하세요"
-                  rightSlot={
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPwConfirm((v) => !v)}
-                      className="text-[#9DA1AC]"
-                    >
-                      {showNewPwConfirm ? <EyeOffIcon /> : <EyeIcon />}
-                    </button>
-                  }
-                />
-              </div>
-            </div>
-
-            {/* 이름 / 출생년도 */}
+            {/* 이름 / 생년월일 */}
             <div className="flex w-full items-start gap-8">
               <div className="flex flex-1 flex-col items-start gap-2">
                 <FieldLabel required>이름</FieldLabel>
@@ -465,21 +500,11 @@ export default function EditProfile() {
                 />
               </div>
               <div className="flex flex-1 flex-col items-start gap-2">
-                <FieldLabel required>출생년도</FieldLabel>
-                <div className="relative flex h-12 w-full items-center rounded-lg bg-[#F9FAFC] pl-6 pr-3">
-                  <select
-                    value={form.birthYear}
-                    onChange={updateField('birthYear')}
-                    className="w-full flex-1 appearance-none bg-transparent text-[16px] font-medium leading-6 text-[#555964] focus:outline-none"
-                  >
-                    {BIRTH_YEAR_OPTIONS.map((year) => (
-                      <option key={year} value={year}>
-                        {year}.01.01
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDownIcon className="pointer-events-none size-6 shrink-0 text-[#9DA1AC]" />
-                </div>
+                <FieldLabel required>생년월일</FieldLabel>
+                {/* 네이티브 date input을 사용해 브라우저 기본 캘린더 UI로 선택 가능하게 함.
+                    API도 birthDate 필드에 "yyyy-MM-dd" 전체 날짜를 그대로 기대하므로
+                    별도 변환 없이 값을 그대로 주고받는다. */}
+                <TextInput type="date" value={form.birthDate} onChange={updateField('birthDate')} />
               </div>
             </div>
 
@@ -531,8 +556,8 @@ export default function EditProfile() {
                       className="w-full flex-1 appearance-none bg-transparent text-[16px] font-medium leading-6 text-[#555964] focus:outline-none"
                     >
                       {REGION_OPTIONS.map((region) => (
-                        <option key={region} value={region}>
-                          {region}
+                        <option key={region.code} value={region.code}>
+                          {region.label}
                         </option>
                       ))}
                     </select>
