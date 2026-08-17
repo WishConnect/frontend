@@ -80,8 +80,6 @@ function App() {
           {/* 인사이트 - 참고하면 좋아요 */}
           <Route path="/insight/reference" element={<MoreInfoPage />} />
 
-          {/* 온보딩 1: 학적 정보 */}
-          <Route path="/onboarding" element={<OnboardingAcademicInfo />} />
           {/* 온보딩 2: 가구 정보 */}
           <Route path="/onboarding/household" element={<OnboardingHouseholdInfo />} />
           {/* 온보딩 3: 완료 */}

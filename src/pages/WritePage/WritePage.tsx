@@ -1,9 +1,10 @@
+import { useRef } from 'react';
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import LeftSidebar from '../../components/LeftSidebar';
 import Tag from '../../components/Tag';
 import Header from '../../components/common/Header/Header';
-import Step1 from './Step1';
+import Step1, { type Step1Handle } from './Step1';
 import Step2 from './Step2';
 import Step3 from './Step3';
 import { getApplicationDetail, type ApplicationQuestion } from '../../api/archiving/view';
@@ -72,6 +73,9 @@ export default function WritePage() {
   const { scholarshipId: _, applicationId: paramAppId } = useParams();
   const applicationId = Number(paramAppId) || 1;
 
+  const [scholarshipTitle, setScholarshipTitle] = useState('');
+  const [, setApplicationStatus] = useState('');
+
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -91,6 +95,9 @@ export default function WritePage() {
         const res = await getApplicationDetail(applicationId);
 
         if (res.success && res.data) {
+          setScholarshipTitle(res.data.scholarshipTitle);
+          setApplicationStatus(res.data.status);
+
           const savedQuestions = res.data.questions;
           const categories = savedQuestions.map((q) => q.title);
           setQuestionCategories(categories);
@@ -126,7 +133,8 @@ export default function WritePage() {
   }, [applicationId]);
 
   // 임시저장
-  const [, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const step1Ref = useRef<Step1Handle>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const isNextEnabled = true;
 
   // 다음
@@ -138,33 +146,26 @@ export default function WritePage() {
     }
   };
 
-  // 임시저장
-  //const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-
   const handleSaveDraft = async () => {
-    if (currentStep === 1) {
-    } else if (currentStep === 2) {
-      const questionId = questionIds[step2Category];
-      if (!questionId) return;
-
-      setSaveStatus('saving');
+    setSaveStatus('saving');
       try {
-        const response = await putAnswer(applicationId, questionId, {
-          action: 'save',
-          userContent: drafts[step2Category] ?? '',
-        });
-
-        if (response.success) {
+          if (currentStep === 1) {
+              await step1Ref.current?.saveCurrentCategory();
+          } else if (currentStep === 2) {
+              const questionId = questionIds[step2Category];
+              if (questionId) {
+                  await putAnswer(applicationId, questionId, {
+                      action: 'save',
+                      userContent: drafts[step2Category] ?? '',
+                  });
+              }
+          }
           setSaveStatus('saved');
           setTimeout(() => setSaveStatus('idle'), 1500);
-        } else {
-          setSaveStatus('error');
-        }
       } catch (error) {
-        console.error('임시저장 실패:', error);
-        setSaveStatus('error');
+          console.error('임시저장 실패:', error);
+          setSaveStatus('error');
       }
-    }
   };
 
   // 완료
@@ -227,15 +228,23 @@ export default function WritePage() {
 
         <main className="flex-1 flex flex-col ml-[32px]">
           {/* 상단 타이틀 */}
-          <div className="flex justify-between items-start">
+          <div className="flex justify-between items-start gap-[40px]">
             <div className="flex flex-col gap-[12px]">
               <div className="flex items-center gap-[8px]">
-                <h1 className="text-[#181C25] text-[36px] font-[700]">서울미래예체능장학금</h1>
-                <Tag variant="primary">신청가능</Tag>
+                <div className=''>
+                  <span className="text-[#181C25] text-[36px] font-[700]">{scholarshipTitle}{' '}</span>
+                  <span className="inline-block align-middle -translate-y-[12px]">
+                    <Tag variant="primary">
+                      신청가능
+                    </Tag>
+                  </span>
+                </div>
               </div>
               <div className="flex items-center text-[#555964] font-[600] text-[16px] gap-[8px] flex">
                 <span>신청기간</span>
                 <span>•</span>
+
+                {/* 데이터 서버에서 받아야함 */}
                 <span>2026.05.01 - 2026.05.31</span>
               </div>
             </div>
@@ -252,9 +261,10 @@ export default function WritePage() {
                 <>
                   <button
                     onClick={handleSaveDraft}
+                    disabled={saveStatus === 'saving'}
                     className="flex justify-center items-center w-[148px] h-[48px] p-[16px] rounded-[8px] border border-[#9DA1AC] text-[#555964] text-[18px] font-[600]"
                   >
-                    임시저장
+                    {saveStatus === 'saving' ? '저장 중...' : saveStatus === 'saved' ? '저장됨' : '임시저장'}
                   </button>
                   <button
                     disabled={!isNextEnabled}
@@ -313,6 +323,7 @@ export default function WritePage() {
               <>
                 {currentStep === 1 && (
                   <Step1
+                    ref={step1Ref}
                     applicationId={applicationId}
                     questionCategories={questionCategories}
                     questions={questions}
