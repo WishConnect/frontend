@@ -22,6 +22,8 @@ import { fetchScholarshipDetail } from '../../api/Curation/Detail';
 import { scrapScholarship, unscrapScholarship } from '../../api/Curation/Scrap';
 import { useUserStore } from '../../store/user/user';
 import { postStartApplication } from '../../api/archiving/start';
+import { getArchive } from '../../api/archiving/archive';
+
 
 import type {
   ScholarshipDetailResponse,
@@ -40,10 +42,10 @@ type ApplicationStatus = 'NOT_REQUIRED' | 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPL
  * 추후 ScholarshipDetailResponse에 아래 필드가 정식으로 추가되면
  * 이 타입은 제거
  */
-type ScholarshipDetailWithApplication = ScholarshipDetailResponse & {
-  applicationStatus?: ApplicationStatus | null;
-  applicationId?: number | string | null;
-};
+// type ScholarshipDetailWithApplication = ScholarshipDetailResponse & {
+//   applicationStatus?: ApplicationStatus | null;
+//   applicationId?: number | string | null;
+// };
 
 interface ApplicationBannerContent {
   title: string;
@@ -185,6 +187,11 @@ export default function Detail() {
   const [isScrapped, setIsScrapped] = useState(false);
   const [isScrapLoading, setIsScrapLoading] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
+
+  // 아카이빙 api 재사용
+  const [applicationStatus, setApplicationStatus] = useState<ApplicationStatus>('NOT_STARTED');
+  const [applicationId, setApplicationId] = useState<number | string | null>(null);
+
   const locationState = location.state as DetailLocationState | null;
   const profileProgress = locationState?.profileCompletionRate ?? 0;
   const isOnboarded = Boolean(user?.onboardingCompleted);
@@ -219,6 +226,32 @@ export default function Detail() {
     void loadDetail();
   }, [id]);
 
+   useEffect(() => {
+    if (!isLoggedIn || !id) return;
+
+    const loadApplicationStatus = async () => {
+      try {
+        const data = await getArchive({ page: 1, size: 100 });
+
+        const matched = data.items.find(
+          (item) => String(item.scholarshipId) === String(id),
+        );
+
+        if (matched) {
+          setApplicationStatus(matched.applicationStatus as ApplicationStatus);
+          setApplicationId(matched.applicationId);
+        } else {
+          setApplicationStatus('NOT_STARTED');
+          setApplicationId(null);
+        }
+      } catch (error) {
+        console.error('지원 상태 조회 실패:', error);
+      }
+    };
+
+    void loadApplicationStatus();
+  }, [id, isLoggedIn]);
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center font-['Pretendard']">
@@ -239,16 +272,16 @@ export default function Detail() {
     );
   }
 
-  const detailWithApplication = detail as ScholarshipDetailWithApplication;
+  // const detailWithApplication = detail as ScholarshipDetailWithApplication;
 
   /**
    * 백엔드에서 applicationStatus가 아직 오지 않는 동안에는
    * 작성 전 상태로 표시합니다.
    */
-  const applicationStatus: ApplicationStatus =
-    detailWithApplication.applicationStatus ?? 'NOT_STARTED';
+  // const applicationStatus: ApplicationStatus =
+  //   detailWithApplication.applicationStatus ?? 'NOT_STARTED';
 
-  const applicationId = detailWithApplication.applicationId ?? null;
+  // const applicationId = detailWithApplication.applicationId ?? null;
 
   const applicationBannerContent = getApplicationBannerContent(isLoggedIn, applicationStatus);
   const leftInfo = [

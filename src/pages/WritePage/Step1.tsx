@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useImperativeHandle, forwardRef } from "react";
 import TextField2 from "../../components/TextField2";
 import { postInterviewAnswer, type InterviewQuestionItem } from '../../api/write/step1/Interview';
 import type { ApplicationQuestion } from '../../api/archiving/view';
@@ -21,14 +21,18 @@ interface Step1Props {
     onProgressChange: (categoryId: number, isComplete: boolean) => void;
 }
 
-export default function Step1({
+export interface Step1Handle {
+    saveCurrentCategory: () => Promise<void>;
+}
+
+const Step1 = forwardRef<Step1Handle, Step1Props>(function Step1({
     applicationId,
     questionCategories,
     questions,
     selectedCategory,
     setSelectedCategory,
     onProgressChange,
-}: Step1Props) {
+}, ref) {
     const [stateByCategory, setStateByCategory] = useState<Record<number, CategoryState>>({});
     const currentQuestion = questions[selectedCategory];
     const current = stateByCategory[selectedCategory];
@@ -107,10 +111,19 @@ export default function Step1({
         });
     };
 
-    const handleSaveAnswer = async (stepOrder: number) => {
+    const saveCurrentCategory = async () => {
         if (!current || !currentQuestion || current.isSaving) return;
-        const answerText = current.answers[stepOrder]?.trim();
-        if (!answerText) return;
+
+        const changedAnswers = current.questions
+            .map((q) => ({
+                stepOrder: q.stepOrder,
+                answerText: (current.answers[q.stepOrder] ?? '').trim(),
+                originalText: q.answerText ?? '',
+            }))
+            .filter((a) => a.answerText.length > 0 && a.answerText !== a.originalText)
+            .map(({ stepOrder, answerText }) => ({ stepOrder, answerText }));
+
+        if (changedAnswers.length === 0) return;
 
         setStateByCategory((prev) => ({
             ...prev,
@@ -118,9 +131,7 @@ export default function Step1({
         }));
 
         try {
-            const res = await postInterviewAnswer(applicationId, currentQuestion.questionId, [
-                { stepOrder, answerText },
-            ]);
+            const res = await postInterviewAnswer(applicationId, currentQuestion.questionId, changedAnswers);
 
             if (!res.success || !res.data) return;
 
@@ -148,8 +159,13 @@ export default function Step1({
                 ...prev,
                 [selectedCategory]: { ...prev[selectedCategory], isSaving: false },
             }));
+            throw error;
         }
     };
+
+    useImperativeHandle(ref, () => ({
+        saveCurrentCategory,
+    }));
 
     return (
         <div className="flex gap-[24px]">
@@ -221,7 +237,6 @@ export default function Step1({
                                 height="141px"
                                 value={current.answers[q.stepOrder] ?? ''}
                                 onChange={(val) => handleAnswerInput(q.stepOrder, val)}
-                                onBlur={() => handleSaveAnswer(q.stepOrder)}
                             />
                         </div>
                     ))}
@@ -229,4 +244,6 @@ export default function Step1({
             </div>
         </div>
     );
-}
+});
+
+export default Step1;
