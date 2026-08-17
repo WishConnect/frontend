@@ -1,9 +1,11 @@
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
+import PageFadeIn from './components/common/PageFadeIn';
 import LoginPage from './pages/Login/LoginPage';
 import SocialCallbackPage from './pages/Login/SocialCallbackPage';
 import NotificationSettingsPage from './pages/NotificationSettings/NotificationSettingsPage';
 import ArchivingPage from './pages/Archiving/ArchivingPage';
-import Home from './pages/Home/HomePage';
+import HomeEntry from './pages/Home/HomeEntry';
+import LandingPage from './pages/Landing/LandingPage';
 import CurationPage from './pages/Curating/CurationPage';
 import Detail from './pages/Curating/Detail';
 import InsightPage1 from './pages/Insight/InsightPage1';
@@ -17,69 +19,82 @@ import OnboardingHouseholdInfo from './pages/OnBoarding/OnboardingHouseholdInfo'
 import OnboardingComplete from './pages/OnBoarding/OnboardingComplete';
 import MyPage from './pages/MyPage';
 import EditProfile from './pages/EditProfile';
-import EditProfileEmail from './pages/EditProfileEmail';
 import Recommend from './pages/Curating/Recommend';
 import './App.css';
 
 import Complete from './pages/WritePage/Complete';
 
+// 화면 폭을 꽉 채워야 하는 경로. 랜딩은 배경(그라디언트·사진)이 화면 끝까지 이어져야 해서
+// 아래 가운데 정렬 래퍼(max-w-[1440px])를 적용하면 양옆에 흰 여백이 생긴다.
+const FULL_WIDTH_PATHS = ['/landing'];
+
 function App() {
+  // 화면이 바뀔 때마다 부드럽게 나타나게 한다.
+  // key에 경로를 주면 이동할 때마다 래퍼가 새로 마운트돼 페이드인이 다시 시작된다.
+  const location = useLocation();
+  const isFullWidth = FULL_WIDTH_PATHS.includes(location.pathname);
+
   return (
-    <Routes>
-      {/* 홈 */}
-      <Route path="/" element={<Home />} />
+    <PageFadeIn key={location.pathname}>
+      {/* 페이지 공통 가운데 정렬(develop의 "가운데 정렬" 작업). 랜딩만 예외로 전체 폭을 쓴다 */}
+      <div className={isFullWidth ? 'w-full' : 'mx-auto min-h-screen w-full max-w-[1440px]'}>
+        <Routes location={location}>
+          {/* 홈. 접속 후 첫 진입이고 비로그인이면 HomeEntry가 /landing 으로 보낸다 */}
+          <Route path="/" element={<HomeEntry />} />
 
-      {/* 로그인 */}
-      <Route path="/login" element={<LoginPage />} />
-      {/* 소셜 로그인 콜백 (:provider = kakao/google/naver)
-          경로는 서버 설정(KAKAO_REDIRECT_URI 등)과 반드시 동일해야 함 */}
-      <Route path="/auth/:provider/callback" element={<SocialCallbackPage />} />
-      {/* 회원가입 */}
-      <Route path="/sign" element={<SignPage />} />
-      {/* 계정 찾기 (로그인 전). 아이디 = 가입 이메일 */}
-      <Route path="/find-id" element={<FindIdPage />} />
-      <Route path="/find-password" element={<FindPasswordPage />} />
+          {/* 랜딩페이지(서비스 소개). 이 주소로 직접 들어오면 언제든 볼 수 있다 */}
+          <Route path="/landing" element={<LandingPage />} />
 
-      {/* 알림 설정 (헤더 알림창 톱니바퀴에서 진입) */}
-      <Route path="/notifications/settings" element={<NotificationSettingsPage />} />
+          {/* 로그인 */}
+          <Route path="/login" element={<LoginPage />} />
+          {/* 소셜 로그인 콜백 (:provider = kakao/google/naver)
+              경로는 서버 설정(KAKAO_REDIRECT_URI 등)과 반드시 동일해야 함 */}
+          <Route path="/auth/:provider/callback" element={<SocialCallbackPage />} />
+          {/* 회원가입 */}
+          <Route path="/sign" element={<SignPage />} />
+          {/* 계정 찾기 (로그인 전). 아이디 = 가입 이메일 */}
+          <Route path="/find-id" element={<FindIdPage />} />
+          <Route path="/find-password" element={<FindPasswordPage />} />
 
-      {/* 아카이빙 (내 장학금 보관함) */}
-      <Route path="/archiving" element={<ArchivingPage />} />
+          {/* 알림 설정 (헤더 알림창 톱니바퀴에서 진입) */}
+          <Route path="/notifications/settings" element={<NotificationSettingsPage />} />
 
-      {/* 큐레이션 목록 */}
-      <Route path="/curation" element={<CurationPage />} />
-      {/* 장학금 상세 (:id는 장학금 식별자) */}
-      <Route path="/curation/:id" element={<Detail />} />
-      {/* 장학금 추천 페이지 */}
-      <Route path="/curation/recommended" element={<Recommend />} />
-      {/* 자기소개서 작성 */}
-      <Route path="/write/:applicationId" element={<WritePage />} />
-      <Route path="/complete/:applicationId" element={<Complete />} />
+          {/* 아카이빙 (내 장학금 보관함) */}
+          <Route path="/archiving" element={<ArchivingPage />} />
 
-      {/* 이메일 수정하기*/}
-      <Route path="/mypage/edit-email" element={<EditProfileEmail />} />
+          {/* 큐레이션 목록 */}
+          <Route path="/curation" element={<CurationPage />} />
+          {/* 장학금 상세 (:id는 장학금 식별자) */}
+          <Route path="/curation/:id" element={<Detail />} />
+          {/* 장학금 추천 페이지 */}
+          <Route path="/curation/recommended" element={<Recommend />} />
+          {/* 자기소개서 작성 */}
+          <Route path="/write/:applicationId" element={<WritePage />} />
+          <Route path="/complete/:applicationId" element={<Complete />} />
 
-      {/* 온보딩 1: 학적 정보 */}
-      <Route path="/onboarding" element={<OnboardingAcademicInfo />} />
+          {/* 온보딩 1: 학적 정보 */}
+          <Route path="/onboarding" element={<OnboardingAcademicInfo />} />
 
-      {/* 인사이트 */}
-      <Route path="/insight" element={<InsightPage1 />} />
-      {/* 인사이트 - 참고하면 좋아요 */}
-      <Route path="/insight/reference" element={<MoreInfoPage />} />
+          {/* 인사이트 */}
+          <Route path="/insight" element={<InsightPage1 />} />
+          {/* 인사이트 - 참고하면 좋아요 */}
+          <Route path="/insight/reference" element={<MoreInfoPage />} />
 
-      {/* 온보딩 1: 학적 정보 */}
-      <Route path="/onboarding" element={<OnboardingAcademicInfo />} />
-      {/* 온보딩 2: 가구 정보 */}
-      <Route path="/onboarding/household" element={<OnboardingHouseholdInfo />} />
-      {/* 온보딩 3: 완료 */}
-      <Route path="/onboarding/complete" element={<OnboardingComplete />} />
+          {/* 온보딩 1: 학적 정보 */}
+          <Route path="/onboarding" element={<OnboardingAcademicInfo />} />
+          {/* 온보딩 2: 가구 정보 */}
+          <Route path="/onboarding/household" element={<OnboardingHouseholdInfo />} />
+          {/* 온보딩 3: 완료 */}
+          <Route path="/onboarding/complete" element={<OnboardingComplete />} />
 
-      {/* 프로필 수정하기 */}
-      <Route path="/mypage/edit" element={<EditProfile />} />
+          {/* 프로필 수정하기 */}
+          <Route path="/mypage/edit" element={<EditProfile />} />
 
-      {/* 마이페이지 */}
-      <Route path="/mypage" element={<MyPage />} />
-    </Routes>
+          {/* 마이페이지 */}
+          <Route path="/mypage" element={<MyPage />} />
+        </Routes>
+      </div>
+    </PageFadeIn>
   );
 }
 
