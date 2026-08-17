@@ -85,18 +85,27 @@ export default function LoginForm() {
       </div>
 
       <div className="flex items-center justify-between">
-        {/* 비밀번호 찾기 (Figma 1314:2713)
-            시안엔 "아이디 찾기 · 비밀번호 찾기" 둘이었지만, 아이디 찾기는 보안 문제로
-            화면에서 내렸다(2026-08-16 팀 결정). 페이지(FindIdPage)와 /find-id 라우트는 그대로 두고
-            진입 링크만 뺀 것이라, 되살릴 땐 이 자리에 버튼과 구분점을 다시 넣으면 된다.
-            남은 항목이 하나뿐이라 3px 구분점과 둘을 묶던 래퍼도 같이 제거했다. */}
-        <button
-          type="button"
-          onClick={() => navigate('/find-password')}
-          className="text-base font-medium text-[#747883] underline"
-        >
-          비밀번호 찾기
-        </button>
+        {/* 아이디 찾기 · 비밀번호 찾기 (Figma 1314:2713, 3px 점으로 구분)
+            아이디 찾기는 2026-08-16에 보안 문제로 잠시 내렸다가 2026-08-17에 되살렸다.
+            아이디와 이메일이 별개 값이 됐고(users.login_id 신설) 이메일 인증을 통과해야
+            결과가 나오므로, 내렸던 사유(본인 확인 없이 이메일이 노출됨)가 해소됐다. */}
+        <div className="flex items-center gap-[12px]">
+          <button
+            type="button"
+            onClick={() => navigate('/find-id')}
+            className="text-base font-medium text-[#747883] underline"
+          >
+            아이디 찾기
+          </button>
+          <span className="size-[3px] rounded-full bg-[#747883]" />
+          <button
+            type="button"
+            onClick={() => navigate('/find-password')}
+            className="text-base font-medium text-[#747883] underline"
+          >
+            비밀번호 찾기
+          </button>
+        </div>
 
         <button
           type="button"

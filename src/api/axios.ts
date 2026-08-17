@@ -67,6 +67,11 @@ const AUTH_PATHS = [
   '/auth/logout',
   '/auth/kakao/login',
   '/auth/google/login',
+  // 아이디 중복 확인. 로그인 전에 부르는 엔드포인트라 401이 나도 갱신 대상이 아니다.
+  // 빼먹으면 회원가입 도중 401 한 번에 토큰이 지워지고 /login으로 튕긴다.
+  '/auth/login-id/check',
+  // 아이디 찾기도 로그인 전 화면에서 부른다.
+  '/auth/login-id/find',
 ];
 
 // 401(만료 토큰) 응답 시: refreshToken으로 새 토큰 발급 후 원요청을 1회 재시도.

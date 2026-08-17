@@ -34,15 +34,20 @@ export interface AgreementItem {
 }
 
 export interface SignupRequest {
+  // 로그인 아이디. 필수(@NotBlank). 규칙은 utils/loginId.ts 참고 (a-z/0-9/_ 4~20자).
+  // 서버가 소문자로 낮춰 저장하며, 중복 시 409 DUPLICATE_LOGIN_ID.
+  loginId: string;
   email: string; // 필수
   password: string; // 필수. 8~20자, 영/숫/특 3종 이상, 공백·이메일동일 불가
   name: string; // 필수
   phone: string; // 필수. 예: "010-1234-5678"
   gender: Gender; // 필수(@NotNull)
   agreements: AgreementItem[]; // 필수(@NotEmpty, 최소 1개)
-  birthYear?: number; // 선택
+  // 생년월일 'yyyy-MM-dd'. 2026-08-17 백엔드가 birthYear(연도)에서 birthDate(LocalDate)로 교체했다.
+  // 예전 이름(birthYear)으로 보내면 서버가 모르는 필드라 조용히 버려지고 생년월일이 NULL로 저장된다.
+  birthDate?: string;
   nationality?: Nationality; // 선택
-  region?: string; // 선택
+  region?: string; // 선택. 정식명칭("서울특별시")으로 보내면 서버가 "서울"로 바꿔 조회
 }
 
 // 회원가입 성공 시 data 필드 (201). 로그인과 달리 user 객체가 없고 userId만 옴.
@@ -70,6 +75,16 @@ export interface TokenRefreshResponseData {
 // 이메일 중복 확인 응답. available=true면 가입 가능(LOCAL 기준 미가입).
 export interface EmailCheckResponseData {
   available: boolean;
+}
+
+// 아이디 중복 확인 응답(GET /auth/login-id/check). 이메일 쪽과 같은 형태.
+export interface LoginIdCheckResponseData {
+  available: boolean;
+}
+
+// 아이디 찾기 응답(POST /auth/login-id/find). ⚠️ 서버 미구현 — api/login/findLoginId.ts 주석 참고.
+export interface FindLoginIdResponseData {
+  loginId: string;
 }
 
 // 인증코드 발송 요청 body
