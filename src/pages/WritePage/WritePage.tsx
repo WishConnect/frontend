@@ -228,11 +228,17 @@ export default function WritePage() {
 
         <main className="flex-1 flex flex-col ml-[32px]">
           {/* 상단 타이틀 */}
-          <div className="flex justify-between items-start">
+          <div className="flex justify-between items-start gap-[40px]">
             <div className="flex flex-col gap-[12px]">
               <div className="flex items-center gap-[8px]">
-                <h1 className="text-[#181C25] text-[36px] font-[700]">{scholarshipTitle}</h1>
-                <Tag variant="primary">신청가능</Tag>
+                <div className=''>
+                  <span className="text-[#181C25] text-[36px] font-[700]">{scholarshipTitle}{' '}</span>
+                  <span className="inline-block align-middle -translate-y-[12px]">
+                    <Tag variant="primary">
+                      신청가능
+                    </Tag>
+                  </span>
+                </div>
               </div>
               <div className="flex items-center text-[#555964] font-[600] text-[16px] gap-[8px] flex">
                 <span>신청기간</span>
