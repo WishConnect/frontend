@@ -13,10 +13,13 @@ import DetailScrap from '../../assets/icons/DetailScrap.svg';
 import Scrap from '../../assets/icons/Scrap.svg';
 import PaperPlane from '../../assets/icons/PaperPlane.svg';
 import ShareCheck from '../../assets/icons/ShareCheck.svg';
+import Report from "../../assets/icons/Report.svg"
 import Button from '../../components/Button/Button';
 import Header from '../../components/common/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar';
 import DdayStatus from '../../components/DdayStatus';
+import ReportModal from '../Curating/Report';
+
 import DetailPost from '../../components/Curation/DetailPost.svg';
 import { fetchScholarshipDetail } from '../../api/Curation/Detail';
 import { scrapScholarship, unscrapScholarship } from '../../api/Curation/Scrap';
@@ -186,6 +189,7 @@ export default function Detail() {
   const [isScrapped, setIsScrapped] = useState(false);
   const [isScrapLoading, setIsScrapLoading] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // 아카이빙 api 재사용
   const [applicationStatus, setApplicationStatus] = useState<ApplicationStatus>('NOT_STARTED');
@@ -390,6 +394,21 @@ export default function Detail() {
     }
   };
 
+  const handleReport = () => {
+    setIsReportModalOpen(true);
+  }
+
+  const handleReportSubmit = async ({ reasons }: { reasons: string[]; etcText: string }) => {
+    console.log('신고 접수 (API 연동 전):', {
+        scholarshipId: detail.scholarshipId,
+        reasons,
+    });
+    // await axios.post(`/curation/${detail.scholarshipId}/report`, { reasons });
+    alert('신고가 접수되었습니다. 확인 후 빠르게 반영하겠습니다.');
+};
+
+
+
   const handleApplicationButtonClick = async () => {
     if (!isLoggedIn) {
       navigate('/login', {
@@ -464,6 +483,13 @@ export default function Detail() {
           </div>
         </div>
       )}
+      {isReportModalOpen && (
+          <ReportModal
+              scholarshipId={detail.scholarshipId}
+              onClose={() => setIsReportModalOpen(false)}
+              onSubmit={handleReportSubmit}
+          />
+      )}
       <div className="flex">
         <div className="relative ml-[64px] w-[237px] shrink-0">
           <LeftSidebar activeId="curating" />
@@ -534,6 +560,15 @@ export default function Detail() {
               >
                 <img src={PaperPlane} alt="" />
                 <span>공유하기</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleReport}
+                className="flex h-[32px] w-[101px] items-center justify-center gap-[4px] rounded-[20px] bg-[#F3F4F6] px-[16px] text-[14px] leading-[20px] font-medium text-[#747883]"
+              >
+                <img src={Report} alt="" />
+                <span>신고하기</span>
               </button>
             </div>
 
