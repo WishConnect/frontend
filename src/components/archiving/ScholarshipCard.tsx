@@ -3,7 +3,7 @@ import Tag from '../Tag';
 import ToggleIcon from '../ToggleIcon';
 import ProgressRing from './ProgressRing';
 import type { Scholarship } from '../../types/scholarship';
-
+import ArchivePost from './ArchivePoster.svg';
 interface ScholarshipCardProps {
   scholarship: Scholarship;
   onUnscrap?: (scholarshipId: string) => void;
@@ -40,8 +40,17 @@ export default function ScholarshipCard({ scholarship, onUnscrap }: ScholarshipC
 
   return (
     <div className="group relative w-full overflow-hidden rounded-2xl border border-[#E6E7EB] bg-white">
-      <img src={imageUrl} alt={title} className="h-[280px] w-full rounded-t-2xl object-cover" />
-
+      <div className="h-[280px] w-full overflow-hidden rounded-t-2xl bg-[#F3F4F6]">
+        {imageUrl ? (
+          <img src={imageUrl} alt={title} className="block h-full w-full object-cover" />
+        ) : (
+          <img
+            src={ArchivePost}
+            alt=""
+            className="block h-full w-full scale-[1.03] object-cover object-center"
+          />
+        )}
+      </div>
       {/* 호버 시 이미지만 어둡게 */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[280px] bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 

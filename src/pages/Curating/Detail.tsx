@@ -20,12 +20,12 @@ import LeftSidebar from '../../components/LeftSidebar';
 import DdayStatus from '../../components/DdayStatus';
 import ReportModal from '../Curating/Report';
 
+import DetailPost from '../../components/Curation/DetailPost.svg';
 import { fetchScholarshipDetail } from '../../api/Curation/Detail';
 import { scrapScholarship, unscrapScholarship } from '../../api/Curation/Scrap';
 import { useUserStore } from '../../store/user/user';
 import { postStartApplication } from '../../api/archiving/start';
 import { getArchive } from '../../api/archiving/archive';
-
 
 import type {
   ScholarshipDetailResponse,
@@ -229,16 +229,14 @@ export default function Detail() {
     void loadDetail();
   }, [id]);
 
-   useEffect(() => {
+  useEffect(() => {
     if (!isLoggedIn || !id) return;
 
     const loadApplicationStatus = async () => {
       try {
         const data = await getArchive({ page: 1, size: 100 });
 
-        const matched = data.items.find(
-          (item) => String(item.scholarshipId) === String(id),
-        );
+        const matched = data.items.find((item) => String(item.scholarshipId) === String(id));
 
         if (matched) {
           setApplicationStatus(matched.applicationStatus as ApplicationStatus);
@@ -644,12 +642,14 @@ export default function Detail() {
                 <img
                   src={detail.posterUrl}
                   alt={detail.title}
-                  className="h-full w-full object-cover"
+                  className="block h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full items-center justify-center text-[14px] text-[#747883]">
-                  등록된 포스터가 없습니다.
-                </div>
+                <img
+                  src={DetailPost}
+                  alt=""
+                  className="block h-full w-full scale-[1.08] object-cover object-center"
+                />
               )}
             </div>
 

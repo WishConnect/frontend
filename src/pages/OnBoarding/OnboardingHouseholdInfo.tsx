@@ -1,9 +1,9 @@
 import { useEffect, useState, type ReactNode, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import logo from '../../assets/logo.svg';
+import Header from '../../components/common/Header/Header';
+import LeftSidebar from '../../components/LeftSidebar';
 import heartIcon from '../../assets/onboarding/heart.svg';
 import helpIcon from '../../assets/onboarding/circle-question-mark.svg';
-import clockIcon from '../../assets/onboarding/clock.svg';
 import { getMyProfile, putHouseholdProfile } from '../../api/onboarding/profile';
 
 function CloseIcon() {
@@ -172,12 +172,6 @@ const INTEREST_OPTIONS: string[] = [
   '창업지원',
 ];
 
-const STEPS = [
-  { step: 1, label: '학적 정보' },
-  { step: 2, label: '가구 정보 & 관심사' },
-  { step: 3, label: '완료' },
-];
-
 // "소득 분위를 모르겠어요"를 눌렀을 때 API로 보낼 값
 // (백엔드 실제 스펙 확인 전까지의 임시 값 — 확인 후 필요하면 수정)
 const INCOME_LEVEL_UNKNOWN_VALUE = '모름';
@@ -189,14 +183,6 @@ const INCOME_LEVEL_UNKNOWN_VALUE = '모름';
 function parseHouseholdSize(label: string): number {
   const match = label.match(/\d+/);
   return match ? Number(match[0]) : 0;
-}
-
-// ------------------------------------------------------------------
-// 선택된 배열 + 직접입력 값을 하나의 배열로 합치는 헬퍼
-// ------------------------------------------------------------------
-function mergeWithCustom(list: string[], custom: string): string[] {
-  const trimmed = custom.trim();
-  return trimmed ? [...list, trimmed] : list;
 }
 
 // ------------------------------------------------------------------
@@ -319,54 +305,6 @@ function SelectField({
   );
 }
 
-function StepIndicator({ currentStep }: { currentStep: number }) {
-  return (
-    <ol className="flex flex-col">
-      {STEPS.map((s, idx) => {
-        const isActive = s.step === currentStep;
-        const isDone = s.step < currentStep;
-        const isLast = idx === STEPS.length - 1;
-        return (
-          <li key={s.step} className="flex items-stretch gap-4">
-            <div className="flex flex-col items-center">
-              <span
-                className={`relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full border-2 ${
-                  isActive
-                    ? 'border-[#BDB9F9] bg-white'
-                    : isDone
-                      ? 'border-[#BDB9F9] bg-[#BDB9F9]'
-                      : 'border-[#E6E7EB] bg-white'
-                }`}
-              >
-                {isActive && <span className="size-5 rounded-full bg-[#7962ED]" />}
-              </span>
-              {!isLast && (
-                <div className={`w-[2px] flex-1 ${isDone ? 'bg-[#BDB9F9]' : 'bg-[#E6E7EB]'}`} />
-              )}
-            </div>
-            <div className={`flex flex-col ${isLast ? '' : 'pb-10'}`}>
-              <span
-                className={`text-[12px] font-medium leading-4 ${
-                  isActive ? 'text-[#7962ED]' : 'text-[#747883]'
-                }`}
-              >
-                STEP {s.step}
-              </span>
-              <span
-                className={`text-[16px] font-semibold leading-6 ${
-                  isActive ? 'text-[#320095]' : 'text-[#555964]'
-                }`}
-              >
-                {s.label}
-              </span>
-            </div>
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
 // ------------------------------------------------------------------
 // 체크박스 칩 (가정 형태 / 본인 해당 항목 / 관심분야 공용)
 // ------------------------------------------------------------------
@@ -404,58 +342,18 @@ function Chip({
   );
 }
 
-function CustomInputChip({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
-}) {
-  const filled = value.trim().length > 0;
-  return (
-    <div
-      style={{ backgroundColor: '#FFFFFF', border: `1px solid ${filled ? '#7962ED' : '#E6E7EB'}` }}
-      className="flex items-center gap-3 rounded-lg py-2 pl-3 pr-2"
-    >
-      <span
-        style={{
-          backgroundColor: filled ? '#7962ED' : '#FFFFFF',
-          border: `1px solid ${filled ? '#7962ED' : '#E6E7EB'}`,
-        }}
-        className="flex size-5 shrink-0 items-center justify-center rounded"
-      >
-        {filled && <CheckIcon />}
-      </span>
-      <div className="flex items-center rounded bg-[#F3F4F6] px-3 py-1">
-        <input
-          value={value}
-          onChange={onChange}
-          placeholder="직접 입력"
-          className="w-[161px] bg-transparent text-[16px] font-medium leading-6 text-[#0A0C11] placeholder:text-[#9DA1AC] focus:outline-none"
-        />
-      </div>
-    </div>
-  );
-}
-
 function MultiSelectSection({
   title,
   options,
   selected,
   onToggle,
   onToggleAll,
-  showCustomInput,
-  customValue,
-  onCustomChange,
 }: {
   title: string;
   options: string[];
   selected: string[];
   onToggle: (opt: string) => void;
   onToggleAll: () => void;
-  showCustomInput?: boolean;
-  customValue?: string;
-  onCustomChange?: (e: ChangeEvent<HTMLInputElement>) => void;
 }) {
   const allSelected = options.every((opt) => selected.includes(opt));
   return (
@@ -488,11 +386,6 @@ function MultiSelectSection({
           />
         ))}
       </div>
-      {showCustomInput && (
-        <div className="flex w-full">
-          <CustomInputChip value={customValue ?? ''} onChange={onCustomChange!} />
-        </div>
-      )}
     </div>
   );
 }
@@ -511,9 +404,8 @@ export default function OnboardingHouseholdInfo() {
 
   const [housingTypes, setHousingTypes] = useState<string[]>([]);
   const [selfStatuses, setSelfStatuses] = useState<string[]>([]);
-  const [selfStatusCustom, setSelfStatusCustom] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
-  const [interestCustom, setInterestCustom] = useState('');
+
   useEffect(() => {
     const loadHouseholdProfile = async () => {
       try {
@@ -544,31 +436,17 @@ export default function OnboardingHouseholdInfo() {
 
         // 본인 해당 항목
         const savedPersonalStatuses = household.personalStatuses ?? [];
-
         const predefinedPersonalStatuses = savedPersonalStatuses.filter((status) =>
           SELF_STATUS_OPTIONS.includes(status),
         );
-
-        const customPersonalStatus = savedPersonalStatuses.find(
-          (status) => !SELF_STATUS_OPTIONS.includes(status),
-        );
-
         setSelfStatuses(predefinedPersonalStatuses);
-        setSelfStatusCustom(customPersonalStatus ?? '');
 
         // 관심 분야
         const savedInterests = profile.interests ?? [];
-
         const predefinedInterests = savedInterests.filter((interest) =>
           INTEREST_OPTIONS.includes(interest),
         );
-
-        const customInterest = savedInterests.find(
-          (interest) => !INTEREST_OPTIONS.includes(interest),
-        );
-
         setInterests(predefinedInterests);
-        setInterestCustom(customInterest ?? '');
       } catch (err) {
         console.error('기존 가구 정보 & 관심사 조회 실패:', err);
       }
@@ -576,6 +454,7 @@ export default function OnboardingHouseholdInfo() {
 
     loadHouseholdProfile();
   }, []);
+
   const toggleInList = (list: string[], setList: (v: string[]) => void, value: string) => {
     setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   };
@@ -606,8 +485,8 @@ export default function OnboardingHouseholdInfo() {
         incomeLevel: incomeUnknown ? INCOME_LEVEL_UNKNOWN_VALUE : incomeLevel,
         familySize: parseHouseholdSize(householdSize),
         familyTypes: housingTypes,
-        personalStatuses: mergeWithCustom(selfStatuses, selfStatusCustom),
-        interests: mergeWithCustom(interests, interestCustom),
+        personalStatuses: selfStatuses,
+        interests: interests,
       });
 
       console.log('가구 정보 & 관심사 저장 성공:', res.data.data);
@@ -621,29 +500,16 @@ export default function OnboardingHouseholdInfo() {
   };
 
   return (
-    <div className="relative left-1/2 w-screen -ml-[50vw] min-h-screen bg-white text-left font-['Pretendard',sans-serif]">
-      <div className="relative mx-auto w-full max-w-[1440px]">
-        {/* 상단바 */}
-        <header className="h-20 w-full">
-          <div className="flex h-full items-center px-16">
-            <img
-              src={logo}
-              alt="WISHCONNECT"
-              className="h-8 cursor-pointer"
-              onClick={() => navigate('/')}
-            />
-          </div>
-        </header>
+    <div className="relative left-1/2 min-h-screen w-[1440px] -ml-[50vw] bg-white text-left font-['Pretendard',sans-serif]">
+      <div className="relative mx-auto w-full">
+        <Header logoOnly />
 
-        <main className="flex items-start gap-8 px-16 pb-16">
-          {/* 좌측 스텝 사이드바 */}
-          <aside className="flex h-[896px] w-[237px] shrink-0 flex-col justify-between rounded-2xl bg-[#F9FAFC] p-6">
-            <StepIndicator currentStep={2} />
-            <div className="flex items-center gap-2">
-              <img src={clockIcon} alt="" className="size-[18px] shrink-0" />
-              <span className="text-[12px] font-medium leading-4 text-[#747883]">약 1분 소요</span>
-            </div>
+        <div className="flex px-[64px]">
+          <aside className="mr-8 shrink-0">
+            <LeftSidebar activeId="mypage" />
           </aside>
+
+          <main className="flex min-w-0 flex-1 items-start pb-16 pt-4">
 
           {/* 우측 폼 영역 */}
           <section className="flex flex-1 flex-col">
@@ -752,9 +618,6 @@ export default function OnboardingHouseholdInfo() {
                     onToggleAll={() =>
                       toggleAllInList(SELF_STATUS_OPTIONS, selfStatuses, setSelfStatuses)
                     }
-                    showCustomInput
-                    customValue={selfStatusCustom}
-                    onCustomChange={(e) => setSelfStatusCustom(e.target.value)}
                   />
                 </div>
               </div>
@@ -772,9 +635,6 @@ export default function OnboardingHouseholdInfo() {
                   selected={interests}
                   onToggle={(opt) => toggleInList(interests, setInterests, opt)}
                   onToggleAll={() => toggleAllInList(INTEREST_OPTIONS, interests, setInterests)}
-                  showCustomInput
-                  customValue={interestCustom}
-                  onCustomChange={(e) => setInterestCustom(e.target.value)}
                 />
               </div>
             </div>
@@ -813,7 +673,8 @@ export default function OnboardingHouseholdInfo() {
               </button>
             </div>
           </section>
-        </main>
+          </main>
+        </div>
 
         {/* 도움말 배경 딤 처리 */}
         {showHelp && (

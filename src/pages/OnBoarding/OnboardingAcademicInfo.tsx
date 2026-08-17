@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, type ReactNode, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 //import Header from '../../components/common/Header/Header';
-import logo from '../../assets/logo.svg';
+import Header from '../../components/common/Header/Header';
+import LeftSidebar from '../../components/LeftSidebar';
 import capIcon from '../../assets/onboarding/graduation-cap.svg';
 import helpIcon from '../../assets/onboarding/circle-question-mark.svg';
 import searchIcon from '../../assets/onboarding/magnifyingglass.svg';
-import clockIcon from '../../assets/onboarding/clock.svg';
 import {
   getMyProfile,
   putAcademicProfile,
@@ -186,12 +186,6 @@ const DEFAULT_FORM: AcademicForm = {
   cumulativeGpa: '',
 };
 
-const STEPS = [
-  { step: 1, label: '학적 정보' },
-  { step: 2, label: '가구 정보 & 관심사' },
-  { step: 3, label: '완료' },
-];
-
 // ------------------------------------------------------------------
 // 아이콘
 // ------------------------------------------------------------------
@@ -307,54 +301,6 @@ function SelectField({
       </select>
       <ChevronDownIcon />
     </div>
-  );
-}
-
-function StepIndicator({ currentStep }: { currentStep: number }) {
-  return (
-    <ol className="flex flex-col">
-      {STEPS.map((s, idx) => {
-        const isActive = s.step === currentStep;
-        const isDone = s.step < currentStep;
-        const isLast = idx === STEPS.length - 1;
-        return (
-          <li key={s.step} className="flex items-stretch gap-4">
-            <div className="flex flex-col items-center">
-              <span
-                className={`relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full border-2 ${
-                  isActive
-                    ? 'border-[#BDB9F9] bg-white'
-                    : isDone
-                      ? 'border-[#BDB9F9] bg-[#BDB9F9]'
-                      : 'border-[#E6E7EB] bg-white'
-                }`}
-              >
-                {isActive && <span className="size-5 rounded-full bg-[#7962ED]" />}
-              </span>
-              {!isLast && (
-                <div className={`w-[2px] flex-1 ${isDone ? 'bg-[#BDB9F9]' : 'bg-[#E6E7EB]'}`} />
-              )}
-            </div>
-            <div className={`flex flex-col ${isLast ? '' : 'pb-10'}`}>
-              <span
-                className={`text-[12px] font-medium leading-4 ${
-                  isActive ? 'text-[#7962ED]' : 'text-[#747883]'
-                }`}
-              >
-                STEP {s.step}
-              </span>
-              <span
-                className={`text-[16px] font-semibold leading-6 ${
-                  isActive ? 'text-[#320095]' : 'text-[#555964]'
-                }`}
-              >
-                {s.label}
-              </span>
-            </div>
-          </li>
-        );
-      })}
-    </ol>
   );
 }
 
@@ -549,29 +495,16 @@ export default function OnboardingAcademicInfo() {
   };
 
   return (
-    <div className="relative left-1/2 w-screen -ml-[50vw] min-h-screen bg-white text-left font-['Pretendard',sans-serif]">
-      <div className="relative mx-auto w-full max-w-[1440px]">
-        {/* 상단바 */}
-        <header className="h-20 w-full">
-          <div className="flex h-full items-center px-16">
-            <img
-              src={logo}
-              alt="WISHCONNECT"
-              className="h-8 cursor-pointer"
-              onClick={() => navigate('/')}
-            />
-          </div>
-        </header>
+    <div className="relative left-1/2 min-h-screen w-[1440px] -ml-[50vw] bg-white text-left font-['Pretendard',sans-serif]">
+      <div className="relative mx-auto w-full">
+        <Header logoOnly />
 
-        <main className="flex items-start gap-8 px-16 pb-16">
-          {/* 좌측 스텝 사이드바 */}
-          <aside className="flex h-[896px] w-[237px] shrink-0 flex-col justify-between rounded-2xl bg-[#F9FAFC] p-6">
-            <StepIndicator currentStep={1} />
-            <div className="flex items-center gap-2">
-              <img src={clockIcon} alt="" className="size-[18px] shrink-0" />
-              <span className="text-[12px] font-medium leading-4 text-[#747883]">약 1분 소요</span>
-            </div>
+        <div className="flex px-[64px]">
+          <aside className="mr-8 shrink-0">
+            <LeftSidebar activeId="mypage" />
           </aside>
+
+          <main className="flex min-w-0 flex-1 items-start pb-16 pt-4">
 
           {/* 우측 폼 영역 */}
           <section className="flex flex-1 flex-col">
@@ -804,7 +737,8 @@ export default function OnboardingAcademicInfo() {
               </button>
             </div>
           </section>
-        </main>
+          </main>
+        </div>
 
         {/* 도움말 배경 딤 처리 */}
         {showHelp && (
