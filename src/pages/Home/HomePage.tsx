@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import Header from '../../components/common/Header/Header';
@@ -10,20 +10,16 @@ import MonthlySchedule, { type HomeSchedule } from '../../components/Home/Monthl
 import QuickMenuSection from '../../components/Home/QuickMenu';
 
 import { fetchHomeSummary } from '../../api/Home/Summary';
-import { scholarships } from '../../mock/scholarships';
+import { fetchHomeCalendar } from '../../api/Home/Calendar';
+
 import { useUserStore } from '../../store/user/user';
 
 import type { HomeSummaryResponse } from '../../types/Home/Summary';
 
-function extractDates(text: string): string[] {
-  const matchedDates = text.match(/\d{4}[.-]\d{2}[.-]\d{2}/g);
-
-  return matchedDates?.map((date) => date.replaceAll('.', '-')) ?? [];
-}
-
 const INITIAL_HOME_SUMMARY: HomeSummaryResponse = {
   newMatchedCount: 0,
   urgentDeadlineCount: 0,
+  writingApplicationCount: 0,
   hasNewMatched: false,
 };
 
@@ -36,7 +32,7 @@ export default function HomePage() {
   const isOnboarded = Boolean(user?.onboardingCompleted);
 
   const [homeSummary, setHomeSummary] = useState<HomeSummaryResponse>(INITIAL_HOME_SUMMARY);
-
+  const [homeSchedules, setHomeSchedules] = useState<HomeSchedule[]>([]);
   //const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [summaryErrorMessage, setSummaryErrorMessage] = useState('');
 
@@ -83,43 +79,49 @@ export default function HomePage() {
       isCancelled = true;
     };
   }, [isLoggedIn]);
+  useEffect(() => {
+    let isCancelled = false;
 
-  const homeSchedules = useMemo<HomeSchedule[]>(() => {
-    return scholarships.flatMap((scholarship) => {
-      const convertedSchedules: HomeSchedule[] = [];
-
-      const applicationPeriod = scholarship.summary.applicationPeriod ?? '';
-
-      const periodDates = extractDates(applicationPeriod);
-      const deadlineDates = extractDates(scholarship.deadline);
-
-      const startDate = periodDates[0];
-
-      const deadlineDate = deadlineDates[0] ?? periodDates[periodDates.length - 1];
-
-      if (startDate) {
-        convertedSchedules.push({
-          id: `${scholarship.id}-start`,
-          scholarshipId: scholarship.id,
-          date: startDate,
-          type: 'START',
-          title: `${scholarship.title} 모집 시작`,
-        });
+    const loadHomeCalendar = async () => {
+      if (!isLoggedIn) {
+        setHomeSchedules([]);
+        return;
       }
 
-      if (deadlineDate) {
-        convertedSchedules.push({
-          id: `${scholarship.id}-deadline`,
-          scholarshipId: scholarship.id,
-          date: deadlineDate,
-          type: 'DEADLINE',
-          title: `${scholarship.title} 마감`,
+      try {
+        const data = await fetchHomeCalendar({
+          scope: 'MATCHED',
         });
-      }
 
-      return convertedSchedules;
-    });
-  }, []);
+        if (isCancelled) {
+          return;
+        }
+
+        const schedules: HomeSchedule[] = data.events.map((event, index) => ({
+          id: `${event.scholarshipId}-${event.type}-${event.date}-${index}`,
+          scholarshipId: event.scholarshipId,
+          date: event.date,
+          type: event.type,
+          title: event.title,
+        }));
+
+        setHomeSchedules(schedules);
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        console.error('홈 장학금 일정 조회 실패:', error);
+        setHomeSchedules([]);
+      }
+    };
+
+    void loadHomeCalendar();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isLoggedIn]);
 
   const handleBannerClick = () => {
     if (!isLoggedIn) {
@@ -170,10 +172,9 @@ export default function HomePage() {
 
             <HomeSummaryCards
               isOnboarded={isOnboarded}
-              //isLoading={isSummaryLoading}
               newMatchedCount={homeSummary.newMatchedCount}
               urgentDeadlineCount={homeSummary.urgentDeadlineCount}
-              applicationCount={1}
+              applicationCount={homeSummary.writingApplicationCount}
               newInsightCount={3}
               onLockedClick={handleLockedClick}
             />
@@ -187,6 +188,9 @@ export default function HomePage() {
             schedules={homeSchedules}
             isLocked={!isLoggedIn}
             onLockedClick={handleLockedClick}
+            onScheduleClick={(scholarshipId) => {
+              navigate(`/curation/${scholarshipId}`);
+            }}
           />
         </div>
 

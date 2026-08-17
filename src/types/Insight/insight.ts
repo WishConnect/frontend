@@ -11,19 +11,15 @@ export type InsightSource = 'ALL' | 'NAVER_BLOG' | 'TISTORY' | 'BRUNCH' | 'EVERY
 export type InsightSort = 'latest' | 'popular';
 
 export interface InsightArticle {
-  insightId: string;
-  category: Exclude<InsightCategory, 'ALL'>;
+  insightId: number;
+  category: string;
   categoryLabel: string;
   source: string;
   publishedAt: string;
   title: string;
   summary: string;
   originalUrl: string;
-}
-
-export interface RecommendedGuide {
-  title: string;
-  url: string;
+  tags: string[];
 }
 
 export interface InsightPagination {
@@ -33,14 +29,19 @@ export interface InsightPagination {
   totalPages: number;
 }
 
-export interface InsightResponse {
+export interface InsightData {
   articles: InsightArticle[];
   popularTags: string[];
-  recommendedGuides: RecommendedGuide[];
   pagination: InsightPagination;
 }
 
-export interface InsightQueryParams {
+export interface InsightResponse {
+  success: boolean;
+  data: InsightData;
+  message: string;
+}
+
+export interface GetInsightsParams {
   category?: InsightCategory;
   source?: InsightSource;
   sort?: InsightSort;
