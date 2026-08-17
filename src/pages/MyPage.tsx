@@ -166,8 +166,11 @@ export default function MyPage() {
     fetchProfile();
   }, []);
 
+  // 가운데 정렬은 App의 공통 래퍼(mx-auto + max-w-[1440px])가 맡는다.
+  // 예전에는 여기서 left-1/2 + -ml-[50vw]로 부모 폭을 뚫고 뷰포트 기준 정렬을 했는데,
+  // 공통 래퍼가 생긴 뒤로는 보정이 두 번 걸려 화면이 왼쪽으로 밀렸다. 다른 페이지와 같은 방식으로 맞춤.
   return (
-    <div className="relative left-1/2 w-[1440px] -ml-[50vw] h-[1024px] bg-white text-left font-['Pretendard',sans-serif]">
+    <div className="w-[1440px] h-[1024px] bg-white text-left font-['Pretendard',sans-serif]">
       <div className="mx-auto w-full">
         {/* 상단바 */}
         <header className="">
