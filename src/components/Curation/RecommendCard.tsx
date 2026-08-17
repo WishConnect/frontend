@@ -6,6 +6,7 @@ import ChevronRight from '../../assets/icons/ChevronRight';
 import ScrapDisable from '../../assets/icons/ScrapDiasbled.svg';
 import Scrap from '../../assets/icons/Scrap.svg';
 import DdayStatus from '../DdayStatus';
+import MainPost from './MainPost.svg';
 
 import type { CuratedFeaturedScholarship } from '../../types/Curation/Curated';
 
@@ -133,17 +134,21 @@ export default function RecommendCard({
         </ButtonGroup>
       </div>
 
-      {scholarship.thumbnailUrl ? (
-        <img
-          src={scholarship.thumbnailUrl}
-          alt={scholarship.title}
-          className="h-[528px] w-[545px] rounded-r-[16px] object-cover"
-        />
-      ) : (
-        <div className="flex h-[528px] w-[545px] items-center justify-center rounded-r-[16px] bg-[#F3F4F6] text-[16px] font-medium text-[#747883]">
-          등록된 이미지가 없습니다.
-        </div>
-      )}
+      <div className="h-[528px] w-[545px] overflow-hidden rounded-r-[16px] bg-[#F3F4F6]">
+        {scholarship.thumbnailUrl ? (
+          <img
+            src={scholarship.thumbnailUrl}
+            alt={scholarship.title}
+            className="block h-full w-full object-cover object-center"
+          />
+        ) : (
+          <img
+            src={MainPost}
+            alt=""
+            className="block h-full w-full scale-[1.03] object-cover object-center"
+          />
+        )}
+      </div>
     </div>
   );
 }
