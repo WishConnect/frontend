@@ -1,7 +1,7 @@
 // STEP1 요청 body
 export interface BasicProfileRequest {
   name: string;
-  birthYear: string;
+  birthDate: string;
   phone: string;
   gender: string;
   nationality: string;
@@ -44,7 +44,8 @@ export interface OnboardingCompleteResponse {
 export interface FullProfile {
   userId: string;
   name: string;
-  birthYear: string;
+  // 실제 응답 필드명은 birthYear가 아니라 birthDate ("yyyy-MM-dd" 전체 날짜).
+  birthDate: string;
   phone: string;
   gender: string;
   nationality: string;
@@ -62,7 +63,8 @@ export interface FullProfile {
     dualMajor: string;
   };
   household: {
-    incomeLevel: string;
+    // 소득분위를 "모름"으로 저장한 경우 null로 옴
+    incomeLevel: string | null;
     familySize: number;
     familyTypes: string[];
     personalStatuses: string[];
