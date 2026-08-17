@@ -15,9 +15,10 @@ interface ReportModalProps {
     scholarshipId: number | string;
     onClose: () => void;
     onSubmit: (payload: { reasons: string[]; etcText: string }) => Promise<void>;
+    onSuccess: () => void;
 }
 
-export default function ReportModal({ onClose, scholarshipId }: ReportModalProps) {
+export default function ReportModal({ scholarshipId, onClose, onSuccess }: ReportModalProps) {
     const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
     const [isEtcChecked, setIsEtcChecked] = useState(false);
     const [etcText, setEtcText] = useState('');
@@ -49,7 +50,7 @@ export default function ReportModal({ onClose, scholarshipId }: ReportModalProps
             for (const payload of reasonsToSubmit) {
                 await postScholarshipReport(scholarshipId, payload);
             }
-            onClose();
+            onSuccess();
         } catch (error: any) {
             console.error('신고 접수 실패:', error);
         } finally {

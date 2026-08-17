@@ -19,6 +19,7 @@ import Header from '../../components/common/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar';
 import DdayStatus from '../../components/DdayStatus';
 import ReportModal from '../Curating/Report';
+import ReportSuccessModal from './ReportSuccess';
 
 import DetailPost from '../../components/Curation/DetailPost.svg';
 import { fetchScholarshipDetail } from '../../api/Curation/Detail';
@@ -190,6 +191,7 @@ export default function Detail() {
   const [isScrapLoading, setIsScrapLoading] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isReportSuccessOpen, setIsReportSuccessOpen] = useState(false);
 
   // 아카이빙 api 재사용
   const [applicationStatus, setApplicationStatus] = useState<ApplicationStatus>('NOT_STARTED');
@@ -488,7 +490,14 @@ export default function Detail() {
               scholarshipId={detail.scholarshipId}
               onClose={() => setIsReportModalOpen(false)}
               onSubmit={handleReportSubmit}
+              onSuccess={() =>{
+                setIsReportModalOpen(false);
+                setIsReportSuccessOpen(true);
+              }}
           />
+      )}
+      {isReportSuccessOpen && (
+        <ReportSuccessModal onClose={() => setIsReportSuccessOpen(false)} />
       )}
       <div className="flex">
         <div className="relative ml-[64px] w-[237px] shrink-0">
