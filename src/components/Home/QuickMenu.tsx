@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 
 import CurationIcon from '../../assets/icons/CurationIcon.svg';
-import WriteIcon from '../../assets/icons/WriteIcon.svg';
+import Mypage from '../../assets/icons/Mypage.svg';
 import ArchivingIcon from '../../assets/icons/File.svg';
 import InsightIcon from '../../assets/icons/LightBulb.svg';
 import RightIcon from '../../assets/icons/ArrowCircle.svg';
@@ -28,7 +28,7 @@ const quickMenus: QuickMenu[] = [
     title: '마이페이지',
     description: '내 정보를 관리하고,\n맞춤 추천 기준을 확인해보세요.',
     path: '/mypage',
-    icon: WriteIcon,
+    icon: Mypage,
   },
   {
     id: 'archiving',
