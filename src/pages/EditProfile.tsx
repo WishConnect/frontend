@@ -382,7 +382,7 @@ export default function EditProfile() {
   };
 
   return (
-    <div className="relative left-1/2 w-screen -ml-[50vw] min-h-screen bg-white text-left font-['Pretendard',sans-serif]">
+    <div className="min-h-screen w-full bg-white text-left font-['Pretendard',sans-serif]">
       <div className="mx-auto w-full max-w-[1440px]">
         {/* 상단바 */}
         <header className="h-20 w-full">
