@@ -7,12 +7,7 @@ import AuthTextField from '../../components/findAccount/AuthTextField';
 import CodeInput from '../../components/findAccount/CodeInput';
 import StepNavButtons from '../../components/findAccount/StepNavButtons';
 import Button from '../../components/Button/Button';
-import {
-  checkEmailAvailable,
-  sendVerificationCode,
-  verifyEmailCode,
-} from '../../api/login/email';
-import { findLoginId } from '../../api/login/findLoginId';
+import { findLoginId, requestLoginIdCode } from '../../api/login/findLoginId';
 import { getApiErrorMessage } from '../../utils/apiError';
 
 // 아이디 찾기: Figma 2462:4599(이메일) / 4696(이름) / 4748·4870(인증번호) / 4946(결과)
@@ -23,8 +18,11 @@ import { getApiErrorMessage } from '../../utils/apiError';
 //   - 되살린 근거: 백엔드에 users.login_id가 생겨 아이디와 이메일이 별개 값이 됐고(2026-08-17),
 //     이 화면은 **이메일 인증코드 확인을 통과해야** 결과를 보여주므로 본인만 자기 아이디를 본다.
 //
-// ⚠️ 결과를 내려주는 서버 API(POST /auth/login-id/find)는 아직 없다. api/login/findLoginId.ts 참고.
-//    붙기 전까지 마지막 단계에서 "아이디를 불러오지 못했어요"가 뜬다.
+// 2026-08-18: 전용 API가 생겨(api-server ba7fcb8) 회원가입용 이메일 인증을 빌려 쓰던 걸 걷어냈다.
+//   - 이름을 서버가 실제로 대조한다(이메일만 알아도 남의 아이디를 볼 수 없다).
+//   - 코드 확인과 아이디 조회가 /auth/login-id/find 한 번으로 합쳐졌다.
+//   - 1단계의 가입 여부 확인(checkEmailAvailable)은 뺐다. 서버가 계정 존재 여부를 일부러 숨기는데
+//     화면에서 "가입 이력이 없는 이메일이에요"를 띄우면 그게 그대로 계정 조회기가 된다.
 
 type Step = 'email' | 'name' | 'code' | 'done';
 
@@ -52,32 +50,18 @@ export default function FindIdPage() {
     return () => clearInterval(timerId);
   }, [resendCooldown]);
 
-  // 1단계: 이메일이 실제 가입된 계정인지 확인한다.
-  // check API는 "가입 가능(available=true)"을 돌려주므로, 아이디 찾기에선 false여야 계정이 있는 것이다.
-  const handleEmailNext = async () => {
+  // 1단계: 이메일 형식만 본다.
+  // 가입 여부는 서버에 묻지 않는다(위 주석 참고 — 계정 존재 여부가 새는 걸 막으려고 뺐다).
+  const handleEmailNext = () => {
     if (!EMAIL_PATTERN.test(email.trim())) {
       setError('이메일 형식을 확인해 주세요.');
       return;
     }
-
-    setIsLoading(true);
     setError('');
-    try {
-      const available = await checkEmailAvailable(email.trim());
-      if (available) {
-        setError('가입 이력이 없는 이메일이에요. 다시 확인해 주세요.');
-        return;
-      }
-      setStep('name');
-    } catch (err) {
-      setError(getApiErrorMessage(err, '이메일 확인 중 문제가 발생했습니다.'));
-    } finally {
-      setIsLoading(false);
-    }
+    setStep('name');
   };
 
-  // 2단계: 이름을 받고 인증코드를 보낸다.
-  // ⚠️ 이름을 서버와 대조하는 API가 없어 화면 단계로만 존재한다(입력 여부만 확인).
+  // 2단계: 이름을 받고 인증코드를 보낸다. 이름은 서버가 이메일과 함께 대조한다.
   const handleNameNext = async () => {
     if (!name.trim()) {
       setError('이름을 입력해 주세요.');
@@ -90,7 +74,7 @@ export default function FindIdPage() {
     setIsLoading(true);
     setError('');
     try {
-      await sendVerificationCode(email.trim());
+      await requestLoginIdCode(email.trim(), name.trim());
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
       setCode('');
       setStep('code');
@@ -102,7 +86,7 @@ export default function FindIdPage() {
     }
   };
 
-  // 3단계: 인증코드 확인 → 통과하면 그 이메일로 가입된 아이디를 받아온다.
+  // 3단계: 코드 확인과 아이디 조회가 한 번의 호출로 끝난다.
   // 검사·전송 모두 인자로 받은 값을 쓴다. CodeInput의 onComplete는 state 반영 전에 호출되므로
   // code state를 읽으면 6자리를 다 채워도 5자리가 잡혀 서버에도 잘린 코드가 나간다.
   const handleCodeNext = async (submittedCode: string) => {
@@ -114,21 +98,12 @@ export default function FindIdPage() {
     setIsLoading(true);
     setError('');
     try {
-      await verifyEmailCode(email.trim(), submittedCode);
-    } catch (err) {
-      setError(getApiErrorMessage(err, '인증코드 확인에 실패했습니다.'));
-      setIsLoading(false);
-      return;
-    }
-
-    // 코드 확인과 아이디 조회를 따로 잡는다. 한 덩어리로 묶으면 조회가 실패했는데도
-    // "인증코드 확인 실패"로 안내돼 사용자가 코드를 다시 받으러 간다.
-    try {
       // 아이디를 못 받아오면 결과 화면으로 넘기지 않는다. 빈 칸을 보여주느니 사유를 알리는 게 낫다.
-      setLoginId(await findLoginId(email.trim()));
+      // 코드가 틀렸을 때와 이메일·이름이 계정과 다를 때가 서버에서 같은 응답이라 안내도 하나다.
+      setLoginId(await findLoginId(email.trim(), name.trim(), submittedCode));
       setStep('done');
     } catch (err) {
-      setError(getApiErrorMessage(err, '아이디를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'));
+      setError(getApiErrorMessage(err, '인증에 실패했어요. 입력한 정보와 인증번호를 확인해 주세요.'));
     } finally {
       setIsLoading(false);
     }

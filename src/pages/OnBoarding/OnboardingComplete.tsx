@@ -102,7 +102,7 @@ export default function OnboardingComplete() {
   }, [navigate, setUser]);
 
   return (
-    <div className="relative left-1/2 min-h-screen w-[1440px] -ml-[50vw] bg-white text-left font-['Pretendard',sans-serif]">
+    <div className="min-h-screen w-[1440px] bg-white text-left font-['Pretendard',sans-serif]">
       <div className="mx-auto w-full">
         <Header logoOnly />
 

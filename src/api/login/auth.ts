@@ -3,7 +3,10 @@ import type { ApiResponse } from '../../types/api';
 import type { LoginRequest, LoginResponseData } from '../../types/login/auth';
 
 // 기본 로그인 (LOCAL). baseURL에 /api/v1까지 포함돼 있어 여기선 /auth/login만 작성.
-// 성공 시 data(accessToken/refreshToken/user)를 반환, 실패(401/404) 시 axios가 throw.
+// 성공 시 data(accessToken/refreshToken/user)를 반환, 실패 시 axios가 throw.
+// ⚠️ 2026-08-18부터 이메일이 아니라 아이디(loginId)로 로그인한다.
+//    실패 코드: 401 LOGIN_FAILED(없는 아이디·비밀번호 불일치를 구분하지 않는다),
+//              400 INVALID_LOGIN_ID_FORMAT(아이디 형식이 규칙에 안 맞을 때 — 이메일을 그대로 넣은 경우 등).
 export async function login(body: LoginRequest): Promise<LoginResponseData> {
   const res = await api.post<ApiResponse<LoginResponseData>>('/auth/login', body);
   return res.data.data;

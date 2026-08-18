@@ -5,25 +5,24 @@ import AuthCard from '../../components/findAccount/AuthCard';
 import AuthTextField from '../../components/findAccount/AuthTextField';
 import CodeInput from '../../components/findAccount/CodeInput';
 import StepNavButtons from '../../components/findAccount/StepNavButtons';
-import { checkEmailAvailable } from '../../api/login/email';
-import { requestPasswordReset, resetPassword } from '../../api/login/password';
+import { requestPasswordReset, resetPassword, verifyPasswordResetCode } from '../../api/login/password';
 import { getApiErrorMessage } from '../../utils/apiError';
+import { getLoginIdError, normalizeLoginId } from '../../utils/loginId';
 import { getPasswordError } from '../../utils/password';
 
-// 비밀번호 찾기: Figma 2462:5177(이메일) / 5216(이름) / 5259·5302(인증번호) / 5359(새 비밀번호)
+// 비밀번호 찾기: Figma 2462:5148(아이디) / 5177(이메일) / 5259·5302(인증번호) / 5359(새 비밀번호)
 //
-// 이 시스템은 아이디 = 이메일이다(User 엔티티에 아이디 필드가 없고 로그인도 이메일로 한다).
-// 그래서 화면에서 "아이디"라는 말을 쓰지 않고 이메일 하나로만 받는다(2026-08-09 팀 결정).
-// 시안(2462:5148)엔 아이디 입력이 1단계로 따로 있었지만, 그건 결국 같은 이메일을 두 번 받는
-// 꼴이라 단계를 합쳤다. → 시안보다 한 단계 적다.
-//
-// ⚠️ 이름은 서버에 대조 API가 없어 입력 여부만 본다.
-//
-// ⚠️ 비밀번호 재설정에는 코드만 따로 검증하는 API가 없다.
-//    (/auth/password/reset 이 email+code+newPassword를 한 번에 받는다)
-//    그래서 인증번호는 3단계에서 받아두고 실제 검증은 4단계 "확인"에서 일어난다.
+// 2026-08-18 백엔드 개편(api-server ba7fcb8)에 맞춰 다시 짰다.
+//   - 계정을 **아이디 + 이메일 조합**으로 특정한다. 그래서 시안의 아이디 단계를 되살렸다
+//     (예전엔 아이디 = 이메일이라 같은 값을 두 번 받는 꼴이어서 합쳤었다).
+//   - 반대로 **이름 단계는 뺐다.** 서버가 비밀번호 재설정에서 이름을 안 쓴다.
+//     보내지도 않는 값을 입력받으면 "맞게 넣었는데 왜 안 되지"로 이어진다.
+//   - 코드 검증 전용 API(/auth/password/verify)가 생겨 인증번호 단계에서 바로 확인한다.
+//     통과하면 1회용 resetToken(300초)을 받아 마지막 단계에서 그것만 보낸다.
+//   - 가입 여부는 서버에 묻지 않는다. 서버가 계정 존재 여부를 일부러 숨기는데 화면에서
+//     "가입 이력이 없는 이메일이에요"를 띄우면 그게 그대로 계정 조회기가 된다.
 
-type Step = 'email' | 'name' | 'code' | 'password';
+type Step = 'loginId' | 'email' | 'code' | 'password';
 
 const RESEND_COOLDOWN_SECONDS = 60;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -31,10 +30,11 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export default function FindPasswordPage() {
   const navigate = useNavigate();
 
-  const [step, setStep] = useState<Step>('email');
+  const [step, setStep] = useState<Step>('loginId');
+  const [loginId, setLoginId] = useState('');
   const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
   const [code, setCode] = useState('');
+  const [resetToken, setResetToken] = useState(''); // 코드 확인 통과 시 서버가 주는 1회용 토큰
   const [newPassword, setNewPassword] = useState('');
 
   const [error, setError] = useState('');
@@ -47,34 +47,21 @@ export default function FindPasswordPage() {
     return () => clearInterval(timerId);
   }, [resendCooldown]);
 
-  // 1단계: 이메일이 실제로 가입된 계정인지 확인.
-  // available=true면 그 이메일로 가입한 LOCAL 계정이 없다는 뜻이다.
+  // 1단계: 아이디 형식만 본다. 서버까지 갔다가 400(INVALID_LOGIN_ID_FORMAT)을 받기 전에 거른다.
+  const handleLoginIdNext = () => {
+    const loginIdError = getLoginIdError(loginId);
+    if (loginIdError) {
+      setError(loginIdError);
+      return;
+    }
+    setError('');
+    setStep('email');
+  };
+
+  // 2단계: 이메일 형식 확인 후 재설정 코드 발송.
   const handleEmailNext = async () => {
     if (!EMAIL_PATTERN.test(email.trim())) {
       setError('이메일 형식을 확인해 주세요.');
-      return;
-    }
-
-    setIsLoading(true);
-    setError('');
-    try {
-      const available = await checkEmailAvailable(email.trim());
-      if (available) {
-        setError('가입 이력이 없는 이메일이에요. 다시 확인해 주세요.');
-        return;
-      }
-      setStep('name');
-    } catch (err) {
-      setError(getApiErrorMessage(err, '이메일 확인 중 문제가 발생했습니다.'));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // 2단계: 이름 입력 후 재설정 코드 발송.
-  const handleNameNext = async () => {
-    if (!name.trim()) {
-      setError('이름을 입력해 주세요.');
       return;
     }
     await sendCode();
@@ -84,7 +71,7 @@ export default function FindPasswordPage() {
     setIsLoading(true);
     setError('');
     try {
-      await requestPasswordReset(email.trim());
+      await requestPasswordReset(normalizeLoginId(loginId), email.trim());
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
       setCode('');
       setStep('code');
@@ -95,19 +82,34 @@ export default function FindPasswordPage() {
     }
   };
 
-  // 3단계: 코드는 여기서 검증할 방법이 없어 형식만 보고 넘어간다(실제 검증은 4단계).
+  // 3단계: 코드를 바로 검증하고 1회용 resetToken을 받는다.
   // 검사 대상을 인자로 받는다. CodeInput의 onComplete는 state 반영 전에 호출되므로
   // 여기서 code state를 읽으면 6자리를 다 채워도 5자리로 보인다.
-  const handleCodeNext = (submittedCode: string) => {
+  const handleCodeNext = async (submittedCode: string) => {
     if (submittedCode.length < 6) {
       setError('인증번호 6자리를 모두 입력해 주세요.');
       return;
     }
+
+    setIsLoading(true);
     setError('');
-    setStep('password');
+    try {
+      // 코드가 틀렸을 때와 아이디·이메일이 계정과 다를 때가 서버에서 같은 응답이라 안내도 하나다.
+      const verified = await verifyPasswordResetCode(
+        normalizeLoginId(loginId),
+        email.trim(),
+        submittedCode,
+      );
+      setResetToken(verified.resetToken);
+      setStep('password');
+    } catch (err) {
+      setError(getApiErrorMessage(err, '인증에 실패했어요. 입력한 정보와 인증번호를 확인해 주세요.'));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // 4단계: 코드 + 새 비밀번호를 함께 보내 실제 재설정.
+  // 4단계: 발급받은 토큰과 새 비밀번호로 실제 재설정.
   const handleSubmit = async () => {
     // 서버까지 갔다가 400을 받기 전에 백엔드 PasswordValidator와 같은 규칙으로 먼저 거른다.
     const passwordError = getPasswordError(newPassword, email.trim());
@@ -119,10 +121,11 @@ export default function FindPasswordPage() {
     setIsLoading(true);
     setError('');
     try {
-      await resetPassword({ email: email.trim(), code, newPassword });
+      await resetPassword({ resetToken, newPassword });
       // 재설정에 성공하면 서버가 기존 refresh token을 지우므로 새 비밀번호로 다시 로그인해야 한다.
       navigate('/login', { replace: true });
     } catch (err) {
+      // 토큰은 1회용에 300초 제한이라, 여기서 만료되면 인증번호부터 다시 받아야 한다.
       setError(getApiErrorMessage(err, '비밀번호 변경에 실패했습니다.'));
     } finally {
       setIsLoading(false);
@@ -134,45 +137,46 @@ export default function FindPasswordPage() {
       <Header logoOnly />
 
       <div className="pt-[184px]">
-        {step === 'email' && (
+        {step === 'loginId' && (
           <AuthCard
             title="비밀번호 찾기"
-            description="이메일을 입력해 주세요."
-            footer={<StepNavButtons onNext={handleEmailNext} disabled={isLoading} />}
+            description="아이디를 입력해 주세요."
+            footer={<StepNavButtons onNext={handleLoginIdNext} disabled={isLoading} />}
           >
             <AuthTextField
-              type="email"
-              placeholder="이메일"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleEmailNext()}
+              placeholder="아이디"
+              value={loginId}
+              onChange={(e) => setLoginId(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleLoginIdNext()}
             />
             <ErrorText message={error} />
           </AuthCard>
         )}
 
-        {step === 'name' && (
+        {step === 'email' && (
           <AuthCard
             title="비밀번호 찾기"
-            description="이름을 입력해 주세요."
+            description="가입할 때 쓴 이메일을 입력해 주세요."
             footer={
               <StepNavButtons
                 onPrev={() => {
                   setError('');
-                  setStep('email');
+                  setStep('loginId');
                 }}
-                onNext={handleNameNext}
+                onNext={handleEmailNext}
                 disabled={isLoading}
               />
             }
           >
             <div className="flex flex-col gap-[20px]">
-              <AuthTextField value={email} readOnlyLook />
+              {/* 앞 단계에서 넣은 아이디는 확인용으로만 보여준다 */}
+              <AuthTextField value={loginId} readOnlyLook />
               <AuthTextField
-                placeholder="이름"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleNameNext()}
+                type="email"
+                placeholder="이메일"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleEmailNext()}
               />
             </div>
             <ErrorText message={error} />
@@ -187,7 +191,7 @@ export default function FindPasswordPage() {
               <StepNavButtons
                 onPrev={() => {
                   setError('');
-                  setStep('name');
+                  setStep('email');
                 }}
                 onNext={() => handleCodeNext(code)}
                 disabled={isLoading}
