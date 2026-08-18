@@ -7,7 +7,14 @@ export interface ApiResponse<T> {
 export type ScholarshipStatus = 'OPEN' | 'CLOSED' | 'UPCOMING';
 
 export type SelectionScheduleStatus = 'CLOSED' | 'UPCOMING' | 'CURRENT';
+export type RequirementStatus = 'REQUIRED' | 'CONDITIONAL' | 'NOT_REQUIRED';
 
+export interface ScholarshipSelection {
+  essayRequirement: RequirementStatus | null;
+  essayEvidence: string | null;
+  interviewRequirement: RequirementStatus | null;
+  interviewEvidence: string | null;
+}
 export interface ScholarshipDetailSummary {
   targetAudience: string | null;
   supportAmount: string | null;
@@ -51,6 +58,7 @@ export interface ScholarshipDetailResponse {
   selectionSchedule: ScholarshipSelectionSchedule[];
   requiredDocuments: ScholarshipRequiredDocument[];
   matchReasons: string[];
+  selection: ScholarshipSelection;
 }
 
 export type ScholarshipDetailApiResponse = ApiResponse<ScholarshipDetailResponse>;
