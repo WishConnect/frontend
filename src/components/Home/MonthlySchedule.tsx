@@ -43,6 +43,11 @@ export default function MonthlySchedule({
     return new Date(today.getFullYear(), today.getMonth(), 1);
   });
   const [schedulePage, setSchedulePage] = useState(0);
+  const [selectedDateKey, setSelectedDateKey] = useState(() => {
+    const today = new Date();
+
+    return createDateKey(today.getFullYear(), today.getMonth(), today.getDate());
+  });
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -65,9 +70,13 @@ export default function MonthlySchedule({
 
   const scheduleDateSet = new Set(currentMonthSchedules.map((schedule) => schedule.date));
 
-  const totalPages = Math.max(1, Math.ceil(currentMonthSchedules.length / ITEMS_PER_PAGE));
+  const selectedDateSchedules = currentMonthSchedules.filter(
+    (schedule) => schedule.date === selectedDateKey,
+  );
 
-  const visibleSchedules = currentMonthSchedules.slice(
+  const totalPages = Math.max(1, Math.ceil(selectedDateSchedules.length / ITEMS_PER_PAGE));
+
+  const visibleSchedules = selectedDateSchedules.slice(
     schedulePage * ITEMS_PER_PAGE,
     schedulePage * ITEMS_PER_PAGE + ITEMS_PER_PAGE,
   );
@@ -75,14 +84,34 @@ export default function MonthlySchedule({
   const handlePrevMonth = () => {
     if (isLocked) return;
 
-    setCurrentDate(new Date(year, month - 1, 1));
+    const newDate = new Date(year, month - 1, 1);
+    const today = new Date();
+
+    setCurrentDate(newDate);
+
+    if (newDate.getFullYear() === today.getFullYear() && newDate.getMonth() === today.getMonth()) {
+      setSelectedDateKey(createDateKey(today.getFullYear(), today.getMonth(), today.getDate()));
+    } else {
+      setSelectedDateKey('');
+    }
+
     setSchedulePage(0);
   };
 
   const handleNextMonth = () => {
     if (isLocked) return;
 
-    setCurrentDate(new Date(year, month + 1, 1));
+    const newDate = new Date(year, month + 1, 1);
+    const today = new Date();
+
+    setCurrentDate(newDate);
+
+    if (newDate.getFullYear() === today.getFullYear() && newDate.getMonth() === today.getMonth()) {
+      setSelectedDateKey(createDateKey(today.getFullYear(), today.getMonth(), today.getDate()));
+    } else {
+      setSelectedDateKey('');
+    }
+
     setSchedulePage(0);
   };
 
@@ -174,14 +203,24 @@ export default function MonthlySchedule({
                   const hasSchedule = scheduleDateSet.has(dateKey);
 
                   return (
-                    <span
+                    <button
                       key={dateKey}
+                      type="button"
+                      disabled={!hasSchedule}
+                      onClick={() => {
+                        if (!hasSchedule) return;
+
+                        setSelectedDateKey(dateKey);
+                        setSchedulePage(0);
+                      }}
                       className={`flex h-[24px] w-[24px] items-center justify-center rounded-[4px] text-[14px] font-medium ${
-                        hasSchedule ? 'bg-[#7962ED] text-white' : 'text-[#555964]'
+                        hasSchedule
+                          ? 'cursor-pointer bg-[#7962ED] text-white'
+                          : 'cursor-default text-[#555964]'
                       }`}
                     >
                       {date}
-                    </span>
+                    </button>
                   );
                 })}
               </div>

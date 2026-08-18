@@ -13,7 +13,7 @@ import DetailScrap from '../../assets/icons/DetailScrap.svg';
 import Scrap from '../../assets/icons/Scrap.svg';
 import PaperPlane from '../../assets/icons/PaperPlane.svg';
 import ShareCheck from '../../assets/icons/ShareCheck.svg';
-import Report from "../../assets/icons/Report.svg"
+import Report from '../../assets/icons/Report.svg';
 import Button from '../../components/Button/Button';
 import Header from '../../components/common/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar';
@@ -398,18 +398,16 @@ export default function Detail() {
 
   const handleReport = () => {
     setIsReportModalOpen(true);
-  }
+  };
 
   const handleReportSubmit = async ({ reasons }: { reasons: string[]; etcText: string }) => {
     console.log('신고 접수 (API 연동 전):', {
-        scholarshipId: detail.scholarshipId,
-        reasons,
+      scholarshipId: detail.scholarshipId,
+      reasons,
     });
     // await axios.post(`/curation/${detail.scholarshipId}/report`, { reasons });
     alert('신고가 접수되었습니다. 확인 후 빠르게 반영하겠습니다.');
-};
-
-
+  };
 
   const handleApplicationButtonClick = async () => {
     if (!isLoggedIn) {
@@ -486,19 +484,17 @@ export default function Detail() {
         </div>
       )}
       {isReportModalOpen && (
-          <ReportModal
-              scholarshipId={detail.scholarshipId}
-              onClose={() => setIsReportModalOpen(false)}
-              onSubmit={handleReportSubmit}
-              onSuccess={() =>{
-                setIsReportModalOpen(false);
-                setIsReportSuccessOpen(true);
-              }}
-          />
+        <ReportModal
+          scholarshipId={detail.scholarshipId}
+          onClose={() => setIsReportModalOpen(false)}
+          onSubmit={handleReportSubmit}
+          onSuccess={() => {
+            setIsReportModalOpen(false);
+            setIsReportSuccessOpen(true);
+          }}
+        />
       )}
-      {isReportSuccessOpen && (
-        <ReportSuccessModal onClose={() => setIsReportSuccessOpen(false)} />
-      )}
+      {isReportSuccessOpen && <ReportSuccessModal onClose={() => setIsReportSuccessOpen(false)} />}
       <div className="flex">
         <div className="relative ml-[64px] w-[237px] shrink-0">
           <LeftSidebar activeId="curating" />
@@ -646,21 +642,33 @@ export default function Detail() {
 
           {/* 포스터 / 장학금 요약 */}
           <div className="mt-[52px] flex gap-[32px]">
-            <div className="h-[432px] w-[326px] overflow-hidden rounded-[16px] bg-[#F3F4F6]">
-              {detail.posterUrl ? (
-                <img
-                  src={detail.posterUrl}
-                  alt={detail.title}
-                  className="block h-full w-full object-cover"
-                />
-              ) : (
-                <img
-                  src={DetailPost}
-                  alt=""
-                  className="block h-full w-full scale-[1.08] object-cover object-center"
-                />
+            {/* 포스터 + 출처 */}
+            <div className="w-[326px] shrink-0">
+              <div className="h-[432px] w-[326px] overflow-hidden rounded-[16px] bg-[#F3F4F6]">
+                {detail.posterUrl ? (
+                  <img
+                    src={detail.posterUrl}
+                    alt={detail.title}
+                    className="block h-full w-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src={DetailPost}
+                    alt=""
+                    className="block h-full w-full scale-[1.08] object-cover object-center"
+                  />
+                )}
+              </div>
+
+              {/* 실제 포스터가 있을 때만 출처 표시 */}
+              {detail.posterUrl && (
+                <p className="mt-[8px] h-[16px] text-[12px] font-medium leading-[16px] text-[#9DA1AC]">
+                  출처 · {detail.organization}
+                </p>
               )}
             </div>
+
+            {/* 장학금 요약 */}
 
             <div className="flex h-[432px] w-[685px] flex-col rounded-[16px] bg-[#F9FAFC] px-[40px] py-[32px]">
               <h2 className="shrink-0 text-[28px] font-bold leading-[40px]">장학금 요약 정보</h2>
