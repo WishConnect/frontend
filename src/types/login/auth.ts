@@ -1,8 +1,11 @@
 // 로그인(인증) 관련 API 타입. 백엔드 명세: POST /api/v1/auth/login
 
 // 요청 body
+// ⚠️ 2026-08-18 백엔드가 기본 로그인을 이메일 → 아이디(login_id) 기준으로 바꿨다
+//    (api-server ba7fcb8). email로 보내면 @NotBlank 위반이라 400.
+//    서버가 trim + 소문자로 낮춰 조회하므로 대소문자는 신경 쓰지 않아도 된다.
 export interface LoginRequest {
-  email: string;
+  loginId: string;
   password: string;
 }
 
@@ -82,7 +85,27 @@ export interface LoginIdCheckResponseData {
   available: boolean;
 }
 
-// 아이디 찾기 응답(POST /auth/login-id/find). ⚠️ 서버 미구현 — api/login/findLoginId.ts 주석 참고.
+/* ------------------------------------------------------------------
+ * 아이디 찾기 (LOCAL 계정 전용, 2026-08-18 백엔드 신설)
+ *   1) POST /auth/login-id/find-request  { email, name }        코드 메일 발송
+ *   2) POST /auth/login-id/find          { email, name, code }  코드 확인 + 아이디 반환
+ * 회원가입용 이메일 인증(/auth/email/*)과는 별개 흐름이다. 코드도 서로 다른 Redis 키에 저장돼
+ * 섞어 쓰면 "코드가 올바르지 않습니다"가 난다.
+ * ------------------------------------------------------------------ */
+
+// 코드 발송 요청 body. 이름은 서버가 실제로 대조한다(email + name + LOCAL + 미탈퇴).
+// 계정 열거 방지로, 일치하는 계정이 없어도 응답은 성공이고 메일만 안 간다.
+export interface LoginIdFindCodeRequest {
+  email: string;
+  name: string;
+}
+
+// 코드 확인 + 아이디 조회 요청 body. code는 6자리 숫자 문자열.
+export interface LoginIdFindRequest extends LoginIdFindCodeRequest {
+  code: string;
+}
+
+// 아이디 찾기 응답(POST /auth/login-id/find). 마스킹 없이 전체 아이디가 온다.
 export interface FindLoginIdResponseData {
   loginId: string;
 }
@@ -112,21 +135,35 @@ export interface EmailVerifyResponseData {
 
 /* ------------------------------------------------------------------
  * 비밀번호 재설정 (LOCAL 계정 전용)
- *   1) POST /auth/password/reset-request  재설정 코드 메일 발송
- *   2) POST /auth/password/reset          코드 + 새 비밀번호로 변경
+ * ⚠️ 2026-08-18 백엔드가 3단계로 바꿨다(api-server ba7fcb8). 계정을 아이디+이메일 조합으로
+ *    특정하고, 코드 검증과 비밀번호 변경이 분리됐다. 예전 2단계 스펙으로 보내면 전부 400.
+ *   1) POST /auth/password/reset-request  { loginId, email }        코드 메일 발송
+ *   2) POST /auth/password/verify         { loginId, email, code }  코드 확인 → resetToken 발급
+ *   3) POST /auth/password/reset          { resetToken, newPassword }
  * ------------------------------------------------------------------ */
 
 // 재설정 코드 발송 요청 body.
-// 계정 열거(어떤 이메일이 가입돼 있는지 떠보기) 방지를 위해 서버는 미가입/소셜 계정이어도
-// 똑같이 성공 응답을 준다. 즉 응답만으로 가입 여부를 알 수 없다.
+// 계정 열거(어떤 계정이 가입돼 있는지 떠보기) 방지를 위해 서버는 일치하는 계정이 없어도
+// 똑같이 성공 응답을 준다. 즉 응답만으로 가입 여부를 알 수 없다(메일만 안 감).
 export interface PasswordResetCodeRequest {
+  loginId: string;
   email: string;
 }
 
-// 새 비밀번호로 변경 요청 body
-export interface PasswordResetRequest {
-  email: string;
+// 코드 확인 요청 body. code는 6자리 숫자 문자열.
+export interface PasswordResetVerifyRequest extends PasswordResetCodeRequest {
   code: string;
+}
+
+// 코드 확인 응답. resetToken은 비밀번호 변경에만 쓰는 1회용 토큰이고 expiresIn(초) 뒤 만료된다.
+export interface PasswordResetVerifyResponseData {
+  resetToken: string;
+  expiresIn: number;
+}
+
+// 새 비밀번호로 변경 요청 body. 계정 식별은 resetToken이 대신하므로 이메일·코드를 다시 보내지 않는다.
+export interface PasswordResetRequest {
+  resetToken: string;
   newPassword: string; // 비밀번호 정책은 회원가입과 동일
 }
 
