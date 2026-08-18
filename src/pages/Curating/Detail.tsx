@@ -285,8 +285,13 @@ export default function Detail() {
   //   detailWithApplication.applicationStatus ?? 'NOT_STARTED';
 
   // const applicationId = detailWithApplication.applicationId ?? null;
+  const resolvedApplicationStatus: ApplicationStatus =
+    detail.selection?.essayRequirement === 'NOT_REQUIRED' ? 'NOT_REQUIRED' : applicationStatus;
 
-  const applicationBannerContent = getApplicationBannerContent(isLoggedIn, applicationStatus);
+  const applicationBannerContent = getApplicationBannerContent(
+    isLoggedIn,
+    resolvedApplicationStatus,
+  );
   const leftInfo = [
     {
       label: '지원대상',
