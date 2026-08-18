@@ -85,9 +85,16 @@ export default function MonthlySchedule({
     if (isLocked) return;
 
     const newDate = new Date(year, month - 1, 1);
+    const today = new Date();
 
     setCurrentDate(newDate);
-    setSelectedDateKey('');
+
+    if (newDate.getFullYear() === today.getFullYear() && newDate.getMonth() === today.getMonth()) {
+      setSelectedDateKey(createDateKey(today.getFullYear(), today.getMonth(), today.getDate()));
+    } else {
+      setSelectedDateKey('');
+    }
+
     setSchedulePage(0);
   };
 
@@ -95,9 +102,16 @@ export default function MonthlySchedule({
     if (isLocked) return;
 
     const newDate = new Date(year, month + 1, 1);
+    const today = new Date();
 
     setCurrentDate(newDate);
-    setSelectedDateKey('');
+
+    if (newDate.getFullYear() === today.getFullYear() && newDate.getMonth() === today.getMonth()) {
+      setSelectedDateKey(createDateKey(today.getFullYear(), today.getMonth(), today.getDate()));
+    } else {
+      setSelectedDateKey('');
+    }
+
     setSchedulePage(0);
   };
 
