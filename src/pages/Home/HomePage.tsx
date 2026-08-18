@@ -17,9 +17,11 @@ import { useUserStore } from '../../store/user/user';
 import type { HomeSummaryResponse } from '../../types/Home/Summary';
 
 const INITIAL_HOME_SUMMARY: HomeSummaryResponse = {
+  userName: '',
   newMatchedCount: 0,
   urgentDeadlineCount: 0,
   writingApplicationCount: 0,
+  newInsightCount: 0,
   hasNewMatched: false,
 };
 
@@ -175,7 +177,7 @@ export default function HomePage() {
               newMatchedCount={homeSummary.newMatchedCount}
               urgentDeadlineCount={homeSummary.urgentDeadlineCount}
               applicationCount={homeSummary.writingApplicationCount}
-              newInsightCount={3}
+              newInsightCount={homeSummary.newInsightCount}
               onLockedClick={handleLockedClick}
             />
           </>
