@@ -18,6 +18,7 @@ export interface ArchiveProgress {
 export interface ArchiveItem {
   scholarshipId: number;
   applicationId: number | null;
+  isScrapped: boolean;
   title: string;
   tags: string[];
   deadline: string;
