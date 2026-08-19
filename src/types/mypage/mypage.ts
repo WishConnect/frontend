@@ -5,7 +5,13 @@ export interface MyPageSummary {
   email: string;
   // 실제 응답 필드명은 birthYear가 아니라 birthDate. 값이 없으면 null.
   birthDate: string | null;
-  region: string | null;
+  // 2026-08-19 API 개편으로 문자열("서울")에서 지역 객체로 스펙이 바뀜.
+  region: {
+    regionId: number;
+    name: string;
+    parentId: number | null;
+    parentName: string | null;
+  } | null;
   profileCompletionRate: number;
   scrappedCount: number;
   applicationCount: number;

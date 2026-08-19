@@ -299,7 +299,7 @@ function SelectField({
           </option>
         ))}
       </select>
-      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+      <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
         <ChevronDownIcon />
       </div>
     </div>
