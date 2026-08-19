@@ -7,6 +7,7 @@ import ScrapDisable from '../../assets/icons/ScrapDiasbled.svg';
 import Scrap from '../../assets/icons/Scrap.svg';
 import DdayStatus from '../DdayStatus';
 import MainPost from './MainPost.svg';
+import { formatScholarshipAmount } from '../../utils/scholarshipAmount';
 
 import type { CuratedFeaturedScholarship } from '../../types/Curation/Curated';
 
@@ -30,6 +31,7 @@ export default function RecommendCard({
   const isScrapped = scholarship.isScrapped;
   const tags = scholarship.tags ?? [];
   const matchReasons = scholarship.matchReasons ?? [];
+  const amountText = formatScholarshipAmount(scholarship.title, scholarship.maxAmount);
 
   const handleCardClick = (event: MouseEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
@@ -76,7 +78,7 @@ export default function RecommendCard({
         )}
 
         <p className="mt-[24px] text-[16px] font-semibold leading-[24px] text-[#555964]">
-          {scholarship.maxAmount ?? '금액 정보 없음'} |{' '}
+          {amountText} |{' '}
           {scholarship.deadline ? `${scholarship.deadline} 마감` : '마감일 정보 없음'}
         </p>
 

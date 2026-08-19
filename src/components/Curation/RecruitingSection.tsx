@@ -6,6 +6,7 @@ import ScrapDisable from '../../assets/icons/ScrapDiasbled.svg';
 import ScrapEnable from '../../assets/icons/ScrapEnable.svg';
 
 import { scrapScholarship, unscrapScholarship } from '../../api/Curation/Scrap';
+import { formatScholarshipAmount } from '../../utils/scholarshipAmount';
 
 import type { CuratedOtherScholarship } from '../../types/Curation/Curated';
 
@@ -64,7 +65,7 @@ export default function RecruitingSection({
       <div className="mt-[16px] flex h-[16px] items-center border-b border-[#D2D4DA] pb-[12px] text-[12px] font-medium leading-[16px] text-[#555964]">
         <div className="w-[413px]" />
 
-        <div className="w-[180px] text-center">최대 금액</div>
+        <div className="w-[180px] text-center">지원 금액</div>
 
         <div className="w-[180px] text-center">마감일</div>
 
@@ -77,7 +78,7 @@ export default function RecruitingSection({
 
           const isLoading = loadingId === scholarship.scholarshipId;
 
-          const amountText = scholarship.maxAmount ?? '금액 정보 없음';
+          const amountText = formatScholarshipAmount(scholarship.title, scholarship.maxAmount);
 
           const deadlineText = scholarship.deadline ?? '상시';
 
