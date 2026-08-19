@@ -74,7 +74,7 @@ function mapSummaryToView(summary: MyPageSummary): UserProfileView {
   return {
     name: summary.name,
     birthYear: extractBirthYear(summary.birthDate),
-    region: summary.region?.trim() || '',
+    region: summary.region?.name ?? '',
     grade: extractGradeNumber(criteria?.grade ?? null),
     gpa: criteria?.gpa ?? 0,
     gpaMax: 4.5,
