@@ -90,9 +90,12 @@ export default function RecommendCard({
           이 장학금을 추천하는 이유
         </h3>
 
-        <div className="mt-[12px] flex flex-col gap-[8px]">
-          {matchReasons.map((reason) => (
-            <span key={reason} className="text-[14px] font-medium leading-[20px] text-[#555964]">
+        <div className="mt-[12px] grid grid-flow-col grid-rows-4 gap-x-[20px] gap-y-[8px]">
+          {matchReasons.map((reason, index) => (
+            <span
+              key={`${reason}-${index}`}
+              className="whitespace-nowrap text-[14px] font-medium leading-[20px] text-[#555964]"
+            >
               ✓ {reason}
             </span>
           ))}
