@@ -279,7 +279,7 @@ function SelectField({
 }) {
   return (
     <div
-      className={`flex w-full flex-1 items-center gap-6 rounded-lg bg-[#F9FAFC] py-3 pl-6 pr-3 ${
+      className={`relative flex w-full flex-1 items-center rounded-lg bg-[#F9FAFC] py-3 pl-6 pr-3 ${
         disabled ? 'opacity-50' : ''
       }`}
     >
@@ -287,7 +287,7 @@ function SelectField({
         value={value}
         onChange={onChange}
         disabled={disabled}
-        className={`w-full flex-1 appearance-none bg-transparent text-[16px] font-medium leading-6 focus:outline-none ${
+        className={`w-full appearance-none bg-transparent pr-8 text-[16px] font-medium leading-6 focus:outline-none ${
           value ? 'text-[#0A0C11]' : 'text-[#9DA1AC]'
         }`}
       >
@@ -300,7 +300,9 @@ function SelectField({
           </option>
         ))}
       </select>
-      <ChevronDownIcon />
+      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+        <ChevronDownIcon />
+      </div>
     </div>
   );
 }
