@@ -86,8 +86,11 @@ export default function RecommendedScholarshipPage() {
           ).values(),
         );
 
-        setScholarships(uniqueScholarships.slice(0, ITEMS_PER_PAGE));
-        setTotalPages(data.pagination.totalPages || 1);
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+
+        setScholarships(uniqueScholarships.slice(startIndex, endIndex));
+        setTotalPages(Math.ceil(uniqueScholarships.length / ITEMS_PER_PAGE));
       } catch (error) {
         if (isCancelled) return;
 
