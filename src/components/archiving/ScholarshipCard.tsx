@@ -4,16 +4,10 @@ import ToggleIcon from '../ToggleIcon';
 import ProgressRing from './ProgressRing';
 import type { Scholarship } from '../../types/scholarship';
 import ArchivePost from './ArchivePoster.svg';
+import DdayStatus from '../DdayStatus';
 interface ScholarshipCardProps {
   scholarship: Scholarship;
   onUnscrap?: (scholarshipId: string) => void;
-}
-
-// D-Day 임박도에 따른 배지 색상: Figma 기준 D-20 이상 회색, D-10~19 노랑, D-9 이하 빨강
-function getDDayColor(dDay: number) {
-  if (dDay >= 20) return 'bg-[#D2D4DA]';
-  if (dDay >= 10) return 'bg-[#FACC15]';
-  return 'bg-[#FA5862]';
 }
 
 const STATUS_BUTTON_LABEL: Record<Scholarship['status'], string> = {
@@ -62,13 +56,7 @@ export default function ScholarshipCard({ scholarship, onUnscrap }: ScholarshipC
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span
-                className={`flex h-8 w-[55px] items-center justify-center rounded-lg text-sm font-bold text-white ${getDDayColor(
-                  dDay,
-                )}`}
-              >
-                D-{dDay}
-              </span>
+              <DdayStatus days={dDay} />
 
               <span className="text-xs font-medium text-[#747883]">{deadline}</span>
             </div>
