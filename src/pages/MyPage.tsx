@@ -76,7 +76,8 @@ function mapSummaryToView(summary: MyPageSummary): UserProfileView {
     name: summary.name,
     birthYear: extractBirthYear(summary.birthDate),
     // region 이 2026-08-19부터 문자열이 아니라 객체로 온다(백엔드 539c0ae).
-    // 시군구까지 저장한 유저는 "서울 중구", 시도만이면 "서울"로 보여준다.
+    // name 만 쓰면 "중구 거주"가 되는데 중구는 6개 시도에 있어 어디인지 알 수 없다.
+    // 그래서 상위 시도까지 붙여 "서울 중구 거주"로 보여준다(시도만 저장했으면 "서울 거주").
     region: formatRegionLabel(summary.region),
     grade: extractGradeNumber(criteria?.grade ?? null),
     gpa: criteria?.gpa ?? 0,
