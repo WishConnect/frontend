@@ -12,7 +12,7 @@ import { getPasswordError } from '../utils/password';
 import { getLoginIdError, normalizeLoginId, LOGIN_ID_RULE_TEXT } from '../utils/loginId';
 import { formatPhone, getPhoneError } from '../utils/phone';
 import { checkLoginIdAvailable } from '../api/login/loginId';
-import { getRegions } from '../api/common/region';
+import { getRegions, getSigunguList } from '../api/common/region';
 import { tokenStorage } from '../utils/token';
 import { useUserStore } from '../store/user/user';
 import type {
@@ -34,11 +34,14 @@ const NATIONALITY_TO_API: Record<Nationality, ApiNationality> = {
     '내국인': 'DOMESTIC',
     '외국인': 'FOREIGN',
 };
-// 약관 체크박스 id(1~4) → 백엔드 AgreementType
+// 약관 체크박스 id → 백엔드 AgreementType
+//
+// id 3(THIRD_PARTY, 개인정보 제3자 제공 동의)은 제외했다. 실제로 외부에 정보를 넘기지
+// 않으면 받을 이유가 없는 동의라서다. 번호는 일부러 3을 비워두고 4를 그대로 뒀다 —
+// 되살릴 일이 생기면 항목만 다시 넣으면 되고, 기존 가입자 동의 이력의 id 와도 어긋나지 않는다.
 const AGREEMENT_TYPE_BY_ID: Record<number, AgreementType> = {
     1: 'TERMS',
     2: 'PRIVACY',
-    3: 'THIRD_PARTY',
     4: 'AGE_14',
 };
 
@@ -156,6 +159,7 @@ export default function SignPage() {
     const [birthMonth, setBirthMonth] = useState('');
     const [birthDay, setBirthDay] = useState('');
     const [region, setRegion] = useState('');
+    const [sigungu, setSigungu] = useState('');
     const [gender, setGender] = useState<Gender | null>(null);
     const [nationality, setNationality] = useState<Nationality | null>(null);
 
@@ -165,6 +169,16 @@ export default function SignPage() {
     const [regionOptions, setRegionOptions] = useState<string[]>(REGION_FALLBACK_OPTIONS);
     const [showRegionDropdown, setShowRegionDropdown] = useState(false);
     const regionBoxRef = useRef<HTMLDivElement>(null);
+
+    // 시군구(2단계). 시도 이름 → regionId 를 알아야 GET /regions/{id}/children 을 부를 수 있는데,
+    // 시도 목록 조회가 실패해 대체 목록을 쓰는 중이면 id 를 모른다(그때는 시군구를 못 고른다).
+    // 결과와 실패 사유는 시도 이름을 키로 캐시한다 — 시도를 바꿨을 때 이전 시군구가 남아 보이지 않고,
+    // effect 안에서 동기적으로 비울 필요가 없어 렌더가 한 번 덜 돈다.
+    const [regionIdByName, setRegionIdByName] = useState<Record<string, number>>({});
+    const [sigunguCache, setSigunguCache] = useState<Record<string, string[]>>({});
+    const [sigunguErrorBySido, setSigunguErrorBySido] = useState<Record<string, string>>({});
+    const [showSigunguDropdown, setShowSigunguDropdown] = useState(false);
+    const sigunguBoxRef = useRef<HTMLDivElement>(null);
 
     // 비밀번호 표시 여부
     const [showPassword, setShowPassword] = useState(false);
@@ -190,6 +204,9 @@ export default function SignPage() {
             .then((regions) => {
                 if (isMounted && regions.length > 0) {
                     setRegionOptions(regions.map((item) => item.name));
+                    setRegionIdByName(
+                        Object.fromEntries(regions.map((item) => [item.name, item.regionId])),
+                    );
                 }
             })
             .catch((error) => {
@@ -265,6 +282,77 @@ export default function SignPage() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showRegionDropdown]);
 
+    useEffect(() => {
+        if (!showSigunguDropdown) return;
+
+        const handleClickOutside = (e: MouseEvent) => {
+            if (!sigunguBoxRef.current?.contains(e.target as Node)) {
+                setShowSigunguDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showSigunguDropdown]);
+
+    const selectedSido = region.trim();
+    const selectedSidoId = regionIdByName[selectedSido];
+
+    // 시도가 정해지면 그 시도의 시군구를 불러온다.
+    useEffect(() => {
+        if (!selectedSido || selectedSidoId === undefined) return;
+
+        let isMounted = true;
+
+        getSigunguList(selectedSidoId)
+            .then((items) => {
+                if (!isMounted) return;
+                setSigunguCache((prev) => ({
+                    ...prev,
+                    [selectedSido]: items.map((item) => item.name),
+                }));
+            })
+            .catch((error) => {
+                if (!isMounted) return;
+                // 실패를 조용히 넘기지 않는다. 이 엔드포인트는 2026-08-19 기준 배포 서버에서
+                // 전 시도 500 이 나는 상태라, console 로만 남기면 "원래 시군구가 없는 지역"과
+                // 구분되지 않아 사용자가 계속 기다리게 된다.
+                console.error('시군구 목록 조회 실패:', error);
+                setSigunguErrorBySido((prev) => ({
+                    ...prev,
+                    [selectedSido]: '시군구 목록을 불러오지 못했어요. 시도만 선택해도 가입할 수 있어요.',
+                }));
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [selectedSido, selectedSidoId]);
+
+    // 지금 고른 시도의 것만 꺼내 쓴다. 시도가 바뀌면 자동으로 비워진다.
+    const sigunguOptions = useMemo(
+        () => (selectedSido ? (sigunguCache[selectedSido] ?? []) : []),
+        [selectedSido, sigunguCache],
+    );
+
+    const sigunguError = !selectedSido
+        ? null
+        : selectedSidoId === undefined
+            ? '지역 목록을 불러오지 못해 시군구를 선택할 수 없어요. 시도만 선택해도 가입할 수 있어요.'
+            : (sigunguErrorBySido[selectedSido] ?? null);
+
+    // 결과도 실패도 아직 안 들어왔으면 불러오는 중이다. 별도 state 없이 이걸로 판단한다.
+    const isLoadingSigungu =
+        !!selectedSido &&
+        selectedSidoId !== undefined &&
+        !(selectedSido in sigunguCache) &&
+        !(selectedSido in sigunguErrorBySido);
+
+    const filteredSigungu = useMemo(() => {
+        const keyword = sigungu.trim();
+        if (!keyword) return sigunguOptions;
+        return sigunguOptions.filter((name) => name.includes(keyword));
+    }, [sigungu, sigunguOptions]);
+
     // 아이디를 고치면 이전 중복확인 결과를 반드시 무효화한다.
     // 안 그러면 A로 확인받고 B로 바꿔 제출하는 우회가 생겨, 서버가 다시 막지 않으면 중복이 통과한다.
     const handleLoginIdChange = (value: string) => {
@@ -311,18 +399,17 @@ export default function SignPage() {
     const terms = [
         { id: 1, text: "[필수] 이용약관 동의" },
         { id: 2, text: "[필수] 개인 정보 수집 및 이용 동의" },
-        { id: 3, text: "[필수] 개인 정보 제3자 제공 동의" },
         { id: 4, text: "[필수] 만 14세 이상입니다." },
     ];
     const [agreements, setAgreements] = useState<Record<number, boolean>>({
-        1: false, 2: false, 3: false, 4: false,
+        1: false, 2: false, 4: false,
     });
 
     const isAllAgreed = terms.every((term) => agreements[term.id]);
 
     const handleAgreeAll = () => {
         const newValue = !isAllAgreed;
-        setAgreements({ 1: newValue, 2: newValue, 3: newValue, 4: newValue });
+        setAgreements({ 1: newValue, 2: newValue, 4: newValue });
     };
 
     const handleAgree = (id: number) => {
@@ -419,6 +506,12 @@ export default function SignPage() {
             setSubmitError('거주 지역은 목록에서 선택해 주세요.');
             return;
         }
+        // 시군구는 선택 입력이다(안 고르면 시도만 저장). 다만 뭔가 입력했다면
+        // 시도와 마찬가지로 목록에 있는 값이어야 서버가 지역을 특정할 수 있다.
+        if (sigungu.trim() && !sigunguOptions.includes(sigungu.trim())) {
+            setSubmitError('시군구는 목록에서 선택해 주세요.');
+            return;
+        }
 
         setIsSubmitting(true);
         try {
@@ -438,7 +531,12 @@ export default function SignPage() {
                 // 다만 백엔드에선 선택 항목이라 타입상 optional이므로 빈 값 방어는 남겨둔다.
                 birthDate,
                 nationality: nationality ? NATIONALITY_TO_API[nationality] : undefined,
-                region: region.trim() || undefined,
+                // 서버는 region 을 문자열 하나로만 받는다(SignupRequest.region).
+                // 시군구를 골랐으면 "서울 중구" 로 합쳐 보낸다 — RegionResolver 가
+                // "시도 시군구" 조합을 가장 먼저 보므로 이 형태가 가장 정확하다.
+                region:
+                    (sigungu.trim() ? `${region.trim()} ${sigungu.trim()}` : region.trim()) ||
+                    undefined,
             });
 
             // 1. 토큰 저장 (이후 axios 요청 인터셉터가 자동으로 Bearer 첨부)
@@ -752,41 +850,97 @@ export default function SignPage() {
                                 거주 지역 <span className="text-[#FA5862] font-[500]">*</span>
                             </div>
                             {/* 전공명 검색과 같은 방식: 입력하면 서버에서 받은 지역 목록이 좁혀진다.
-                                자유 입력이라 오타가 나면 저장이 안 되므로, 제출 때 목록에 있는 값인지 확인한다. */}
-                            <div className="relative" ref={regionBoxRef}>
-                                <TextField1
-                                    placeholder="거주 지역을 입력해 주세요"
-                                    width="595px"
-                                    className="h-[48px] [&_textarea]:h-[24px]"
-                                    value={region}
-                                    onChange={(value) => {
-                                        setRegion(value);
-                                        setShowRegionDropdown(true);
-                                    }}
-                                    onFocus={() => setShowRegionDropdown(true)}
-                                />
-                                {/* 목록 모양은 같은 화면의 출생년도(SelectDropdown)와 맞췄다.
-                                    높이는 시도 17개가 최대라 400px(약 8개)까지 열어두고 나머지는 스크롤 — 240px면
-                                    5개만 보여서 "지역이 몇 개 없나?"로 읽힌다. */}
-                                {showRegionDropdown && filteredRegions.length > 0 && (
-                                    <ul className="absolute left-0 top-[calc(100%+4px)] z-20 max-h-[400px] w-full overflow-y-auto rounded-lg border border-[#E5E7EB] bg-white py-[8px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                                        {filteredRegions.map((name) => (
-                                            <li key={name}>
-                                                <button
-                                                    type="button"
-                                                    className={`w-full px-6 py-3 text-left font-['Pretendard'] text-[16px] font-medium leading-6 hover:bg-[#F4F4FE] ${name === region.trim() ? 'bg-[#F4F4FE] text-[#7962ED]' : 'text-[#0A0C11]'}`}
-                                                    onClick={() => {
-                                                        setRegion(name);
-                                                        setShowRegionDropdown(false);
-                                                    }}
-                                                >
-                                                    {name}
-                                                </button>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
+                                자유 입력이라 오타가 나면 저장이 안 되므로, 제출 때 목록에 있는 값인지 확인한다.
+
+                                시도와 시군구는 좌우로 둔다. 원래 한 칸이 쓰던 595px 을 그대로 나눠 쓰므로
+                                위아래 다른 입력칸과 오른쪽 끝이 맞는다. 각 칸은 flex-1 이고 TextField1 에는
+                                width="100%" 를 줘서 부모가 정한 폭을 그대로 따르게 했다. */}
+                            <div className="flex w-[595px] gap-[12px]">
+                                <div className="relative flex-1" ref={regionBoxRef}>
+                                    <TextField1
+                                        placeholder="시도를 선택해 주세요"
+                                        width="100%"
+                                        className="h-[48px] [&_textarea]:h-[24px]"
+                                        value={region}
+                                        onChange={(value) => {
+                                            setRegion(value);
+                                            setShowRegionDropdown(true);
+                                        }}
+                                        onFocus={() => setShowRegionDropdown(true)}
+                                    />
+                                    {/* 목록 모양은 같은 화면의 출생년도(SelectDropdown)와 맞췄다.
+                                        높이는 시도 17개가 최대라 400px(약 8개)까지 열어두고 나머지는 스크롤 — 240px면
+                                        5개만 보여서 "지역이 몇 개 없나?"로 읽힌다. */}
+                                    {showRegionDropdown && filteredRegions.length > 0 && (
+                                        <ul className="absolute left-0 top-[calc(100%+4px)] z-20 max-h-[400px] w-full overflow-y-auto rounded-lg border border-[#E5E7EB] bg-white py-[8px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                                            {filteredRegions.map((name) => (
+                                                <li key={name}>
+                                                    <button
+                                                        type="button"
+                                                        className={`w-full px-6 py-3 text-left font-['Pretendard'] text-[16px] font-medium leading-6 hover:bg-[#F4F4FE] ${name === region.trim() ? 'bg-[#F4F4FE] text-[#7962ED]' : 'text-[#0A0C11]'}`}
+                                                        onClick={() => {
+                                                            // 시도가 바뀌면 이전 시군구는 무의미하므로 비운다.
+                                                            setRegion(name);
+                                                            setSigungu('');
+                                                            setShowRegionDropdown(false);
+                                                        }}
+                                                    >
+                                                        {name}
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+                                {/* 시군구(2단계). 선택 입력이라 안 골라도 가입은 된다.
+                                    시도를 고르기 전에는 무엇을 부를지 모르므로 잠가 둔다. */}
+                                <div className="relative flex-1" ref={sigunguBoxRef}>
+                                    {/* TextField1 은 className 을 감싸는 div 에 붙인다. textarea 의
+                                        disabled 만으로는 겉보기가 그대로라 흐리게 처리해 눈에 보이게 한다. */}
+                                    <TextField1
+                                        placeholder={
+                                            !region.trim()
+                                                ? '시도를 먼저 선택해 주세요'
+                                                : isLoadingSigungu
+                                                    ? '불러오는 중…'
+                                                    : sigunguOptions.length === 0
+                                                        ? '선택할 수 있는 시군구가 없어요'
+                                                        : '시군구를 선택해 주세요 (선택)'
+                                        }
+                                        width="100%"
+                                        className={`h-[48px] [&_textarea]:h-[24px] ${!region.trim() || isLoadingSigungu ? 'opacity-60' : ''}`}
+                                        value={sigungu}
+                                        disabled={!region.trim() || isLoadingSigungu}
+                                        onChange={(value) => {
+                                            setSigungu(value);
+                                            setShowSigunguDropdown(true);
+                                        }}
+                                        onFocus={() => setShowSigunguDropdown(true)}
+                                    />
+                                    {showSigunguDropdown && filteredSigungu.length > 0 && (
+                                        <ul className="absolute left-0 top-[calc(100%+4px)] z-20 max-h-[400px] w-full overflow-y-auto rounded-lg border border-[#E5E7EB] bg-white py-[8px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                                            {filteredSigungu.map((name) => (
+                                                <li key={name}>
+                                                    <button
+                                                        type="button"
+                                                        className={`w-full px-6 py-3 text-left font-['Pretendard'] text-[16px] font-medium leading-6 hover:bg-[#F4F4FE] ${name === sigungu.trim() ? 'bg-[#F4F4FE] text-[#7962ED]' : 'text-[#0A0C11]'}`}
+                                                        onClick={() => {
+                                                            setSigungu(name);
+                                                            setShowSigunguDropdown(false);
+                                                        }}
+                                                    >
+                                                        {name}
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
                             </div>
+                            {/* 시군구 조회 실패 사유. 시군구는 선택 입력이라 가입 자체를 막지는 않는다. */}
+                            {sigunguError && (
+                                <span className="text-[#FF4D4F] text-[14px] font-[500]">{sigunguError}</span>
+                            )}
                             <span className="text-[#747883] text-[14px] font-[500]">※ 장학금 추천 시 거주 지역 기준이 활용될 수 있어요.</span>
                         </div>
                     </div>

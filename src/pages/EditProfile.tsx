@@ -1,6 +1,8 @@
 import {
   useState,
   useEffect,
+  useRef,
+  useMemo,
   type ReactNode,
   type InputHTMLAttributes,
   type ChangeEvent,
@@ -11,6 +13,8 @@ import { putBasicProfile, getMyProfile } from '../api/onboarding/profile';
 import { updatePassword, getMyPageSummary } from '../api/mypage/mypage';
 import { useUserStore } from '../store/user/user';
 import { tokenStorage } from '../utils/token';
+import { formatPhone, getPhoneError } from '../utils/phone';
+import { getRegions, getSigunguList } from '../api/common/region';
 
 type Gender = 'female' | 'male' | 'none';
 type Nationality = 'domestic' | 'foreign';
@@ -27,7 +31,10 @@ interface ProfileForm {
   contact: string;
   gender: Gender;
   nationality: Nationality;
-  region: string;
+  // 거주 지역은 시도 + 시군구 2단계다. 서버로는 "서울 중구" 처럼 한 문자열로 합쳐 보낸다
+  // (ProfileBasicRequest.region 이 String 하나뿐이라 필드를 나눠 보낼 수 없다).
+  region: string; // 시도. 예: "서울"
+  sigungu: string; // 시군구. 예: "중구". 세종처럼 하위가 없으면 빈 문자열
 }
 
 interface ToggleOption<T extends string> {
@@ -175,37 +182,17 @@ function SelectToggleGroup<T extends string>({
 }
 
 // ------------------------------------------------------------------
-// 거주 지역: 화면엔 정식 명칭("서울특별시")을 보여주되, 서버로는 축약형
-// 코드("서울")를 보낸다. GET /api/v1/users/me/profile 응답의 region이
-// 실제로 "서울" 같은 축약형으로 오는 걸 확인함 (PUT도 동일 형식 기대).
+// 거주 지역 선택지 대체본(17개 시도). 회원가입(SignPage)과 동일하게 평소엔
+// GET /regions 로 서버 마스터를 받아 쓰고, 그 호출이 실패했을 때만 이 목록을 쓴다.
+//
+// SignPage의 대체본은 정식 명칭("서울특별시")이지만 여기선 서버와 같은 축약형을 쓴다.
+// 프로필 조회 응답의 region이 "서울" 같은 축약형으로 오기 때문에, 대체본이 정식 명칭이면
+// 이미 저장된 값이 목록에 없는 것으로 잡혀 저장이 막힌다.
 // ------------------------------------------------------------------
-const REGION_OPTIONS: { code: string; label: string }[] = [
-  { code: '서울', label: '서울특별시' },
-  { code: '부산', label: '부산광역시' },
-  { code: '대구', label: '대구광역시' },
-  { code: '인천', label: '인천광역시' },
-  { code: '광주', label: '광주광역시' },
-  { code: '대전', label: '대전광역시' },
-  { code: '울산', label: '울산광역시' },
-  { code: '세종', label: '세종특별자치시' },
-  { code: '경기', label: '경기도' },
-  { code: '강원', label: '강원특별자치도' },
-  { code: '충북', label: '충청북도' },
-  { code: '충남', label: '충청남도' },
-  { code: '전북', label: '전북특별자치도' },
-  { code: '전남', label: '전라남도' },
-  { code: '경북', label: '경상북도' },
-  { code: '경남', label: '경상남도' },
-  { code: '제주', label: '제주특별자치도' },
+const REGION_FALLBACK_OPTIONS: string[] = [
+  '서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종', '경기',
+  '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주',
 ];
-
-// GET 응답의 region이 이 code 목록 안에 있는지 확인하고, 없으면(예: 정식
-// 명칭으로 오거나 빈 값이면) 첫 번째 옵션으로 폴백한다.
-function normalizeRegion(region: string | null | undefined): string {
-  if (!region) return REGION_OPTIONS[0].code;
-  const matched = REGION_OPTIONS.find((r) => r.code === region || r.label === region);
-  return matched ? matched.code : REGION_OPTIONS[0].code;
-}
 
 // 지금은 하드코딩된 기본값이지만, 추후 로그인/API 응답으로 이 객체를 채우면 됩니다.
 const DEFAULT_FORM: ProfileForm = {
@@ -218,7 +205,10 @@ const DEFAULT_FORM: ProfileForm = {
   contact: '',
   gender: 'female',
   nationality: 'domestic',
-  region: REGION_OPTIONS[0].code,
+  // 미선택 상태. 예전엔 '서울'이 기본값이라, 거주지역을 고른 적 없는 계정도
+  // 화면엔 서울이 선택된 것처럼 보이고 그대로 저장되는 문제가 있었다.
+  region: '',
+  sigungu: '',
 };
 
 // ------------------------------------------------------------------
@@ -272,7 +262,134 @@ export default function EditProfile() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // 거주 지역 자동완성. 회원가입(SignPage)과 같은 방식으로, 서버 목록을 마운트 때 한 번
+  // 받아두고 입력값으로 좁혀 보여준다. 조회에 실패하면 대체 목록으로 계속 쓴다.
+  const [regionOptions, setRegionOptions] = useState<string[]>(REGION_FALLBACK_OPTIONS);
+  const [showRegionDropdown, setShowRegionDropdown] = useState(false);
+  const regionBoxRef = useRef<HTMLDivElement>(null);
+  // 시도 이름 → regionId. 시군구 조회에 regionId 가 필요한데, 대체 목록으로 떨어지면
+  // id 를 알 수 없으므로 비어 있게 된다(그때는 시군구를 못 고른다).
+  const [regionIdByName, setRegionIdByName] = useState<Record<string, number>>({});
+  // 시군구. 시도 이름을 키로 캐시한다(아래 effect 주석 참고).
+  const [sigunguCache, setSigunguCache] = useState<Record<string, string[]>>({});
+  const [sigunguErrorBySido, setSigunguErrorBySido] = useState<Record<string, string>>({});
+  const [showSigunguDropdown, setShowSigunguDropdown] = useState(false);
+  const sigunguBoxRef = useRef<HTMLDivElement>(null);
   const clearUser = useUserStore((s) => s.clearUser);
+
+  // 거주 지역 목록 조회. 실패해도 화면을 막지 않고 대체 목록을 그대로 쓴다.
+  useEffect(() => {
+    let isMounted = true;
+
+    getRegions()
+      .then((regions) => {
+        if (isMounted && regions.length > 0) {
+          setRegionOptions(regions.map((item) => item.name));
+          setRegionIdByName(Object.fromEntries(regions.map((item) => [item.name, item.regionId])));
+        }
+      })
+      .catch((error) => {
+        console.error('거주 지역 목록 조회 실패:', error);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // 입력한 글자가 포함된 지역만 남긴다. 비어 있으면 전체를 보여준다.
+  const filteredRegions = useMemo(() => {
+    const keyword = form.region.trim();
+    if (!keyword) return regionOptions;
+    return regionOptions.filter((name) => name.includes(keyword));
+  }, [form.region, regionOptions]);
+
+  const selectedSido = form.region.trim();
+  const selectedSidoId = regionIdByName[selectedSido];
+
+  // 시도가 정해지면 그 시도의 시군구를 불러온다. 결과는 시도 이름을 키로 캐시에 넣는다.
+  //
+  // 캐시로 두는 이유: 시도를 바꿨을 때 이전 시도의 시군구가 남아 보이면 안 되는데,
+  // effect 안에서 동기적으로 비우면 렌더가 한 번 더 돌고 린트 규칙에도 걸린다
+  // (react-hooks/set-state-in-effect). 키로 꺼내 쓰면 그 문제가 둘 다 사라지고,
+  // 시도를 왔다 갔다 해도 다시 부르지 않는다.
+  useEffect(() => {
+    if (!selectedSido || selectedSidoId === undefined) return;
+
+    let isMounted = true;
+
+    getSigunguList(selectedSidoId)
+      .then((items) => {
+        if (!isMounted) return;
+        setSigunguCache((prev) => ({ ...prev, [selectedSido]: items.map((item) => item.name) }));
+      })
+      .catch((error) => {
+        if (!isMounted) return;
+        // 실패를 조용히 넘기지 않는다. 이 엔드포인트는 2026-08-19 기준 배포 서버에서 전 시도
+        // 500 이 나는 상태라, console 로만 남기면 "원래 시군구가 없는 지역"과 구분되지 않는다.
+        console.error('시군구 목록 조회 실패:', error);
+        setSigunguErrorBySido((prev) => ({
+          ...prev,
+          [selectedSido]: `시군구 목록을 불러오지 못했어요. (GET /regions/${selectedSidoId}/children — ${extractApiErrorMessage(error, '원인 불명')})`,
+        }));
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedSido, selectedSidoId]);
+
+  // 지금 고른 시도의 것만 꺼내 쓴다. 시도가 바뀌면 자동으로 비워진다.
+  const sigunguOptions = useMemo(
+    () => (selectedSido ? (sigunguCache[selectedSido] ?? []) : []),
+    [selectedSido, sigunguCache],
+  );
+
+  const sigunguError = !selectedSido
+    ? null
+    : selectedSidoId === undefined
+      ? // 시도 목록 조회가 실패해 대체 목록을 쓰는 중이면 regionId 를 모른다.
+        '지역 목록을 불러오지 못해 시군구를 선택할 수 없어요.'
+      : (sigunguErrorBySido[selectedSido] ?? null);
+
+  // 결과도 실패도 아직 안 들어왔으면 불러오는 중이다. 별도 state 없이 이걸로 판단한다.
+  const isLoadingSigungu =
+    !!selectedSido &&
+    selectedSidoId !== undefined &&
+    !(selectedSido in sigunguCache) &&
+    !(selectedSido in sigunguErrorBySido);
+
+  // 입력한 글자가 포함된 시군구만 남긴다.
+  const filteredSigungu = useMemo(() => {
+    const keyword = form.sigungu.trim();
+    if (!keyword) return sigunguOptions;
+    return sigunguOptions.filter((name) => name.includes(keyword));
+  }, [form.sigungu, sigunguOptions]);
+
+  // 목록 바깥을 누르면 닫는다. 열려 있을 때만 리스너를 건다.
+  useEffect(() => {
+    if (!showRegionDropdown) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!regionBoxRef.current?.contains(e.target as Node)) {
+        setShowRegionDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showRegionDropdown]);
+
+  useEffect(() => {
+    if (!showSigunguDropdown) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!sigunguBoxRef.current?.contains(e.target as Node)) {
+        setShowSigunguDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showSigunguDropdown]);
 
   // 화면 진입 시 실제 유저 프로필을 불러와서 폼에 채워넣음.
   // getMyProfile(GET /users/me/profile)에서 이름/생년월일/연락처/성별/국적/지역을,
@@ -293,10 +410,18 @@ export default function EditProfile() {
           email: summary.email,
           name: profile.name,
           birthDate,
-          contact: profile.phone,
+          // 서버는 연락처를 검증·정규화하지 않으므로(utils/phone.ts 주석 참고) 예전에 저장된
+          // 값이 "01012345678" 같은 형태일 수 있다. 화면에 올릴 때 한 번 맞춰준다.
+          contact: formatPhone(profile.phone ?? ''),
           gender: mapApiValueToGender(profile.gender),
           nationality: mapApiValueToNationality(profile.nationality),
-          region: normalizeRegion(profile.region),
+          // 서버가 준 값을 그대로 쓴다. 저장된 지역이 없으면(null) 임의의 지역으로 채우지 않고
+          // 비워 둔다 - 사용자가 직접 고르게 하는 편이 안전하다.
+          //
+          // region 은 2026-08-19부터 객체로 온다. 시군구면 parentName 에 상위 시도가 실려 오므로
+          // 어느 시도의 "중구"인지 그대로 알 수 있다(예전엔 이름만 와서 복원이 불가능했다).
+          region: profile.region?.parentName ?? profile.region?.name ?? '',
+          sigungu: profile.region?.parentName ? profile.region.name : '',
         }));
       } catch (err) {
         console.error('프로필 정보 조회 실패:', err);
@@ -313,6 +438,12 @@ export default function EditProfile() {
     (field: keyof ProfileForm) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
     };
+
+  // 연락처는 회원가입(SignPage)과 동일하게, 입력하는 즉시 010-0000-0000 형태로 맞춰준다.
+  // formatPhone이 숫자만 남기고 하이픈을 끼워 넣으므로 붙여넣기·국가번호(+82)도 흡수된다.
+  const handleContactChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setForm((prev) => ({ ...prev, contact: formatPhone(e.target.value) }));
+  };
 
   const handleBack = () => {
     navigate('/mypage');
@@ -341,6 +472,27 @@ export default function EditProfile() {
       }
     }
 
+    // 연락처도 회원가입과 동일한 규칙으로 검사한다. 서버가 연락처를 검증하지 않으므로
+    // (utils/phone.ts 주석) 여기서 막지 않으면 형식이 깨진 값이 그대로 저장된다.
+    const phoneError = getPhoneError(form.contact);
+    if (phoneError) {
+      setSubmitError(phoneError);
+      return;
+    }
+
+    // 거주 지역도 자유 입력이라 오타가 그대로 넘어갈 수 있다. 서버는 이름으로 지역 테이블을
+    // 찾는데, 프로필 저장(PUT)은 못 찾으면 400 INVALID_REGION 을 던진다(UserProfileService.getRegion).
+    // 회원가입(POST /auth/signup)은 같은 상황에서 조용히 null 로 저장하므로 동작이 서로 다르다.
+    // 어느 쪽이든 여기서 걸러야 사용자가 이유를 알 수 있어 목록에 있는 값만 통과시킨다.
+    if (!form.region.trim()) {
+      setSubmitError('거주 지역을 선택해 주세요.');
+      return;
+    }
+    if (!regionOptions.includes(form.region.trim())) {
+      setSubmitError('거주 지역은 목록에서 선택해 주세요.');
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
 
@@ -352,7 +504,9 @@ export default function EditProfile() {
         phone: form.contact,
         gender: mapGenderToApiValue(form.gender),
         nationality: mapNationalityToApiValue(form.nationality),
-        region: form.region,
+        // 서버는 region 을 문자열 하나로만 받는다. 시군구를 골랐으면 "서울 중구" 로 합쳐 보낸다.
+        // RegionResolver 가 "시도 시군구" 조합을 먼저 보므로 이 형태가 가장 정확하다.
+        region: form.sigungu.trim() ? `${form.region.trim()} ${form.sigungu.trim()}` : form.region.trim(),
       });
 
       if (wantsPasswordChange) {
@@ -512,11 +666,15 @@ export default function EditProfile() {
             <div className="flex w-full items-start gap-8">
               <div className="flex flex-1 flex-col items-start gap-2">
                 <FieldLabel required>연락처</FieldLabel>
+                {/* 숫자만 받고 하이픈은 자동으로 넣는다(010-1234-5678).
+                    하이픈을 직접 치거나 통째로 붙여넣어도 같은 표기로 정리된다. */}
                 <TextInput
                   type="tel"
                   value={form.contact}
-                  onChange={updateField('contact')}
+                  onChange={handleContactChange}
                   placeholder="010-0000-0000"
+                  inputMode="numeric"
+                  maxLength={13}
                 />
               </div>
               <div className="flex flex-1 flex-col items-start gap-2">
@@ -549,20 +707,106 @@ export default function EditProfile() {
               <div className="flex flex-1 flex-col items-start gap-2">
                 <FieldLabel required>거주 지역</FieldLabel>
                 <div className="flex w-full flex-col items-start gap-2">
-                  <div className="relative flex h-12 w-full items-center rounded-lg bg-[#F9FAFC] pl-6 pr-3">
-                    <select
-                      value={form.region}
-                      onChange={updateField('region')}
-                      className="w-full flex-1 appearance-none bg-transparent text-[16px] font-medium leading-6 text-[#555964] focus:outline-none"
-                    >
-                      {REGION_OPTIONS.map((region) => (
-                        <option key={region.code} value={region.code}>
-                          {region.label}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDownIcon className="pointer-events-none size-6 shrink-0 text-[#9DA1AC]" />
+                  {/* 회원가입(SignPage)과 같은 방식: 입력하면 서버에서 받은 지역 목록이 좁혀진다.
+                      자유 입력이라 오타가 나면 저장이 안 되므로, 제출 때 목록에 있는 값인지 확인한다. */}
+                  {/* 시도와 시군구를 좌우로 둔다(회원가입 화면과 동일). 이 칸은 국적과 한 줄을
+                      나눠 쓰고 있어 폭이 넉넉하지 않으므로, 안내 문구는 짧게 쓴다. */}
+                  <div className="flex w-full gap-2">
+                    <div className="relative flex-1" ref={regionBoxRef}>
+                      <div className="flex h-12 w-full items-center rounded-lg bg-[#F9FAFC] pl-6 pr-3">
+                        <input
+                          value={form.region}
+                          onChange={(e) => {
+                            setForm((prev) => ({ ...prev, region: e.target.value }));
+                            setShowRegionDropdown(true);
+                          }}
+                          onFocus={() => setShowRegionDropdown(true)}
+                          placeholder="시도"
+                          className="w-full flex-1 bg-transparent text-[16px] font-medium leading-6 text-[#555964] placeholder:text-[#9DA1AC] focus:outline-none"
+                        />
+                        <ChevronDownIcon className="pointer-events-none size-6 shrink-0 text-[#9DA1AC]" />
+                      </div>
+                      {/* 높이는 시도 17개가 최대라 400px(약 8개)까지 열어두고 나머지는 스크롤 */}
+                      {showRegionDropdown && filteredRegions.length > 0 && (
+                        <ul className="absolute left-0 top-[calc(100%+4px)] z-20 max-h-[400px] w-full overflow-y-auto rounded-lg border border-[#E5E7EB] bg-white py-2 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                          {filteredRegions.map((name) => (
+                            <li key={name}>
+                              <button
+                                type="button"
+                                className={`w-full px-6 py-3 text-left text-[16px] font-medium leading-6 hover:bg-[#F4F4FE] ${
+                                  name === form.region.trim()
+                                    ? 'bg-[#F4F4FE] text-[#7962ED]'
+                                    : 'text-[#0A0C11]'
+                                }`}
+                                onClick={() => {
+                                  // 시도가 바뀌면 이전 시군구는 무의미하므로 비운다.
+                                  setForm((prev) => ({ ...prev, region: name, sigungu: '' }));
+                                  setShowRegionDropdown(false);
+                                }}
+                              >
+                                {name}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                    {/* 시군구. 시도를 고른 뒤에만 의미가 있어 그때 활성화한다. */}
+                    <div className="relative flex-1" ref={sigunguBoxRef}>
+                      <div className="flex h-12 w-full items-center rounded-lg bg-[#F9FAFC] pl-6 pr-3">
+                        <input
+                          value={form.sigungu}
+                          disabled={!form.region.trim() || isLoadingSigungu}
+                          onChange={(e) => {
+                            setForm((prev) => ({ ...prev, sigungu: e.target.value }));
+                            setShowSigunguDropdown(true);
+                          }}
+                          onFocus={() => setShowSigunguDropdown(true)}
+                          placeholder={
+                            !form.region.trim()
+                              ? '시도 먼저'
+                              : isLoadingSigungu
+                                ? '불러오는 중…'
+                                : sigunguOptions.length === 0
+                                  ? '해당 없음'
+                                  : '시군구 (선택)'
+                          }
+                          className="w-full flex-1 bg-transparent text-[16px] font-medium leading-6 text-[#555964] placeholder:text-[#9DA1AC] focus:outline-none disabled:cursor-not-allowed"
+                        />
+                        <ChevronDownIcon className="pointer-events-none size-6 shrink-0 text-[#9DA1AC]" />
+                      </div>
+                      {showSigunguDropdown && filteredSigungu.length > 0 && (
+                        <ul className="absolute left-0 top-[calc(100%+4px)] z-20 max-h-[400px] w-full overflow-y-auto rounded-lg border border-[#E5E7EB] bg-white py-2 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                          {filteredSigungu.map((name) => (
+                            <li key={name}>
+                              <button
+                                type="button"
+                                className={`w-full px-6 py-3 text-left text-[16px] font-medium leading-6 hover:bg-[#F4F4FE] ${
+                                  name === form.sigungu.trim()
+                                    ? 'bg-[#F4F4FE] text-[#7962ED]'
+                                    : 'text-[#0A0C11]'
+                                }`}
+                                onClick={() => {
+                                  setForm((prev) => ({ ...prev, sigungu: name }));
+                                  setShowSigunguDropdown(false);
+                                }}
+                              >
+                                {name}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
                   </div>
+
+                  {/* 시군구 조회 실패 사유. 콘솔에만 남기면 "원래 없는 지역"과 구분이 안 된다. */}
+                  {sigunguError && (
+                    <p className="text-[14px] font-medium leading-5 text-[#FA5862]">
+                      {sigunguError}
+                    </p>
+                  )}
+
                   <p className="text-[14px] font-medium leading-5 text-[#747883]">
                     ※ 장학금 추천 시 거주 지역 기준이 활용될 수 있어요.
                   </p>
