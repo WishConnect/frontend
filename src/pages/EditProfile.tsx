@@ -8,10 +8,11 @@ import {
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.svg';
 import { putBasicProfile, getMyProfile } from '../api/onboarding/profile';
+import { getRegions } from '../api/region';
 import { updatePassword, getMyPageSummary } from '../api/mypage/mypage';
-import { getRegions } from '../api/common/region';
 import { useUserStore } from '../store/user/user';
 import { tokenStorage } from '../utils/token';
+import type { Region } from '../types/region';
 
 type Gender = 'female' | 'male' | 'none';
 type Nationality = 'domestic' | 'foreign';
@@ -175,36 +176,10 @@ function SelectToggleGroup<T extends string>({
   );
 }
 
-// ------------------------------------------------------------------
-// 거주 지역: GET /api/v1/regions 로 서버 마스터(축약형 이름, 예: "서울")를 받아
-// 그대로 옵션으로 쓴다. GET /api/v1/users/me/profile 응답의 region도 같은
-// 축약형으로 오므로(PUT도 동일 형식 기대) 별도 명칭 매핑이 필요 없다.
-// 이 호출이 실패했을 때만 아래 대체 목록(17개 시도)을 쓴다.
-// ------------------------------------------------------------------
-const REGION_FALLBACK_OPTIONS = [
-  '서울',
-  '부산',
-  '대구',
-  '인천',
-  '광주',
-  '대전',
-  '울산',
-  '세종',
-  '경기',
-  '강원',
-  '충북',
-  '충남',
-  '전북',
-  '전남',
-  '경북',
-  '경남',
-  '제주',
-];
-
-// region이 옵션 목록 안에 있는지 확인하고, 없으면(빈 값 등) 첫 번째 옵션으로 폴백한다.
-function normalizeRegion(region: string | null | undefined, options: string[]): string {
-  if (!region) return options[0] ?? '';
-  return options.includes(region) ? region : (options[0] ?? '');
+// 이전에 저장된 "서울" 같은 축약형도 API의 정식 명칭과 매칭한다.
+function normalizeRegion(region: string | null | undefined, regions: Region[]): string {
+  if (!region) return '';
+  return regions.find(({ name }) => name === region || name.startsWith(region))?.name ?? region;
 }
 
 // 지금은 하드코딩된 기본값이지만, 추후 로그인/API 응답으로 이 객체를 채우면 됩니다.
@@ -218,7 +193,7 @@ const DEFAULT_FORM: ProfileForm = {
   contact: '',
   gender: 'female',
   nationality: 'domestic',
-  region: REGION_FALLBACK_OPTIONS[0],
+  region: '',
 };
 
 // ------------------------------------------------------------------
@@ -272,29 +247,36 @@ export default function EditProfile() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [regionOptions, setRegionOptions] = useState<string[]>(REGION_FALLBACK_OPTIONS);
+  const [regions, setRegions] = useState<Region[]>([]);
+  const [isLoadingRegions, setIsLoadingRegions] = useState(true);
+  const [regionLoadError, setRegionLoadError] = useState<string | null>(null);
   const clearUser = useUserStore((s) => s.clearUser);
+
+  useEffect(() => {
+    const fetchRegions = async () => {
+      try {
+        const response = await getRegions();
+        setRegions(response.data.data);
+      } catch (err) {
+        console.error('거주 지역 목록 조회 실패:', err);
+        setRegionLoadError('거주 지역 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
+      } finally {
+        setIsLoadingRegions(false);
+      }
+    };
+
+    fetchRegions();
+  }, []);
 
   // 화면 진입 시 실제 유저 프로필을 불러와서 폼에 채워넣음.
   // getMyProfile(GET /users/me/profile)에서 이름/생년월일/연락처/성별/국적/지역을,
-  // getMyPageSummary(GET /users/me)에서 이메일을, getRegions(GET /regions)에서
-  // 거주지역 선택지를 각각 가져와 합친다. 거주지역 목록은 조회 실패해도 대체 목록으로
-  // 폼 자체는 계속 쓸 수 있어야 하므로 별도로 catch한다.
+  // getMyPageSummary(GET /users/me)에서 이메일을 각각 가져와 합친다.
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const [profileRes, summaryRes, regions] = await Promise.all([
-          getMyProfile(),
-          getMyPageSummary(),
-          getRegions().catch((err) => {
-            console.error('거주지역 목록 조회 실패:', err);
-            return [];
-          }),
-        ]);
+        const [profileRes, summaryRes] = await Promise.all([getMyProfile(), getMyPageSummary()]);
         const profile = profileRes.data.data;
         const summary = summaryRes.data.data;
-        const options = regions.length > 0 ? regions.map((r) => r.name) : REGION_FALLBACK_OPTIONS;
-        setRegionOptions(options);
 
         // profile.birthDate가 이미 "yyyy-MM-dd" 전체 날짜로 오므로 그대로 사용.
         // 값이 없으면(신규 유저 등) 올해 1월 1일로 폴백.
@@ -308,7 +290,7 @@ export default function EditProfile() {
           contact: profile.phone,
           gender: mapApiValueToGender(profile.gender),
           nationality: mapApiValueToNationality(profile.nationality),
-          region: normalizeRegion(profile.region, options),
+          region: profile.region ?? '',
         }));
       } catch (err) {
         console.error('프로필 정보 조회 실패:', err);
@@ -320,6 +302,12 @@ export default function EditProfile() {
 
     fetchProfile();
   }, []);
+
+  // 프로필에 저장된 기존 축약 지역명을, 조회한 지역 마스터의 정식 명칭으로 맞춘다.
+  useEffect(() => {
+    if (regions.length === 0) return;
+    setForm((prev) => ({ ...prev, region: normalizeRegion(prev.region, regions) }));
+  }, [regions]);
 
   const updateField =
     (field: keyof ProfileForm) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -561,23 +549,35 @@ export default function EditProfile() {
               <div className="flex flex-1 flex-col items-start gap-2">
                 <FieldLabel required>거주 지역</FieldLabel>
                 <div className="flex w-full flex-col items-start gap-2">
-                  <div className="relative flex h-12 w-full items-center rounded-lg bg-[#F9FAFC] pl-6 pr-3">
+                  <div className="relative flex h-12 w-full items-center rounded-lg bg-[#F9FAFC]">
+                    {/* select를 박스 전체(화살표 영역 포함)에 절대 위치로 깔아서, 화살표를
+                        클릭해도 select 바깥이라 안 열리던 문제를 없앤다. 화살표 아이콘은
+                        pointer-events-none이라 클릭이 바로 아래 select로 그대로 전달된다. */}
                     <select
                       value={form.region}
                       onChange={updateField('region')}
-                      className="w-full appearance-none bg-transparent pr-8 text-[16px] font-medium leading-6 text-[#555964] focus:outline-none"
+                      disabled={isLoadingRegions || regions.length === 0}
+                      className="absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-lg bg-transparent pl-6 pr-12 text-[16px] font-medium leading-6 text-[#555964] focus:outline-none disabled:cursor-default"
                     >
-                      {regionOptions.map((name) => (
-                        <option key={name} value={name}>
-                          {name}
+                      <option value="">
+                        {isLoadingRegions ? '거주 지역을 불러오는 중...' : '선택해 주세요'}
+                      </option>
+                      {regions.map((region) => (
+                        <option key={region.regionId} value={region.name}>
+                          {region.name}
                         </option>
                       ))}
                     </select>
-                    <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 size-6 shrink-0 -translate-y-1/2 text-[#9DA1AC]" />
+                    <ChevronDownIcon className="pointer-events-none absolute right-3 size-6 shrink-0 text-[#9DA1AC]" />
                   </div>
                   <p className="text-[14px] font-medium leading-5 text-[#747883]">
                     ※ 장학금 추천 시 거주 지역 기준이 활용될 수 있어요.
                   </p>
+                  {regionLoadError && (
+                    <p className="text-[14px] font-medium leading-5 text-[#FA5862]">
+                      {regionLoadError}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
