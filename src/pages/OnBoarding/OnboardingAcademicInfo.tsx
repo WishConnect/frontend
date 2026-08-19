@@ -13,6 +13,7 @@ import {
   searchMajors,
 } from '../../api/onboarding/profile';
 import type { University, Major } from '../../types/onboarding/profile';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 function CloseIcon() {
   return (
@@ -453,6 +454,7 @@ export default function OnboardingAcademicInfo() {
   }, [form.majorName]);
 
   const handleSelectUniversity = (uni: University) => {
+    skipUniversitySearchRef.current = true;
     setForm((prev) => ({ ...prev, school: uni.name }));
     setShowUniversityDropdown(false);
     setUniversityResults([]);
@@ -460,6 +462,7 @@ export default function OnboardingAcademicInfo() {
 
   // 디자인상 "전공 분류"는 별도 셀렉트로 유지 — 검색 결과 선택 시 majorName만 채움
   const handleSelectMajor = (major: Major) => {
+    skipMajorSearchRef.current = true;
     setForm((prev) => ({ ...prev, majorName: major.name }));
     setShowMajorDropdown(false);
     setMajorResults([]);
@@ -474,6 +477,26 @@ export default function OnboardingAcademicInfo() {
     setIsSubmitting(true);
     setSubmitError(null);
 
+    const semesterGpa = Number(form.lastSemesterGpa);
+    const cumulativeGpa = Number(form.cumulativeGpa);
+
+    if (
+      form.lastSemesterGpa.trim() === '' ||
+      form.cumulativeGpa.trim() === '' ||
+      Number.isNaN(semesterGpa) ||
+      Number.isNaN(cumulativeGpa)
+    ) {
+      setSubmitError('학점을 올바른 숫자로 입력해 주세요.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (semesterGpa < 0 || semesterGpa > 4.5 || cumulativeGpa < 0 || cumulativeGpa > 4.5) {
+      setSubmitError('학점은 4.5 만점 기준으로 0~4.5 사이로 입력해 주세요.');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const res = await putAcademicProfile({
         university: form.school,
@@ -481,8 +504,8 @@ export default function OnboardingAcademicInfo() {
         majorName: form.majorName,
         enrollmentStatus: ENROLLMENT_STATUS_MAP[form.enrollmentStatus],
         grade: form.gradeSemester,
-        semesterGpa: Number(form.lastSemesterGpa),
-        cumulativeGpa: Number(form.cumulativeGpa),
+        semesterGpa,
+        cumulativeGpa,
         dualMajor: getDualMajorValue(doubleMajor, minorMajor),
       });
 
@@ -490,7 +513,7 @@ export default function OnboardingAcademicInfo() {
       navigate('/onboarding/household');
     } catch (err) {
       console.error('학적 정보 저장 실패:', err);
-      setSubmitError('학적 정보 저장에 실패했어요. 다시 시도해 주세요.');
+      setSubmitError(getApiErrorMessage(err, '학적 정보 저장에 실패했어요. 다시 시도해 주세요.'));
     } finally {
       setIsSubmitting(false);
     }

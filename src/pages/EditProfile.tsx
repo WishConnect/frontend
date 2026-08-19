@@ -258,6 +258,8 @@ export default function EditProfile() {
   const [sigunguCache, setSigunguCache] = useState<Record<string, Region[]>>({});
   const [sigunguErrorByRegion, setSigunguErrorByRegion] = useState<Record<string, string>>({});
   const clearUser = useUserStore((s) => s.clearUser);
+  // 소셜(카카오/구글) 로그인 사용자는 비밀번호가 없으므로 비밀번호 변경 폼을 숨긴다.
+  const isSocialUser = !!useUserStore((s) => s.user?.loginType);
 
   useEffect(() => {
     const fetchRegions = async () => {
@@ -492,68 +494,71 @@ export default function EditProfile() {
               />
             </div>
 
-            {/* 현재 비밀번호 / 새 비밀번호 / 새 비밀번호 확인 — 선택 입력 */}
-            <div className="flex w-full flex-col items-start gap-2">
-              <p className="text-[14px] font-medium leading-5 text-[#747883]">
-                비밀번호를 바꾸고 싶을 때만 아래 세 항목을 모두 입력해 주세요.
-              </p>
-              <div className="flex w-full items-start gap-6">
-                <div className="flex flex-1 flex-col items-start gap-2">
-                  <FieldLabel>현재 비밀번호</FieldLabel>
-                  <TextInput
-                    type={showCurrentPw ? 'text' : 'password'}
-                    value={form.currentPassword}
-                    onChange={updateField('currentPassword')}
-                    placeholder="비밀번호를 다시 입력하세요"
-                    rightSlot={
-                      <button
-                        type="button"
-                        onClick={() => setShowCurrentPw((v) => !v)}
-                        className="text-[#9DA1AC]"
-                      >
-                        {showCurrentPw ? <EyeOffIcon /> : <EyeIcon />}
-                      </button>
-                    }
-                  />
-                </div>
-                <div className="flex flex-1 flex-col items-start gap-2">
-                  <FieldLabel>새 비밀번호</FieldLabel>
-                  <TextInput
-                    type={showNewPw ? 'text' : 'password'}
-                    value={form.newPassword}
-                    onChange={updateField('newPassword')}
-                    placeholder="비밀번호를 다시 입력하세요"
-                    rightSlot={
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPw((v) => !v)}
-                        className="text-[#9DA1AC]"
-                      >
-                        {showNewPw ? <EyeOffIcon /> : <EyeIcon />}
-                      </button>
-                    }
-                  />
-                </div>
-                <div className="flex flex-1 flex-col items-start gap-2">
-                  <FieldLabel>새 비밀번호 확인</FieldLabel>
-                  <TextInput
-                    type={showNewPwConfirm ? 'text' : 'password'}
-                    value={form.newPasswordConfirm}
-                    onChange={updateField('newPasswordConfirm')}
-                    placeholder="비밀번호를 다시 입력하세요"
-                    rightSlot={
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPwConfirm((v) => !v)}
-                        className="text-[#9DA1AC]"
-                      >
-                        {showNewPwConfirm ? <EyeOffIcon /> : <EyeIcon />}
-                      </button>
-                    }
-                  />
+            {/* 현재 비밀번호 / 새 비밀번호 / 새 비밀번호 확인 — 선택 입력.
+                소셜 로그인 사용자는 비밀번호 자체가 없으므로 폼 전체를 숨긴다. */}
+            {!isSocialUser && (
+              <div className="flex w-full flex-col items-start gap-2">
+                <p className="text-[14px] font-medium leading-5 text-[#747883]">
+                  비밀번호를 바꾸고 싶을 때만 아래 세 항목을 모두 입력해 주세요.
+                </p>
+                <div className="flex w-full items-start gap-6">
+                  <div className="flex flex-1 flex-col items-start gap-2">
+                    <FieldLabel>현재 비밀번호</FieldLabel>
+                    <TextInput
+                      type={showCurrentPw ? 'text' : 'password'}
+                      value={form.currentPassword}
+                      onChange={updateField('currentPassword')}
+                      placeholder="비밀번호를 다시 입력하세요"
+                      rightSlot={
+                        <button
+                          type="button"
+                          onClick={() => setShowCurrentPw((v) => !v)}
+                          className="text-[#9DA1AC]"
+                        >
+                          {showCurrentPw ? <EyeOffIcon /> : <EyeIcon />}
+                        </button>
+                      }
+                    />
+                  </div>
+                  <div className="flex flex-1 flex-col items-start gap-2">
+                    <FieldLabel>새 비밀번호</FieldLabel>
+                    <TextInput
+                      type={showNewPw ? 'text' : 'password'}
+                      value={form.newPassword}
+                      onChange={updateField('newPassword')}
+                      placeholder="비밀번호를 다시 입력하세요"
+                      rightSlot={
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPw((v) => !v)}
+                          className="text-[#9DA1AC]"
+                        >
+                          {showNewPw ? <EyeOffIcon /> : <EyeIcon />}
+                        </button>
+                      }
+                    />
+                  </div>
+                  <div className="flex flex-1 flex-col items-start gap-2">
+                    <FieldLabel>새 비밀번호 확인</FieldLabel>
+                    <TextInput
+                      type={showNewPwConfirm ? 'text' : 'password'}
+                      value={form.newPasswordConfirm}
+                      onChange={updateField('newPasswordConfirm')}
+                      placeholder="비밀번호를 다시 입력하세요"
+                      rightSlot={
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPwConfirm((v) => !v)}
+                          className="text-[#9DA1AC]"
+                        >
+                          {showNewPwConfirm ? <EyeOffIcon /> : <EyeIcon />}
+                        </button>
+                      }
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* 이름 / 생년월일 */}
             <div className="flex w-full items-start gap-8">
