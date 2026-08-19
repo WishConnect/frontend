@@ -13,12 +13,13 @@ import DetailScrap from '../../assets/icons/DetailScrap.svg';
 import Scrap from '../../assets/icons/Scrap.svg';
 import PaperPlane from '../../assets/icons/PaperPlane.svg';
 import ShareCheck from '../../assets/icons/ShareCheck.svg';
-import Report from '../../assets/icons/Report.svg';
 import Button from '../../components/Button/Button';
 import Header from '../../components/common/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar';
 import DdayStatus from '../../components/DdayStatus';
 import ReportModal from '../Curating/Report';
+import InquiryModal from './Inquiry';
+import ReportMenu from '../../components/Curation/ReportMenu';
 import ReportSuccessModal from './ReportSuccess';
 
 import DetailPost from '../../components/Curation/DetailPost.svg';
@@ -192,6 +193,7 @@ export default function Detail() {
   const [showShareToast, setShowShareToast] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isReportSuccessOpen, setIsReportSuccessOpen] = useState(false);
+  const [isInquiryModalOpen, setIsInquiryModalOpen] = useState(false);
 
   // 아카이빙 api 재사용
   const [applicationStatus, setApplicationStatus] = useState<ApplicationStatus>('NOT_STARTED');
@@ -401,10 +403,6 @@ export default function Detail() {
     }
   };
 
-  const handleReport = () => {
-    setIsReportModalOpen(true);
-  };
-
   const handleApplicationButtonClick = async () => {
     if (!isLoggedIn) {
       navigate('/login', {
@@ -489,6 +487,17 @@ export default function Detail() {
           }}
         />
       )}
+      {isInquiryModalOpen && (
+        <InquiryModal
+          scholarshipId={detail.scholarshipId}
+          onClose={() => setIsInquiryModalOpen(false)}
+          onSuccess={() => {
+            setIsInquiryModalOpen(false);
+            // 접수 완료 안내는 신고와 같은 모달을 재사용한다.
+            setIsReportSuccessOpen(true);
+          }}
+        />
+      )}
       {isReportSuccessOpen && <ReportSuccessModal onClose={() => setIsReportSuccessOpen(false)} />}
       <div className="flex">
         <div className="relative ml-[64px] w-[237px] shrink-0">
@@ -561,43 +570,45 @@ export default function Detail() {
                 <img src={PaperPlane} alt="" />
                 <span>공유하기</span>
               </button>
-
-              <button
-                type="button"
-                onClick={handleReport}
-                className="flex h-[32px] w-[101px] items-center justify-center gap-[4px] rounded-[20px] bg-[#F3F4F6] px-[16px] text-[14px] leading-[20px] font-medium text-[#747883]"
-              >
-                <img src={Report} alt="" />
-                <span>신고하기</span>
-              </button>
             </div>
 
-            {/* 장학금 이름 */}
-            <h1 className="mt-[12px] text-[36px] font-bold leading-[48px] text-[#181C25]">
-              {detail.title}
-            </h1>
+            {/* 제목·마감 정보와 신고하기를 한 줄에 둔다(시안 3345:7681).
+                신고하기는 오른쪽 끝, 제목과 같은 높이에서 시작한다. */}
+            <div className="mt-[12px] flex items-start justify-between gap-[16px]">
+              <div className="min-w-0">
+                {/* 장학금 이름 */}
+                <h1 className="text-[36px] font-bold leading-[48px] text-[#181C25]">
+                  {detail.title}
+                </h1>
 
-            {/* 마감 정보 */}
-            <div className="mt-[12px] flex h-[32px] w-[402px] items-center gap-[8px]">
-              <DdayStatus days={detail.dDay ?? 0} />
+                {/* 마감 정보 */}
+                <div className="mt-[12px] flex h-[32px] w-[402px] items-center gap-[8px]">
+                  <DdayStatus days={detail.dDay ?? 0} />
 
-              <span className="flex h-[20px] items-center text-[#555964]">•</span>
+                  <span className="flex h-[20px] items-center text-[#555964]">•</span>
 
-              <span className="flex h-[20px] items-center whitespace-nowrap text-[16px] font-semibold leading-[20px] text-[#555964]">
-                {formatDeadline(detail.deadline)}
-              </span>
+                  <span className="flex h-[20px] items-center whitespace-nowrap text-[16px] font-semibold leading-[20px] text-[#555964]">
+                    {formatDeadline(detail.deadline)}
+                  </span>
 
-              {detail.detailUrl && (
-                <a
-                  href={detail.detailUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="relative top-[1px] flex h-[20px] w-[62px] shrink-0 items-center gap-[2px] whitespace-nowrap text-[14px] font-medium leading-[20px] text-[#747883]"
-                >
-                  <span className="underline underline-offset-[2px]">웹사이트</span>
-                  <span>🡭</span>
-                </a>
-              )}
+                  {detail.detailUrl && (
+                    <a
+                      href={detail.detailUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="relative top-[1px] flex h-[20px] w-[62px] shrink-0 items-center gap-[2px] whitespace-nowrap text-[14px] font-medium leading-[20px] text-[#747883]"
+                    >
+                      <span className="underline underline-offset-[2px]">웹사이트</span>
+                      <span>🡭</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              <ReportMenu
+                onSelectReport={() => setIsReportModalOpen(true)}
+                onSelectInquiry={() => setIsInquiryModalOpen(true)}
+              />
             </div>
 
             {/* 지원서 작성 배너 */}
