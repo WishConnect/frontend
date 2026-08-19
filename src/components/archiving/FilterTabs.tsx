@@ -1,6 +1,6 @@
 import type { Scholarship } from '../../types/scholarship';
 
-export type ArchivingFilter = 'all' | Scholarship['status'];
+export type ArchivingFilter = 'all' | 'scrapped' | Scholarship['status'];
 
 interface FilterTabsProps {
   active: ArchivingFilter;
@@ -10,8 +10,9 @@ interface FilterTabsProps {
 
 const FILTERS: { key: ArchivingFilter; label: string }[] = [
   { key: 'all', label: '전체' },
+  { key: 'scrapped', label: '스크랩' },
   { key: 'before', label: '작성 전' },
-  { key: 'in-progress', label: '진행 중' },
+  { key: 'in-progress', label: '작성 중' },
   { key: 'done', label: '완료' },
 ];
 

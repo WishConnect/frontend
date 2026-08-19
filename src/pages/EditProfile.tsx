@@ -13,6 +13,7 @@ import { updatePassword, getMyPageSummary } from '../api/mypage/mypage';
 import { useUserStore } from '../store/user/user';
 import { tokenStorage } from '../utils/token';
 import { formatPhone, getPhoneError } from '../utils/phone';
+import { normalizeRegion } from '../utils/region';
 import type { Region } from '../types/region';
 
 type Gender = 'female' | 'male' | 'none';
@@ -290,6 +291,7 @@ export default function EditProfile() {
         // profile.birthDate가 이미 "yyyy-MM-dd" 전체 날짜로 오므로 그대로 사용.
         // 값이 없으면(신규 유저 등) 올해 1월 1일로 폴백.
         const birthDate = profile.birthDate || `${new Date().getFullYear()}-01-01`;
+        const normalizedRegion = normalizeRegion(profile.region);
 
         setForm((prev) => ({
           ...prev,
@@ -301,9 +303,10 @@ export default function EditProfile() {
           contact: formatPhone(profile.phone ?? ''),
           gender: mapApiValueToGender(profile.gender),
           nationality: mapApiValueToNationality(profile.nationality),
-          // region 은 객체로 온다. 시군구면 parentName 에 상위 시도가 실려 온다.
-          region: profile.region?.parentName ?? profile.region?.name ?? '',
-          sigungu: profile.region?.parentName ? profile.region.name : '',
+          // region 은 객체(시군구면 parentName 에 상위 시도) 또는 여전히 문자열로 올 수 있다
+          // (utils/region.ts 주석 참고 — 백엔드 마이그레이션이 엔드포인트마다 다르게 반영됨).
+          region: normalizedRegion?.parentName ?? normalizedRegion?.name ?? '',
+          sigungu: normalizedRegion?.parentName ? normalizedRegion.name : '',
         }));
       } catch (err) {
         console.error('프로필 정보 조회 실패:', err);

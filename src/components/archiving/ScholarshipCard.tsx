@@ -7,7 +7,7 @@ import ArchivePost from './ArchivePoster.svg';
 import DdayStatus from '../DdayStatus';
 interface ScholarshipCardProps {
   scholarship: Scholarship;
-  onUnscrap?: (scholarshipId: string) => void;
+  onToggleScrap?: (scholarshipId: string, isScrapped: boolean) => void;
 }
 
 const STATUS_BUTTON_LABEL: Record<Scholarship['status'], string> = {
@@ -17,19 +17,29 @@ const STATUS_BUTTON_LABEL: Record<Scholarship['status'], string> = {
 };
 
 // 아카이빙 카드: 장학금 썸네일 + 마감일 + 태그 + 자기소개서 진행률 + 액션 버튼
-export default function ScholarshipCard({ scholarship, onUnscrap }: ScholarshipCardProps) {
+export default function ScholarshipCard({ scholarship, onToggleScrap }: ScholarshipCardProps) {
   const navigate = useNavigate();
 
-  const { id, title, imageUrl, deadline, dDay, tags, status, questionLabel, progressPercent } =
-    scholarship;
+  const {
+    id,
+    isScrapped = false,
+    title,
+    imageUrl,
+    deadline,
+    dDay,
+    tags,
+    status,
+    questionLabel,
+    progressPercent,
+  } = scholarship;
 
   const handleGoToDetail = () => {
     const cleanId = String(id).replace('sch-', '');
     navigate(`/curation/${cleanId}`);
   };
 
-  const handleUnscrap = () => {
-    onUnscrap?.(String(id));
+  const handleToggleScrap = () => {
+    onToggleScrap?.(String(id), isScrapped);
   };
 
   return (
@@ -49,7 +59,7 @@ export default function ScholarshipCard({ scholarship, onUnscrap }: ScholarshipC
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[280px] bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
       <div className="absolute right-4 top-4">
-        <ToggleIcon type="bookmark" isActive={true} onClick={handleUnscrap} />
+        <ToggleIcon type="bookmark" isActive={isScrapped} onClick={handleToggleScrap} />
       </div>
 
       <div className="relative -mt-6 flex flex-col rounded-2xl bg-white p-6 shadow-[0_-2px_10px_0_rgba(0,0,0,0.1)]">

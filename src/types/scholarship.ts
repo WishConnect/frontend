@@ -4,6 +4,7 @@ export type ScholarshipStatus = 'before' | 'in-progress' | 'done';
 export interface Scholarship {
   id: string;
   applicationId: number | null;
+  isScrapped?: boolean;
   title: string;
   imageUrl: string;
   deadline: string;

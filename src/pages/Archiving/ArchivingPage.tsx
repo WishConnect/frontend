@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { unscrapScholarship } from '../../api/Curation/Scrap';
+import { scrapScholarship, unscrapScholarship } from '../../api/Curation/Scrap';
 import Header from '../../components/common/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar';
 import FilterTabs, { type ArchivingFilter } from '../../components/archiving/FilterTabs';
@@ -18,6 +18,7 @@ export default function ArchivingPage() {
 
   const [counts, setCounts] = useState({
     all: 0,
+    scrapped: 0,
     before: 0,
     'in-progress': 0,
     done: 0,
@@ -33,6 +34,9 @@ export default function ArchivingPage() {
 
       case 'done':
         return 'COMPLETED';
+
+      case 'scrapped':
+        return undefined;
 
       default:
         return undefined;
@@ -51,14 +55,20 @@ export default function ArchivingPage() {
           size: 100,
         });
 
-        setArchiveItems(data.items);
+        setArchiveItems(
+          filter === 'scrapped' ? data.items.filter((item) => item.isScrapped) : data.items,
+        );
 
-        setCounts({
+        setCounts((prev) => ({
           all: data.counts.all,
+          scrapped:
+            filter === 'all' || filter === 'scrapped'
+              ? data.items.filter((item) => item.isScrapped).length
+              : prev.scrapped,
           before: data.counts.notStarted,
           'in-progress': data.counts.inProgress,
           done: data.counts.completed,
-        });
+        }));
       } catch (error) {
         console.error('아카이빙 목록 조회 실패:', error);
 
@@ -85,6 +95,7 @@ export default function ArchivingPage() {
     return {
       id: String(item.scholarshipId),
       applicationId: item.applicationId,
+      isScrapped: item.isScrapped,
       title: item.title,
       imageUrl: item.posterUrl,
       deadline: formattedDeadline,
@@ -97,36 +108,35 @@ export default function ArchivingPage() {
   };
 
   const displayScholarships = archiveItems.map(transformToScholarship);
-  const handleUnscrap = async (scholarshipId: number | string) => {
+  const handleToggleScrap = async (
+    scholarshipId: number | string,
+    isCurrentlyScrapped: boolean,
+  ) => {
     try {
-      await unscrapScholarship(scholarshipId);
+      if (isCurrentlyScrapped) {
+        await unscrapScholarship(scholarshipId);
+      } else {
+        await scrapScholarship(scholarshipId);
+      }
 
-      setArchiveItems((prev) =>
-        prev.filter((item) => String(item.scholarshipId) !== String(scholarshipId)),
-      );
-
-      setCounts((prev) => {
-        const next = {
-          ...prev,
-          all: Math.max(0, prev.all - 1),
-        };
-
-        if (filter === 'before') {
-          next.before = Math.max(0, prev.before - 1);
+      setArchiveItems((prev) => {
+        if (filter === 'scrapped' && isCurrentlyScrapped) {
+          return prev.filter((item) => String(item.scholarshipId) !== String(scholarshipId));
         }
 
-        if (filter === 'in-progress') {
-          next['in-progress'] = Math.max(0, prev['in-progress'] - 1);
-        }
-
-        if (filter === 'done') {
-          next.done = Math.max(0, prev.done - 1);
-        }
-
-        return next;
+        return prev.map((item) =>
+          String(item.scholarshipId) === String(scholarshipId)
+            ? { ...item, isScrapped: !isCurrentlyScrapped }
+            : item,
+        );
       });
+
+      setCounts((prev) => ({
+        ...prev,
+        scrapped: isCurrentlyScrapped ? Math.max(0, prev.scrapped - 1) : prev.scrapped + 1,
+      }));
     } catch (error) {
-      console.error('스크랩 해제 실패:', error);
+      console.error('스크랩 상태 변경 실패:', error);
     }
   };
   return (
@@ -157,7 +167,9 @@ export default function ArchivingPage() {
             <p className="py-16 text-center text-base font-medium text-[#747883]">
               {searchQuery.trim()
                 ? `'${searchQuery.trim()}' 검색 결과가 없어요.`
-                : '스크랩한 장학금이 없어요.'}
+                : filter === 'scrapped'
+                  ? '스크랩한 장학금이 없어요.'
+                  : '보관된 장학금이나 지원서가 없어요.'}
             </p>
           ) : (
             <div className="grid grid-cols-3 items-start gap-8">
@@ -165,7 +177,7 @@ export default function ArchivingPage() {
                 <ScholarshipCard
                   key={scholarship.id}
                   scholarship={scholarship}
-                  onUnscrap={() => handleUnscrap(scholarship.id)}
+                  onToggleScrap={handleToggleScrap}
                 />
               ))}
             </div>
