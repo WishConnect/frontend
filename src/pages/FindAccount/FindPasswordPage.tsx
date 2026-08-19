@@ -10,7 +10,7 @@ import { getApiErrorMessage } from '../../utils/apiError';
 import { getLoginIdError, normalizeLoginId } from '../../utils/loginId';
 import { getPasswordError } from '../../utils/password';
 
-// 비밀번호 찾기: Figma 2462:5148(아이디) / 5177(이메일) / 5259·5302(인증번호) / 5359(새 비밀번호)
+// 비밀번호 재설정: Figma 2462:5148(아이디) / 5177(이메일) / 5259·5302(인증번호) / 5359(새 비밀번호)
 //
 // 2026-08-18 백엔드 개편(api-server ba7fcb8)에 맞춰 다시 짰다.
 //   - 계정을 **아이디 + 이메일 조합**으로 특정한다. 그래서 시안의 아이디 단계를 되살렸다
@@ -139,7 +139,7 @@ export default function FindPasswordPage() {
       <div className="pt-[184px]">
         {step === 'loginId' && (
           <AuthCard
-            title="비밀번호 찾기"
+            title="비밀번호 재설정"
             description="아이디를 입력해 주세요."
             footer={<StepNavButtons onNext={handleLoginIdNext} disabled={isLoading} />}
           >
@@ -155,7 +155,7 @@ export default function FindPasswordPage() {
 
         {step === 'email' && (
           <AuthCard
-            title="비밀번호 찾기"
+            title="비밀번호 재설정"
             description="가입할 때 쓴 이메일을 입력해 주세요."
             footer={
               <StepNavButtons

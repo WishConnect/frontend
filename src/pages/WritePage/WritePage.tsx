@@ -87,7 +87,7 @@ export default function WritePage() {
   const [step2Category, setStep2Category] = useState(0);
   const [, setAnswers] = useState<Record<number, Record<number, string>>>({});
   const [drafts, setDrafts] = useState<Record<number, string>>({});
-  const [, setProgressByCategory] = useState<Record<number, boolean>>({});
+  const [progressByCategory, setProgressByCategory] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     const fetchApplicationData = async () => {
@@ -135,16 +135,27 @@ export default function WritePage() {
   // 임시저장
   const step1Ref = useRef<Step1Handle>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const isNextEnabled = true;
+
+  const isStep1Complete =
+    questionCategories.length > 0 &&
+    questionCategories.every((_, idx) => progressByCategory[idx] === true);
+
+  const isNextEnabled = currentStep === 1 ? isStep1Complete : true;
 
   // 다음
   const handleNextStep = async () => {
     if (currentStep === 1) {
-      setCurrentStep(2);
+        try {
+            await step1Ref.current?.saveCurrentCategory();
+        } catch (error) {
+            console.error('저장 실패:', error);
+            return;
+        }
+        setCurrentStep(2);
     } else if (currentStep === 2) {
-      setCurrentStep(3);
+        setCurrentStep(3);
     }
-  };
+};
 
   const handleSaveDraft = async () => {
     setSaveStatus('saving');
@@ -171,18 +182,27 @@ export default function WritePage() {
   // 완료
   const handleComplete = async () => {
     try {
-      const questionId = questionIds[step2Category];
-      if (questionId) {
-        await putAnswer(applicationId, questionId, {
-          action: 'confirm',
-          userContent: drafts[step2Category] ?? '',
-        });
-      }
-      navigate('/');
+        let lastResponse;
+
+        for (let idx = 0; idx < questionIds.length; idx++) {
+            const questionId = questionIds[idx];
+            if (!questionId) continue;
+
+            lastResponse = await putAnswer(applicationId, questionId, {
+                action: 'confirm',
+                userContent: drafts[idx] ?? '',
+            });
+        }
+
+        if (lastResponse?.data?.applicationCompleted) {
+            navigate('/');
+        } else {
+            console.error('일부 문항이 완료되지 않았습니다.');
+        }
     } catch (error) {
-      console.error('완료 처리 실패:', error);
+        console.error('완료 처리 실패:', error);
     }
-  };
+};
 
   return (
     <div className="w-[1440px] min-h-screen font-['Pretendard']">

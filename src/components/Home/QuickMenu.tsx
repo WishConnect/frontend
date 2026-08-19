@@ -46,15 +46,24 @@ const quickMenus: QuickMenu[] = [
   },
 ];
 
-export default function QuickMenuSection() {
+interface QuickMenuSectionProps {
+  isLoggedIn: boolean;
+}
+
+export default function QuickMenuSection({ isLoggedIn }: QuickMenuSectionProps) {
   const navigate = useNavigate();
+  const visibleQuickMenus = isLoggedIn
+    ? quickMenus
+    : quickMenus.filter((menu) => menu.id !== 'application');
 
   return (
     <section className=" w-full">
       <h2 className="text-[24px] font-bold leading-[32px] text-[#10131A]">바로 가기</h2>
 
-      <div className="mt-[16px] grid grid-cols-4 gap-[16px]">
-        {quickMenus.map((menu) => (
+      <div
+        className={`mt-[16px] grid ${isLoggedIn ? 'grid-cols-4 gap-[16px]' : 'grid-cols-3 gap-[24px]'}`}
+      >
+        {visibleQuickMenus.map((menu) => (
           <button
             key={menu.id}
             type="button"

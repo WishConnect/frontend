@@ -204,7 +204,7 @@ export default function FindIdPage() {
           <AuthCard
             topOffset={72}
             title="아이디를 찾았어요."
-            description={"비밀번호를 잊으셨다면\n'비밀번호 찾기'를 눌러 주세요."}
+            description={"비밀번호를 잊으셨다면\n'비밀번호 재설정'을 눌러 주세요."}
             footerClassName="absolute bottom-[56px] left-[89px] w-[596px]"
             footer={
               <div className="flex gap-[24px]">
@@ -216,7 +216,7 @@ export default function FindIdPage() {
                   onClick={() => navigate('/find-password')}
                   className="!h-[64px] !border-[#E6E7EB] !bg-[#F9FAFC] !text-[#555964]"
                 >
-                  비밀번호 찾기
+                  비밀번호 재설정
                 </Button>
                 <Button
                   size="lg"

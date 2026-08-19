@@ -29,6 +29,7 @@ import { useUserStore } from '../../store/user/user';
 import { postStartApplication } from '../../api/archiving/start';
 import { getArchive } from '../../api/archiving/archive';
 import { formatScholarshipAmount } from '../../utils/scholarshipAmount';
+import { generateApplicationQuestions } from '../../api/write/step1/generate';
 
 import type {
   ScholarshipDetailResponse,
@@ -416,7 +417,6 @@ export default function Detail() {
 
     if (applicationId) {
       if (applicationStatus === 'COMPLETED') {
-        // 임시 경로
         navigate(`/complete/${applicationId}`, {
           state: {
             scholarshipId: detail.scholarshipId,
@@ -436,7 +436,7 @@ export default function Detail() {
       return;
     }
 
-    try {
+   try {
       const cleanId = Number(String(detail.scholarshipId).replace('sch-', ''));
 
       const response = await postStartApplication({
@@ -445,6 +445,14 @@ export default function Detail() {
 
       if (response.success && response.data) {
         const newApplicationId = response.data.applicationId;
+
+        // 지원서 생성 직후, STEP1 인터뷰 시작 전에만 호출 가능한 API.
+        // 실패해도 기본 문항으로 작성 진행 가능하니 흐름을 막지 않음.
+        try {
+          await generateApplicationQuestions(newApplicationId);
+        } catch (genError) {
+          console.error('맞춤 문항 생성 실패, 기본 문항으로 진행:', genError);
+        }
 
         navigate(`/write/${newApplicationId}`, {
           state: {
@@ -457,15 +465,6 @@ export default function Detail() {
     } catch (error) {
       console.error('지원서 생성 실패:', error);
     }
-
-    // navigate('/write', {
-    //   state: {
-    //     scholarshipId: detail.scholarshipId,
-    //     scholarshipTitle: detail.title,
-    //     applicationId,
-    //     applicationStatus,
-    //   },
-    // });
   };
 
   return (
@@ -490,7 +489,9 @@ export default function Detail() {
       )}
       {isInquiryModalOpen && (
         <InquiryModal
-          scholarshipId={detail.scholarshipId}
+          // 서버는 문의 대상을 자유 텍스트로 받는다(scholarshipId 를 받지 않음).
+          // 상세에서 열었으니 어떤 장학금인지 미리 채워 준다.
+          defaultTarget={detail.title}
           onClose={() => setIsInquiryModalOpen(false)}
           onSuccess={() => {
             setIsInquiryModalOpen(false);
@@ -505,7 +506,14 @@ export default function Detail() {
           <LeftSidebar activeId="curating" />
 
           {isLoggedIn && !isOnboarded && (
-            <div className="fixed bottom-[16px] left-[78px] z-10 h-[224px] w-[208px] rounded-[16px] bg-white px-[20px] pt-[20px] pb-[16px] shadow-[0_1px_7px_0_rgba(0,0,0,0.08)]">
+            // 사이드바 안쪽에 좌·우·아래 16px 씩 들여 놓는다(시안 3345:7681: 패널 237x896, 카드 205).
+            //
+            // left 를 주지 않는 이유: LeftSidebar 의 aside 와 같은 방식이다. fixed 인데 left 가 auto 면
+            // 브라우저가 원래 있어야 할 자리(= 이 열의 왼쪽 끝)를 기준으로 잡아 준다. 예전처럼
+            // left-[78px] 로 못 박으면 가운데 정렬 래퍼가 사이드바를 밀 때 카드만 제자리에 남아 어긋났다.
+            //
+            // top 은 사이드바 기하(top-80, h-896)에서 역산했다: 80 + 896 - 16 - 224 = 736.
+            <div className="fixed top-[736px] ml-[16px] z-10 h-[224px] w-[205px] rounded-[16px] bg-white px-[20px] pt-[20px] pb-[16px] shadow-[0_1px_7px_0_rgba(0,0,0,0.08)]">
               <p className="text-[12px] font-medium leading-[16px] text-[#555964]">
                 더 정확한 추천을 위해
               </p>
@@ -521,7 +529,7 @@ export default function Detail() {
                   {profileProgress}%
                 </span>
 
-                <div className="mt-[4px] h-[4px] w-[168px] overflow-hidden rounded-[8px] bg-[#E6E7EB]">
+                <div className="mt-[4px] h-[4px] w-full overflow-hidden rounded-[8px] bg-[#E6E7EB]">
                   <div
                     className="h-full rounded-[8px] bg-[#7962ED]"
                     style={{
@@ -534,7 +542,7 @@ export default function Detail() {
               <button
                 type="button"
                 onClick={() => navigate('/onboarding')}
-                className="absolute bottom-[16px] left-[20px] flex h-[32px] w-[168px] items-center justify-between rounded-[8px] bg-[#F3F4F6] px-[16px] text-[12px] font-medium text-[#747883]"
+                className="absolute bottom-[16px] left-[20px] right-[20px] flex h-[32px] items-center justify-between rounded-[8px] bg-[#F3F4F6] px-[16px] text-[12px] font-medium text-[#747883]"
               >
                 <span>프로필 업데이트</span>
                 <img src={UpdateRight} alt="오른쪽 화살표" />

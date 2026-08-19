@@ -196,7 +196,7 @@ export default function HomePage() {
           />
         </div>
 
-        <QuickMenuSection />
+        <QuickMenuSection isLoggedIn={isLoggedIn} />
       </main>
     </div>
   );

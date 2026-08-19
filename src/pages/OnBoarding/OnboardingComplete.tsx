@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header/Header';
 import OnboardingStepSidebar from '../../components/onboarding/OnboardingStepSidebar';
+import { useUserStore } from '../../store/user/user';
+import { isSocialUser } from '../../utils/onboarding';
 import partyPopperIcon from '../../assets/onboarding/party-popper.svg';
 import graduationCapIcon from '../../assets/onboarding/graduation-cap.svg';
 import { completeOnboarding } from '../../api/onboarding/profile';
-import { useUserStore } from '../../store/user/user';
 
 function FileTextIcon() {
   return (
@@ -51,6 +52,8 @@ function MonitorCheckIcon() {
 // ------------------------------------------------------------------
 export default function OnboardingComplete() {
   const navigate = useNavigate();
+  // 소셜 가입자는 앞에 "기본 정보" 단계가 하나 더 붙어 4단계다(utils/onboarding.ts).
+  const isSocial = isSocialUser(useUserStore((s) => s.user));
   const [error, setError] = useState<string | null>(null);
   const setUser = useUserStore((s) => s.setUser);
 
@@ -108,7 +111,7 @@ export default function OnboardingComplete() {
 
         <div className="flex px-[64px]">
           {/* 좌측 스텝 사이드바 */}
-          <OnboardingStepSidebar currentStep={3} />
+          <OnboardingStepSidebar current="complete" includeBasicStep={isSocial} />
 
           <main className="flex min-w-0 flex-1 items-start pb-16 pt-4">
             {/* 우측 영역 */}

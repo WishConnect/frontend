@@ -75,8 +75,12 @@ export default function SocialCallbackPage() {
         setUser(data.user);
 
         // 신규 가입이거나 온보딩 미완료면 온보딩으로 보낸다.
+        //
+        // 소셜 가입은 이름·생년월일·연락처·성별·국적·거주지역을 받지 못해서 기본 정보 단계
+        // (/onboarding/basic)부터 시작한다. 일반 회원가입은 그 값들을 가입 때 이미 받아
+        // 학적 정보(/onboarding)부터 3단계로 간다.
         const needsOnboarding = data.isNewUser || !data.user.onboardingCompleted;
-        navigate(needsOnboarding ? '/onboarding' : '/', { replace: true });
+        navigate(needsOnboarding ? '/onboarding/basic' : '/', { replace: true });
       } catch (error) {
         const message =
           isAxiosError<ApiResponse<null>>(error) && error.response?.data?.message

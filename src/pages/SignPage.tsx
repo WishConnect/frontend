@@ -19,6 +19,9 @@ import { checkLoginIdAvailable } from '../api/login/loginId';
 import { getRegions, getRegionChildren } from '../api/region';
 import { tokenStorage } from '../utils/token';
 import { useUserStore } from '../store/user/user';
+import AgreementModal, {
+  type AgreementDocumentType,
+} from '../components/signup/AgreementModal';
 import type {
   AgreementType,
   Gender as ApiGender,
@@ -463,6 +466,7 @@ export default function SignPage() {
     2: false,
     4: false,
   });
+  const [openAgreement, setOpenAgreement] = useState<AgreementDocumentType | null>(null);
 
   const isAllAgreed = terms.every((term) => agreements[term.id]);
 
@@ -1040,9 +1044,7 @@ export default function SignPage() {
                   <button
                     type="button"
                     className="text-[14px] font-[500] text-[#555964] underline underline-offset-auto"
-                    onClick={() => {
-                      // TODO: 약관 본문 화면이 아직 없어서 비워둠. 화면 생기면 연결.
-                    }}
+                    onClick={() => setOpenAgreement(term.id === 1 ? 'terms' : 'privacy')}
                   >
                     자세히 보기
                   </button>
@@ -1051,6 +1053,10 @@ export default function SignPage() {
             ))}
           </div>
         </div>
+
+        {openAgreement && (
+          <AgreementModal type={openAgreement} onClose={() => setOpenAgreement(null)} />
+        )}
 
         {/* 가입 실패 사유 (서버 message 우선) */}
         {submitError && (
