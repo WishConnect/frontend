@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.svg';
 import { putBasicProfile, getMyProfile } from '../api/onboarding/profile';
 import { updatePassword, getMyPageSummary } from '../api/mypage/mypage';
+import { getRegions } from '../api/common/region';
 import { useUserStore } from '../store/user/user';
 import { tokenStorage } from '../utils/token';
 
@@ -175,36 +176,35 @@ function SelectToggleGroup<T extends string>({
 }
 
 // ------------------------------------------------------------------
-// 거주 지역: 화면엔 정식 명칭("서울특별시")을 보여주되, 서버로는 축약형
-// 코드("서울")를 보낸다. GET /api/v1/users/me/profile 응답의 region이
-// 실제로 "서울" 같은 축약형으로 오는 걸 확인함 (PUT도 동일 형식 기대).
+// 거주 지역: GET /api/v1/regions 로 서버 마스터(축약형 이름, 예: "서울")를 받아
+// 그대로 옵션으로 쓴다. GET /api/v1/users/me/profile 응답의 region도 같은
+// 축약형으로 오므로(PUT도 동일 형식 기대) 별도 명칭 매핑이 필요 없다.
+// 이 호출이 실패했을 때만 아래 대체 목록(17개 시도)을 쓴다.
 // ------------------------------------------------------------------
-const REGION_OPTIONS: { code: string; label: string }[] = [
-  { code: '서울', label: '서울특별시' },
-  { code: '부산', label: '부산광역시' },
-  { code: '대구', label: '대구광역시' },
-  { code: '인천', label: '인천광역시' },
-  { code: '광주', label: '광주광역시' },
-  { code: '대전', label: '대전광역시' },
-  { code: '울산', label: '울산광역시' },
-  { code: '세종', label: '세종특별자치시' },
-  { code: '경기', label: '경기도' },
-  { code: '강원', label: '강원특별자치도' },
-  { code: '충북', label: '충청북도' },
-  { code: '충남', label: '충청남도' },
-  { code: '전북', label: '전북특별자치도' },
-  { code: '전남', label: '전라남도' },
-  { code: '경북', label: '경상북도' },
-  { code: '경남', label: '경상남도' },
-  { code: '제주', label: '제주특별자치도' },
+const REGION_FALLBACK_OPTIONS = [
+  '서울',
+  '부산',
+  '대구',
+  '인천',
+  '광주',
+  '대전',
+  '울산',
+  '세종',
+  '경기',
+  '강원',
+  '충북',
+  '충남',
+  '전북',
+  '전남',
+  '경북',
+  '경남',
+  '제주',
 ];
 
-// GET 응답의 region이 이 code 목록 안에 있는지 확인하고, 없으면(예: 정식
-// 명칭으로 오거나 빈 값이면) 첫 번째 옵션으로 폴백한다.
-function normalizeRegion(region: string | null | undefined): string {
-  if (!region) return REGION_OPTIONS[0].code;
-  const matched = REGION_OPTIONS.find((r) => r.code === region || r.label === region);
-  return matched ? matched.code : REGION_OPTIONS[0].code;
+// region이 옵션 목록 안에 있는지 확인하고, 없으면(빈 값 등) 첫 번째 옵션으로 폴백한다.
+function normalizeRegion(region: string | null | undefined, options: string[]): string {
+  if (!region) return options[0] ?? '';
+  return options.includes(region) ? region : (options[0] ?? '');
 }
 
 // 지금은 하드코딩된 기본값이지만, 추후 로그인/API 응답으로 이 객체를 채우면 됩니다.
@@ -218,7 +218,7 @@ const DEFAULT_FORM: ProfileForm = {
   contact: '',
   gender: 'female',
   nationality: 'domestic',
-  region: REGION_OPTIONS[0].code,
+  region: REGION_FALLBACK_OPTIONS[0],
 };
 
 // ------------------------------------------------------------------
@@ -272,17 +272,29 @@ export default function EditProfile() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [regionOptions, setRegionOptions] = useState<string[]>(REGION_FALLBACK_OPTIONS);
   const clearUser = useUserStore((s) => s.clearUser);
 
   // 화면 진입 시 실제 유저 프로필을 불러와서 폼에 채워넣음.
   // getMyProfile(GET /users/me/profile)에서 이름/생년월일/연락처/성별/국적/지역을,
-  // getMyPageSummary(GET /users/me)에서 이메일을 각각 가져와 합친다.
+  // getMyPageSummary(GET /users/me)에서 이메일을, getRegions(GET /regions)에서
+  // 거주지역 선택지를 각각 가져와 합친다. 거주지역 목록은 조회 실패해도 대체 목록으로
+  // 폼 자체는 계속 쓸 수 있어야 하므로 별도로 catch한다.
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const [profileRes, summaryRes] = await Promise.all([getMyProfile(), getMyPageSummary()]);
+        const [profileRes, summaryRes, regions] = await Promise.all([
+          getMyProfile(),
+          getMyPageSummary(),
+          getRegions().catch((err) => {
+            console.error('거주지역 목록 조회 실패:', err);
+            return [];
+          }),
+        ]);
         const profile = profileRes.data.data;
         const summary = summaryRes.data.data;
+        const options = regions.length > 0 ? regions.map((r) => r.name) : REGION_FALLBACK_OPTIONS;
+        setRegionOptions(options);
 
         // profile.birthDate가 이미 "yyyy-MM-dd" 전체 날짜로 오므로 그대로 사용.
         // 값이 없으면(신규 유저 등) 올해 1월 1일로 폴백.
@@ -296,7 +308,7 @@ export default function EditProfile() {
           contact: profile.phone,
           gender: mapApiValueToGender(profile.gender),
           nationality: mapApiValueToNationality(profile.nationality),
-          region: normalizeRegion(profile.region),
+          region: normalizeRegion(profile.region, options),
         }));
       } catch (err) {
         console.error('프로필 정보 조회 실패:', err);
@@ -553,15 +565,15 @@ export default function EditProfile() {
                     <select
                       value={form.region}
                       onChange={updateField('region')}
-                      className="w-full flex-1 appearance-none bg-transparent text-[16px] font-medium leading-6 text-[#555964] focus:outline-none"
+                      className="w-full appearance-none bg-transparent pr-8 text-[16px] font-medium leading-6 text-[#555964] focus:outline-none"
                     >
-                      {REGION_OPTIONS.map((region) => (
-                        <option key={region.code} value={region.code}>
-                          {region.label}
+                      {regionOptions.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
                         </option>
                       ))}
                     </select>
-                    <ChevronDownIcon className="pointer-events-none size-6 shrink-0 text-[#9DA1AC]" />
+                    <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 size-6 shrink-0 -translate-y-1/2 text-[#9DA1AC]" />
                   </div>
                   <p className="text-[14px] font-medium leading-5 text-[#747883]">
                     ※ 장학금 추천 시 거주 지역 기준이 활용될 수 있어요.
