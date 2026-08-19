@@ -107,7 +107,9 @@ export interface LoginIdFindRequest extends LoginIdFindCodeRequest {
 
 // 아이디 찾기 응답(POST /auth/login-id/find). 마스킹 없이 전체 아이디가 온다.
 export interface FindLoginIdResponseData {
-  loginId: string;
+  // 서버가 user.getLoginId()를 그대로 내려주는데, login_id는 2026-08-16 마이그레이션에서
+  // nullable로 추가되고 백필이 없었다. 그 전에 가입한 계정은 값이 NULL이라 null이 올 수 있다.
+  loginId: string | null;
 }
 
 // 인증코드 발송 요청 body

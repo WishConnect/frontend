@@ -30,7 +30,14 @@ export async function requestLoginIdCode(email: string, name: string): Promise<n
 // 2) 코드 확인 + 아이디 조회. 코드는 1회용이라 성공하면 서버에서 지워진다.
 //    실패 코드: 400 ACCOUNT_RECOVERY_VERIFICATION_FAILED — 코드가 틀렸을 때와 계정이 아예 없을 때가
 //    같은 응답이다(어느 쪽인지 구분해서 알려주면 계정 존재 여부가 새기 때문).
-export async function findLoginId(email: string, name: string, code: string): Promise<string> {
+//    ⚠️ 인증에 성공해도 아이디가 null일 수 있다. login_id가 2026-08-16 마이그레이션에서 백필 없이
+//       추가돼(V20260816_03), 그 전에 가입한 계정은 값이 비어 있기 때문이다. 서버는 그 null을
+//       그대로 내려주므로 호출부가 반드시 걸러야 한다(안 그러면 결과 화면에 빈 칸이 뜬다).
+export async function findLoginId(
+  email: string,
+  name: string,
+  code: string,
+): Promise<string | null> {
   const res = await api.post<ApiResponse<FindLoginIdResponseData>>('/auth/login-id/find', {
     email: email.trim(),
     name: name.trim(),
