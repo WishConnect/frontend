@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 //import Header from '../../components/common/Header/Header';
 import Header from '../../components/common/Header/Header';
 import OnboardingStepSidebar from '../../components/onboarding/OnboardingStepSidebar';
+import { useUserStore } from '../../store/user/user';
+import { isSocialUser } from '../../utils/onboarding';
 import capIcon from '../../assets/onboarding/graduation-cap.svg';
 import helpIcon from '../../assets/onboarding/circle-question-mark.svg';
 import searchIcon from '../../assets/onboarding/magnifyingglass.svg';
@@ -341,6 +343,8 @@ function SearchDropdown<T extends { id: number; name: string }>({
 // ------------------------------------------------------------------
 export default function OnboardingAcademicInfo() {
   const navigate = useNavigate();
+  // 소셜 가입자는 앞에 "기본 정보" 단계가 하나 더 붙어 4단계다(utils/onboarding.ts).
+  const isSocial = isSocialUser(useUserStore((s) => s.user));
   const [form, setForm] = useState<AcademicForm>(DEFAULT_FORM);
   const [doubleMajor, setDoubleMajor] = useState(false);
   const [minorMajor, setMinorMajor] = useState(false);
@@ -452,7 +456,11 @@ export default function OnboardingAcademicInfo() {
     return () => clearTimeout(timer);
   }, [form.majorName]);
 
+  // 목록에서 고르면 form.school 이 바뀌면서 위 검색 effect 가 한 번 더 돈다. 그대로 두면
+  // 0.3초 뒤 고른 이름으로 다시 검색해 드롭다운이 되열려서, 사용자는 두 번 골라야 했다.
+  // 프로필을 불러올 때 쓰는 것과 같은 skip 플래그로 그 한 번을 건너뛴다.
   const handleSelectUniversity = (uni: University) => {
+    skipUniversitySearchRef.current = true;
     setForm((prev) => ({ ...prev, school: uni.name }));
     setShowUniversityDropdown(false);
     setUniversityResults([]);
@@ -460,6 +468,7 @@ export default function OnboardingAcademicInfo() {
 
   // 디자인상 "전공 분류"는 별도 셀렉트로 유지 — 검색 결과 선택 시 majorName만 채움
   const handleSelectMajor = (major: Major) => {
+    skipMajorSearchRef.current = true;
     setForm((prev) => ({ ...prev, majorName: major.name }));
     setShowMajorDropdown(false);
     setMajorResults([]);
@@ -503,241 +512,241 @@ export default function OnboardingAcademicInfo() {
 
         <div className="flex px-[64px]">
           {/* 좌측 스텝 사이드바 */}
-          <OnboardingStepSidebar currentStep={1} />
+          <OnboardingStepSidebar current="academic" includeBasicStep={isSocial} />
 
           <main className="flex min-w-0 flex-1 items-start pb-16 pt-4">
-
-          {/* 우측 폼 영역 */}
-          <section className="flex flex-1 flex-col">
-            {/* 아이콘 + 도움말 */}
-            <div className="flex w-full items-start justify-between">
-              <div className="flex size-20 items-center justify-center rounded-full bg-[#F9FAFC]">
-                <img src={capIcon} alt="" className="size-12" />
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowHelp((v) => !v)}
-                style={
-                  showHelp
-                    ? { backgroundColor: '#FFFFFF', border: '1px solid #E6E7EB' }
-                    : { backgroundColor: '#F3F4F6', border: '1px solid transparent' }
-                }
-                className="relative z-30 flex items-center gap-2 rounded-lg px-6 py-3 text-[12px] font-medium leading-4 text-[#747883]"
-              >
-                {showHelp ? (
-                  <>
-                    <CloseIcon />
-                    도움말 닫기
-                  </>
-                ) : (
-                  <>
-                    <img src={helpIcon} alt="" className="size-[18px] shrink-0" />
-                    도움말
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* 타이틀 */}
-            <div className="mt-4 flex flex-col gap-2">
-              <h1 className="text-[28px] font-bold leading-10 tracking-[-0.28px] text-[#0A0C11]">
-                학적 정보를 입력해 주세요.
-              </h1>
-              <p className="text-[16px] font-medium leading-6 text-[#747883]">
-                현재 학업 상황을 바탕으로 지원 가능한 장학금을 더 정확하게 추천해 드려요.
-              </p>
-            </div>
-
-            {/* 폼 필드 */}
-            <div className="mt-20 flex w-full flex-col gap-12">
-              {/* 소속 학교 */}
-              <div className="relative flex flex-col gap-2">
-                <FieldLabel required>소속 학교</FieldLabel>
-                <div className="flex w-full items-center gap-3 rounded-lg bg-[#F9FAFC] py-3 pl-6 pr-3">
-                  <input
-                    value={form.school}
-                    onChange={updateField('school')}
-                    onFocus={() => form.school.trim() && setShowUniversityDropdown(true)}
-                    placeholder="학교명을 입력해 주세요"
-                    className="w-full flex-1 bg-transparent text-[16px] font-medium leading-6 text-[#0A0C11] placeholder:text-[#9DA1AC] focus:outline-none"
-                  />
-                  <img src={searchIcon} alt="" className="size-[22px] shrink-0" />
+            {/* 우측 폼 영역 */}
+            <section className="flex flex-1 flex-col">
+              {/* 아이콘 + 도움말 */}
+              <div className="flex w-full items-start justify-between">
+                <div className="flex size-20 items-center justify-center rounded-full bg-[#F9FAFC]">
+                  <img src={capIcon} alt="" className="size-12" />
                 </div>
-
-                {showUniversityDropdown && universityResults.length > 0 && (
-                  <SearchDropdown
-                    items={universityResults}
-                    onSelect={handleSelectUniversity}
-                    renderSubtext={(uni) => uni.region}
-                  />
-                )}
+                <button
+                  type="button"
+                  onClick={() => setShowHelp((v) => !v)}
+                  style={
+                    showHelp
+                      ? { backgroundColor: '#FFFFFF', border: '1px solid #E6E7EB' }
+                      : { backgroundColor: '#F3F4F6', border: '1px solid transparent' }
+                  }
+                  className="relative z-30 flex items-center gap-2 rounded-lg px-6 py-3 text-[12px] font-medium leading-4 text-[#747883]"
+                >
+                  {showHelp ? (
+                    <>
+                      <CloseIcon />
+                      도움말 닫기
+                    </>
+                  ) : (
+                    <>
+                      <img src={helpIcon} alt="" className="size-[18px] shrink-0" />
+                      도움말
+                    </>
+                  )}
+                </button>
               </div>
 
-              {/* 전공 분류 / 전공명 */}
-              <div className="flex w-full items-start gap-8">
-                <div className="flex flex-1 flex-col gap-2">
-                  <FieldLabel required>전공 분류</FieldLabel>
-                  <SelectField
-                    value={form.majorCategory}
-                    onChange={updateField('majorCategory')}
-                    placeholder="선택해 주세요"
-                    options={MAJOR_CATEGORY_OPTIONS}
-                  />
-                </div>
-                <div className="relative flex flex-1 flex-col gap-2">
-                  <FieldLabel required>전공명</FieldLabel>
-                  <TextField
-                    value={form.majorName}
-                    onChange={updateField('majorName')}
-                    placeholder="전공명을 입력해 주세요"
-                  />
+              {/* 타이틀 */}
+              <div className="mt-4 flex flex-col gap-2">
+                <h1 className="text-[28px] font-bold leading-10 tracking-[-0.28px] text-[#0A0C11]">
+                  학적 정보를 입력해 주세요.
+                </h1>
+                <p className="text-[16px] font-medium leading-6 text-[#747883]">
+                  현재 학업 상황을 바탕으로 지원 가능한 장학금을 더 정확하게 추천해 드려요.
+                </p>
+              </div>
 
-                  {showMajorDropdown && majorResults.length > 0 && (
+              {/* 폼 필드 */}
+              <div className="mt-20 flex w-full flex-col gap-12">
+                {/* 소속 학교 */}
+                <div className="relative flex flex-col gap-2">
+                  <FieldLabel required>소속 학교</FieldLabel>
+                  <div className="flex w-full items-center gap-3 rounded-lg bg-[#F9FAFC] py-3 pl-6 pr-3">
+                    <input
+                      value={form.school}
+                      onChange={updateField('school')}
+                      onFocus={() => form.school.trim() && setShowUniversityDropdown(true)}
+                      placeholder="학교명을 입력해 주세요"
+                      className="w-full flex-1 bg-transparent text-[16px] font-medium leading-6 text-[#0A0C11] placeholder:text-[#9DA1AC] focus:outline-none"
+                    />
+                    <img src={searchIcon} alt="" className="size-[22px] shrink-0" />
+                  </div>
+
+                  {showUniversityDropdown && universityResults.length > 0 && (
                     <SearchDropdown
-                      items={majorResults}
-                      onSelect={handleSelectMajor}
-                      renderSubtext={(major) => major.category}
+                      items={universityResults}
+                      onSelect={handleSelectUniversity}
+                      renderSubtext={(uni) => uni.region}
                     />
                   )}
                 </div>
-              </div>
 
-              {/* 재학 상태 / 학년-학기 / 직전학기 학점 / 누적 학점 */}
-              <div className="flex w-full items-start gap-8">
-                <div className="flex flex-1 flex-col gap-2">
-                  <FieldLabel required>재학 상태</FieldLabel>
-                  <SelectField
-                    value={form.enrollmentStatus}
-                    onChange={updateField('enrollmentStatus')}
-                    placeholder="선택해 주세요"
-                    options={ENROLLMENT_STATUS_OPTIONS}
-                  />
-                </div>
-                <div className="flex flex-1 flex-col gap-2">
-                  <FieldLabel required>학년/학기</FieldLabel>
-                  <SelectField
-                    value={form.gradeSemester}
-                    onChange={updateField('gradeSemester')}
-                    placeholder="선택해 주세요"
-                    options={GRADE_SEMESTER_OPTIONS}
-                  />
-                </div>
-                <div className="flex flex-1 flex-col gap-2">
-                  <FieldLabel required>
-                    직전학기 학점{' '}
-                    <span className="font-semibold text-[#0A0C11]">(4.5 만점 기준)</span>
-                  </FieldLabel>
-                  <TextField
-                    value={form.lastSemesterGpa}
-                    onChange={updateField('lastSemesterGpa')}
-                    placeholder="학점을 입력해 주세요"
-                  />
-                </div>
-                <div className="flex flex-1 flex-col gap-2">
-                  <FieldLabel required>
-                    누적 학점 <span className="font-semibold text-[#0A0C11]">(4.5 만점 기준)</span>
-                  </FieldLabel>
-                  <TextField
-                    value={form.cumulativeGpa}
-                    onChange={updateField('cumulativeGpa')}
-                    placeholder="학점을 입력해 주세요"
-                  />
-                </div>
-              </div>
+                {/* 전공 분류 / 전공명 */}
+                <div className="flex w-full items-start gap-8">
+                  <div className="flex flex-1 flex-col gap-2">
+                    <FieldLabel required>전공 분류</FieldLabel>
+                    <SelectField
+                      value={form.majorCategory}
+                      onChange={updateField('majorCategory')}
+                      placeholder="선택해 주세요"
+                      options={MAJOR_CATEGORY_OPTIONS}
+                    />
+                  </div>
+                  <div className="relative flex flex-1 flex-col gap-2">
+                    <FieldLabel required>전공명</FieldLabel>
+                    <TextField
+                      value={form.majorName}
+                      onChange={updateField('majorName')}
+                      placeholder="전공명을 입력해 주세요"
+                    />
 
-              {/* 복수전공 / 부전공 여부 — 피그마상 왼쪽 절반(505px)만 차지, 오른쪽은 비워둠 */}
-              <div className="flex w-full items-start gap-8">
-                <div className="flex flex-1 flex-col gap-2">
-                  <FieldLabel>복수전공/부전공 여부</FieldLabel>
-                  <div className="flex w-full items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDoubleMajor((v) => !v);
-                        setMinorMajor(false);
-                      }}
-                      aria-pressed={doubleMajor}
-                      style={
-                        doubleMajor
-                          ? {
-                              backgroundColor: '#7962ED',
-                              border: '1px solid #7962ED',
-                              color: '#FFFFFF',
-                            }
-                          : {
-                              backgroundColor: '#F9FAFC',
-                              border: '1px solid #E6E7EB',
-                              color: '#0A0C11',
-                            }
-                      }
-                      className="flex flex-1 items-center justify-center rounded-lg px-6 py-3 text-center text-[16px] font-medium leading-6 transition-colors"
-                    >
-                      복수전공
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMinorMajor((v) => !v);
-                        setDoubleMajor(false);
-                      }}
-                      aria-pressed={minorMajor}
-                      style={
-                        minorMajor
-                          ? {
-                              backgroundColor: '#7962ED',
-                              border: '1px solid #7962ED',
-                              color: '#FFFFFF',
-                            }
-                          : {
-                              backgroundColor: '#F9FAFC',
-                              border: '1px solid #E6E7EB',
-                              color: '#0A0C11',
-                            }
-                      }
-                      className="flex flex-1 items-center justify-center rounded-lg px-6 py-3 text-center text-[16px] font-medium leading-6 transition-colors"
-                    >
-                      부전공
-                    </button>
+                    {showMajorDropdown && majorResults.length > 0 && (
+                      <SearchDropdown
+                        items={majorResults}
+                        onSelect={handleSelectMajor}
+                        renderSubtext={(major) => major.category}
+                      />
+                    )}
                   </div>
                 </div>
-                <div className="flex-1" />
+
+                {/* 재학 상태 / 학년-학기 / 직전학기 학점 / 누적 학점 */}
+                <div className="flex w-full items-start gap-8">
+                  <div className="flex flex-1 flex-col gap-2">
+                    <FieldLabel required>재학 상태</FieldLabel>
+                    <SelectField
+                      value={form.enrollmentStatus}
+                      onChange={updateField('enrollmentStatus')}
+                      placeholder="선택해 주세요"
+                      options={ENROLLMENT_STATUS_OPTIONS}
+                    />
+                  </div>
+                  <div className="flex flex-1 flex-col gap-2">
+                    <FieldLabel required>학년/학기</FieldLabel>
+                    <SelectField
+                      value={form.gradeSemester}
+                      onChange={updateField('gradeSemester')}
+                      placeholder="선택해 주세요"
+                      options={GRADE_SEMESTER_OPTIONS}
+                    />
+                  </div>
+                  <div className="flex flex-1 flex-col gap-2">
+                    <FieldLabel required>
+                      직전학기 학점{' '}
+                      <span className="font-semibold text-[#0A0C11]">(4.5 만점 기준)</span>
+                    </FieldLabel>
+                    <TextField
+                      value={form.lastSemesterGpa}
+                      onChange={updateField('lastSemesterGpa')}
+                      placeholder="학점을 입력해 주세요"
+                    />
+                  </div>
+                  <div className="flex flex-1 flex-col gap-2">
+                    <FieldLabel required>
+                      누적 학점{' '}
+                      <span className="font-semibold text-[#0A0C11]">(4.5 만점 기준)</span>
+                    </FieldLabel>
+                    <TextField
+                      value={form.cumulativeGpa}
+                      onChange={updateField('cumulativeGpa')}
+                      placeholder="학점을 입력해 주세요"
+                    />
+                  </div>
+                </div>
+
+                {/* 복수전공 / 부전공 여부 — 피그마상 왼쪽 절반(505px)만 차지, 오른쪽은 비워둠 */}
+                <div className="flex w-full items-start gap-8">
+                  <div className="flex flex-1 flex-col gap-2">
+                    <FieldLabel>복수전공/부전공 여부</FieldLabel>
+                    <div className="flex w-full items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDoubleMajor((v) => !v);
+                          setMinorMajor(false);
+                        }}
+                        aria-pressed={doubleMajor}
+                        style={
+                          doubleMajor
+                            ? {
+                                backgroundColor: '#7962ED',
+                                border: '1px solid #7962ED',
+                                color: '#FFFFFF',
+                              }
+                            : {
+                                backgroundColor: '#F9FAFC',
+                                border: '1px solid #E6E7EB',
+                                color: '#0A0C11',
+                              }
+                        }
+                        className="flex flex-1 items-center justify-center rounded-lg px-6 py-3 text-center text-[16px] font-medium leading-6 transition-colors"
+                      >
+                        복수전공
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMinorMajor((v) => !v);
+                          setDoubleMajor(false);
+                        }}
+                        aria-pressed={minorMajor}
+                        style={
+                          minorMajor
+                            ? {
+                                backgroundColor: '#7962ED',
+                                border: '1px solid #7962ED',
+                                color: '#FFFFFF',
+                              }
+                            : {
+                                backgroundColor: '#F9FAFC',
+                                border: '1px solid #E6E7EB',
+                                color: '#0A0C11',
+                              }
+                        }
+                        className="flex flex-1 items-center justify-center rounded-lg px-6 py-3 text-center text-[16px] font-medium leading-6 transition-colors"
+                      >
+                        부전공
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex-1" />
+                </div>
               </div>
-            </div>
 
-            {/* 제출 에러 메시지 */}
-            {submitError && (
-              <p className="mt-6 text-right text-[14px] font-medium leading-5 text-[#FA5862]">
-                {submitError}
-              </p>
-            )}
+              {/* 제출 에러 메시지 */}
+              {submitError && (
+                <p className="mt-6 text-right text-[14px] font-medium leading-5 text-[#FA5862]">
+                  {submitError}
+                </p>
+              )}
 
-            {/* 하단 버튼 */}
-            <div className="mt-24 flex w-full items-center justify-end gap-4">
-              <button
-                type="button"
-                onClick={handlePrev}
-                style={{ backgroundColor: '#F3F4F6', border: '1px solid transparent' }}
-                className="flex items-center gap-4 rounded-lg py-4 pl-4 pr-8 text-[20px] font-medium leading-7 tracking-[-0.1px] text-[#747883]"
-              >
-                <ChevronLeftIcon />
-                이전
-              </button>
-              <button
-                type="button"
-                onClick={handleNext}
-                disabled={isSubmitting}
-                style={{
-                  backgroundImage:
-                    'linear-gradient(115.029deg, rgb(121, 98, 237) 30.662%, rgb(189, 185, 249) 105.21%)',
-                  opacity: isSubmitting ? 0.6 : 1,
-                }}
-                className="flex items-center gap-4 rounded-lg py-4 pl-8 pr-4 text-[20px] font-medium leading-7 tracking-[-0.1px] text-white"
-              >
-                {isSubmitting ? '저장 중...' : '다음 단계로'}
-                <ChevronRightIcon />
-              </button>
-            </div>
-          </section>
+              {/* 하단 버튼 */}
+              <div className="mt-24 flex w-full items-center justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={handlePrev}
+                  style={{ backgroundColor: '#F3F4F6', border: '1px solid transparent' }}
+                  className="flex items-center gap-4 rounded-lg py-4 pl-4 pr-8 text-[20px] font-medium leading-7 tracking-[-0.1px] text-[#747883]"
+                >
+                  <ChevronLeftIcon />
+                  이전
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={isSubmitting}
+                  style={{
+                    backgroundImage:
+                      'linear-gradient(115.029deg, rgb(121, 98, 237) 30.662%, rgb(189, 185, 249) 105.21%)',
+                    opacity: isSubmitting ? 0.6 : 1,
+                  }}
+                  className="flex items-center gap-4 rounded-lg py-4 pl-8 pr-4 text-[20px] font-medium leading-7 tracking-[-0.1px] text-white"
+                >
+                  {isSubmitting ? '저장 중...' : '다음 단계로'}
+                  <ChevronRightIcon />
+                </button>
+              </div>
+            </section>
           </main>
         </div>
 

@@ -14,6 +14,12 @@ export interface User {
   userId: string; // uuid
   name: string;
   onboardingCompleted: boolean;
+  // 소셜 로그인 응답에만 실려 온다(SocialLoginResponse.UserInfo). 일반 로그인 응답에는 없어서
+  // undefined 다. 소셜 가입자는 이름·연락처 등을 가입 때 받지 못해 온보딩에 기본 정보 단계가
+  // 하나 더 붙는데, 그 분기에 쓴다.
+  // SocialUser.loginType 과 같은 집합이어야 한다. 네이버 로그인은 화면에서 뺐지만
+  // 서버 LoginType enum 에는 NAVER 가 남아 있어 응답 타입에는 그대로 둔다.
+  loginType?: 'LOCAL' | 'KAKAO' | 'GOOGLE' | 'NAVER';
 }
 
 // 로그인 성공 시 data 필드

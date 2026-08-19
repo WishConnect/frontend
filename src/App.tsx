@@ -14,6 +14,7 @@ import WritePage from './pages/WritePage/WritePage';
 import SignPage from './pages/SignPage';
 import FindIdPage from './pages/FindAccount/FindIdPage';
 import FindPasswordPage from './pages/FindAccount/FindPasswordPage';
+import OnboardingBasicInfo from './pages/OnBoarding/OnboardingBasicInfo';
 import OnboardingAcademicInfo from './pages/OnBoarding/OnboardingAcademicInfo';
 import OnboardingHouseholdInfo from './pages/OnBoarding/OnboardingHouseholdInfo';
 import OnboardingComplete from './pages/OnBoarding/OnboardingComplete';
@@ -73,6 +74,8 @@ function App() {
           <Route path="/complete/:applicationId" element={<Complete />} />
 
           {/* 온보딩 1: 학적 정보 */}
+          {/* 소셜 로그인 온보딩 STEP 1. 일반 회원가입은 이 화면을 거치지 않는다(3단계). */}
+          <Route path="/onboarding/basic" element={<OnboardingBasicInfo />} />
           <Route path="/onboarding" element={<OnboardingAcademicInfo />} />
 
           {/* 인사이트 */}
