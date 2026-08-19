@@ -1,58 +1,83 @@
 import { useState } from 'react';
 import { postScholarshipReport } from '../../api/Curation/Reports';
+import type { ReportReason } from '../../api/Curation/Reports';
 
-// WRONG_DEADLINE, WRONG_AMOUNT, BROKEN_LINK, ALREADY_CLOSED, DUPLICATE, OTHER 
-const REPORT_REASONS = [
-    { label: '모집 기간이 지났어요.', value: 'WRONG_DEADLINE' },
-    { label: '장학금 정보가 잘못되었어요.', value: 'WRONG_AMOUNT' },
-    { label: '지원 조건이 달라요.', value: 'ALREADY_CLOSED' },
+// 백엔드 ReportReason enum 과 1:1 로 맞춘 값이다. 예전엔 WRONG_DEADLINE·WRONG_AMOUNT 를
+// 보내고 있었는데 둘 다 @Deprecated 된 옛 값이고, "지원 조건이 달라요."에 ALREADY_CLOSED
+// (= 이미 마감됨)가 붙어 있어 고르면 전혀 다른 신고로 저장되고 있었다.
+const REPORT_REASONS: { label: string; value: ReportReason }[] = [
+    { label: '모집 기간이 지났어요.', value: 'ALREADY_CLOSED' },
+    { label: '장학금 정보가 잘못되었어요.', value: 'WRONG_INFO' },
+    { label: '지원 조건이 달라요.', value: 'WRONG_CONDITION' },
     { label: '중복된 장학금이에요.', value: 'DUPLICATE' },
-] as const;
+];
 
-const ETC_REASON_VALUE = 'OTHER';
+const ETC_REASON_VALUE: ReportReason = 'OTHER';
+
+// 실패 사유를 사용자 말로 바꾼다. 예전엔 console.error 만 찍어서, 400이 나고 있는데도
+// 화면엔 아무 반응이 없어 "눌러도 안 된다"로만 보였다.
+function getReportErrorMessage(error: unknown): string {
+    const res = (error as { response?: { status?: number; data?: { message?: string } } })?.response;
+
+    // 같은 장학금에 아직 처리되지 않은 내 신고가 있으면 서버가 막는다.
+    if (res?.status === 409) {
+        return '이미 접수된 신고가 있어요. 처리 후에 다시 신고할 수 있어요.';
+    }
+    if (res?.status === 401 || res?.status === 403) {
+        return '로그인이 필요해요. 다시 로그인한 뒤 시도해 주세요.';
+    }
+    return res?.data?.message ?? '신고 접수에 실패했어요. 잠시 후 다시 시도해 주세요.';
+}
 
 interface ReportModalProps {
     scholarshipId: number | string;
     onClose: () => void;
-    onSubmit: (payload: { reasons: string[]; etcText: string }) => Promise<void>;
+    // 접수는 이 컴포넌트가 직접 한다. 예전엔 onSubmit prop 도 있었지만 어디서도 호출되지 않아
+    // 없앴다 — 부모가 넘긴 핸들러가 실행되는 줄 알기 쉬운데 실제로는 죽은 코드였다.
     onSuccess: () => void;
 }
 
 export default function ReportModal({ scholarshipId, onClose, onSuccess }: ReportModalProps) {
-    const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
+    const [selectedReasons, setSelectedReasons] = useState<ReportReason[]>([]);
     const [isEtcChecked, setIsEtcChecked] = useState(false);
     const [etcText, setEtcText] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
-    const toggleReason = (reason: string) => {
+    const toggleReason = (reason: ReportReason) => {
+        setSubmitError(null);
         setSelectedReasons((prev) =>
             prev.includes(reason) ? prev.filter((r) => r !== reason) : [...prev, reason]
         );
     };
 
+    // 사유를 하나도 안 고르면 못 낸다(서버도 reasons 에 @NotEmpty). 다만 "기타"만 체크하고
+    // 내용을 안 적는 건 허용한다 — 서버에서 detail 은 선택 입력이고, 입력칸 안내도 "(선택사항)"이다.
     const isSubmitDisabled =
-        isSubmitting || (selectedReasons.length === 0 && (!isEtcChecked || etcText.trim().length === 0));
+        isSubmitting || (selectedReasons.length === 0 && !isEtcChecked);
 
     const handleSubmit = async () => {
         if (isSubmitDisabled) return;
 
         setIsSubmitting(true);
+        setSubmitError(null);
 
-        const reasonsToSubmit: { reason: string; detail: string }[] = selectedReasons.map(
-            (reason) => ({ reason, detail: '' })
-        );
-
+        // 사유는 한 번에 배열로 보낸다. 예전엔 사유마다 따로 요청했는데, 서버가 같은 장학금에
+        // 미처리 신고가 있으면 409(REPORT_ALREADY_EXISTS)로 막기 때문에 두 번째부터 실패했다.
+        const reasons: ReportReason[] = [...selectedReasons];
         if (isEtcChecked) {
-            reasonsToSubmit.push({ reason: ETC_REASON_VALUE, detail: etcText.trim() });
+            reasons.push(ETC_REASON_VALUE);
         }
 
         try {
-            for (const payload of reasonsToSubmit) {
-                await postScholarshipReport(scholarshipId, payload);
-            }
+            await postScholarshipReport(scholarshipId, {
+                reasons,
+                detail: isEtcChecked ? etcText.trim() : '',
+            });
             onSuccess();
-        } catch (error: any) {
+        } catch (error) {
             console.error('신고 접수 실패:', error);
+            setSubmitError(getReportErrorMessage(error));
         } finally {
             setIsSubmitting(false);
         }
@@ -140,6 +165,12 @@ export default function ReportModal({ scholarshipId, onClose, onSuccess }: Repor
                         )}
                     </div>
                 </div>
+
+                {submitError && (
+                    <p className="mt-[16px] text-center text-[14px] font-medium text-[#FA5862]">
+                        {submitError}
+                    </p>
+                )}
 
                 {/* 버튼 */}
                 <div className="mt-[24px] flex gap-[16px]">
