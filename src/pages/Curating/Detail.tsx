@@ -405,15 +405,6 @@ export default function Detail() {
     setIsReportModalOpen(true);
   };
 
-  const handleReportSubmit = async ({ reasons }: { reasons: string[]; etcText: string }) => {
-    console.log('신고 접수 (API 연동 전):', {
-      scholarshipId: detail.scholarshipId,
-      reasons,
-    });
-    // await axios.post(`/curation/${detail.scholarshipId}/report`, { reasons });
-    alert('신고가 접수되었습니다. 확인 후 빠르게 반영하겠습니다.');
-  };
-
   const handleApplicationButtonClick = async () => {
     if (!isLoggedIn) {
       navigate('/login', {
@@ -492,7 +483,6 @@ export default function Detail() {
         <ReportModal
           scholarshipId={detail.scholarshipId}
           onClose={() => setIsReportModalOpen(false)}
-          onSubmit={handleReportSubmit}
           onSuccess={() => {
             setIsReportModalOpen(false);
             setIsReportSuccessOpen(true);
