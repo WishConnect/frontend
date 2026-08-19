@@ -1,21 +1,23 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import Header from "../../components/common/Header/Header";
 import LeftSidebar from "../../components/LeftSidebar";
 import Tag from "../../components/Tag";
+import { getApplicationDetail, type ApplicationQuestion } from '../../api/archiving/view';
 
-const mockAnswers = [
-  {
-    id: 1,
-    title: '성장 과정과 가치관',
-    content: '저는 어릴 때부터 주변 사람들의 이야기에 귀 기울이며 공감하는 것을 중요하게 생각했습니다. 중학교 시절 학급 친구가 개인적인 어려움으로 힘들어하는 모습을 보고 먼저 다가가 이야기를 들어주고 함께 고민을 나누며 큰 힘이 되어주었습니다. 그 경험을 통해 타인의 입장에서 생각하고 도움을 주는 것이 얼마나 의미 있는 일인지 깨달았습니다. 이러한 경험은 저의 가치관 형성에 큰 영향을 주었고, \'사람 중심의 가치\'를 가장 중요하게 여기게 되었습니다. 이후 다양한 봉사활동과 팀 프로젝트에 참여하며 협력과 배려의 자세를 키웠습니다. 특히 고등학교 때 진행한 지역 아동 학습 멘토링 활동에서는 아이들의 작은 성장이 큰 보람으로 다가왔고, 제가 가진 역량이 누군가에게 긍정적인 영향을 줄 수 있다는 확신을 갖게 되었습니다. 앞으로도 저는 사람을 존중하고 함께 성장하는 가치를 바탕으로 사회에 긍정적인 변화를 만들어가는 사람이 되고자 합니다.',
-    charCount: 786,
-  },
-  { id: 2, title: '지원 동기', content: '지원 동기 내용이 들어갈 자리입니다.', charCount: 0 },
-  { id: 3, title: '학업 계획', content: '학업 계획 내용이 들어갈 자리입니다.', charCount: 0 },
-  { id: 4, title: '자기주도적 학습 경험', content: '학습 경험 내용이 들어갈 자리입니다.', charCount: 0 },
-  { id: 5, title: '장래 계획과 포부', content: '장래 계획 내용이 들어갈 자리입니다.', charCount: 0 },
-];
+
+// const mockAnswers = [
+//   {
+//     id: 1,
+//     title: '성장 과정과 가치관',
+//     content: '저는 어릴 때부터 주변 사람들의 이야기에 귀 기울이며 공감하는 것을 중요하게 생각했습니다. 중학교 시절 학급 친구가 개인적인 어려움으로 힘들어하는 모습을 보고 먼저 다가가 이야기를 들어주고 함께 고민을 나누며 큰 힘이 되어주었습니다. 그 경험을 통해 타인의 입장에서 생각하고 도움을 주는 것이 얼마나 의미 있는 일인지 깨달았습니다. 이러한 경험은 저의 가치관 형성에 큰 영향을 주었고, \'사람 중심의 가치\'를 가장 중요하게 여기게 되었습니다. 이후 다양한 봉사활동과 팀 프로젝트에 참여하며 협력과 배려의 자세를 키웠습니다. 특히 고등학교 때 진행한 지역 아동 학습 멘토링 활동에서는 아이들의 작은 성장이 큰 보람으로 다가왔고, 제가 가진 역량이 누군가에게 긍정적인 영향을 줄 수 있다는 확신을 갖게 되었습니다. 앞으로도 저는 사람을 존중하고 함께 성장하는 가치를 바탕으로 사회에 긍정적인 변화를 만들어가는 사람이 되고자 합니다.',
+//     charCount: 786,
+//   },
+//   { id: 2, title: '지원 동기', content: '지원 동기 내용이 들어갈 자리입니다.', charCount: 0 },
+//   { id: 3, title: '학업 계획', content: '학업 계획 내용이 들어갈 자리입니다.', charCount: 0 },
+//   { id: 4, title: '자기주도적 학습 경험', content: '학습 경험 내용이 들어갈 자리입니다.', charCount: 0 },
+//   { id: 5, title: '장래 계획과 포부', content: '장래 계획 내용이 들어갈 자리입니다.', charCount: 0 },
+// ];
 
 const mockInterviews = [
   {
@@ -41,7 +43,7 @@ const mockInterviews = [
 ];
 
 {/* 지원서 */}
-function ApplicationAccordionItem({ item }: { item: typeof mockAnswers[0] }) {
+function ApplicationAccordionItem({ item }: { item: { id: number; title: string; content: string; charCount: number } }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -60,18 +62,16 @@ function ApplicationAccordionItem({ item }: { item: typeof mockAnswers[0] }) {
         </div>
         <svg
           className={`w-[24px] h-[24px] shrink-0 transform transition-transform ${isOpen ? 'rotate-180' : ''}`}
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
         >
           <path d="M6 9L12 15L18 9" stroke={isOpen ? '#181C25' : '#9DA1AC'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
-      
+
       {isOpen && (
         <div className="mr-[37px] ml-[23px] mb-[14px] pt-[8px] bg-[#F9FAFC] rounded-[8px]">
           <p className="text-[#555964] text-[14px] font-[500] pt-[15px] pl-[23px] pr-[25px]">
-            {item.content}
+            {item.content || '작성된 내용이 없습니다.'}
           </p>
           <div className="pb-[14px] mt-[28px] mb-[14px] mr-[25px] text-right text-[#555964] text-[14px] font-[500]">
             ({item.charCount}자)
@@ -188,7 +188,38 @@ function InterviewAccordionItem({ item }: { item: typeof mockInterviews[0] }) {
 
 export default function Complete() {
   const navigate = useNavigate();
+  const { applicationId: paramAppId } = useParams();
+  const applicationId = Number(paramAppId) || 1
+
   const [activeTab, setActiveTab] = useState<'application' | 'interview'>('application');
+
+  const [, setScholarshipTitle] = useState('');
+  const [questions, setQuestions] = useState<ApplicationQuestion[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await getApplicationDetail(applicationId);
+        if (res.success && res.data) {
+          setScholarshipTitle(res.data.scholarshipTitle);
+          setQuestions(res.data.questions);
+        }
+      } catch (error) {
+        console.error('작성 완료 지원서 조회 실패:', error);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+    fetchData();
+  }, [applicationId]);
+
+  const answerItems = questions.map((q, idx) => ({
+    id: idx + 1,
+    title: q.title,
+    content: q.answer?.userContent ?? '',
+    charCount: q.answer?.charCount ?? 0,
+  }));
 
   return (
     <div className="w-[1440px] min-h-screen">
@@ -244,14 +275,16 @@ export default function Complete() {
 
           {/* 리스트 */}
           <div className="flex flex-col gap-[12px] mt-[16px]">
-            {activeTab === 'application' 
-              ? mockAnswers.map((item) => (
-                  <ApplicationAccordionItem key={item.id} item={item} />
-                ))
-              : mockInterviews.map((item) => (
-                  <InterviewAccordionItem key={item.id} item={item} />
-                ))
-            }
+            {!isLoaded ? (
+              <div className="flex items-center justify-center h-[300px] text-[#747883]">
+                불러오는 중입니다...
+              </div>
+            ) : activeTab === 'application' ? (
+              answerItems.map((item) => <ApplicationAccordionItem key={item.id} item={item} />)
+            ) : (
+              // TODO: 면접 예상 질문 API 연동 전까지 mock 유지
+              mockInterviews.map((item) => <InterviewAccordionItem key={item.id} item={item} />)
+            )}
           </div>
         </main>
       </div>

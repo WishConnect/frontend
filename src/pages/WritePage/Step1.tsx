@@ -37,9 +37,20 @@ const Step1 = forwardRef<Step1Handle, Step1Props>(function Step1({
     const currentQuestion = questions[selectedCategory];
     const current = stateByCategory[selectedCategory];
 
-    const completedCount = questionCategories.filter(
-        (_, idx) => stateByCategory[idx]?.isComplete
-    ).length;
+    const completedCount = questionCategories.filter((_, idx) => {
+        const localState = stateByCategory[idx]?.isComplete;
+        if (localState !== undefined) return localState;
+        
+        return questions[idx]?.currentStep !== undefined && questions[idx].currentStep !== 'STEP_1';
+    }).length;
+
+     useEffect(() => {
+        questions.forEach((q, idx) => {
+            if (q.currentStep && q.currentStep !== 'STEP_1') {
+                onProgressChange(idx, true);
+            }
+        });
+    }, [questions]);
 
     useEffect(() => {
         if (!currentQuestion || stateByCategory[selectedCategory]) return;
