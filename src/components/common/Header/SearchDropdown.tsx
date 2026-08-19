@@ -1,7 +1,8 @@
-import { Fragment } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useRecentSearchStore } from '../../../store/useRecentSearchStore';
 import { useUserStore } from '../../../store/user/user';
 import { mockPopularSearches } from '../../../data/mockPopularSearches';
+import { fetchPopularKeywords } from '../../../api/Curation/PopularKeywords';
 import recentIcon from '../../../assets/search/recent-icon.svg';
 
 const DEFAULT_USER_NAME = '김위시';
@@ -29,12 +30,42 @@ function highlightMatch(text: string, query: string) {
 // Figma node 1233:1948(검색어 없을 때) / 1208:2193(자동완성)
 export default function SearchDropdown({ query, onSelect }: SearchDropdownProps) {
   const recentSearches = useRecentSearchStore((state) => state.items);
+  const [popularKeywords, setPopularKeywords] = useState<string[]>([]);
   // 로그인 연동 전: 로그인 안 한 상태 기본값은 DEFAULT_USER_NAME, 로그인하면 실제 유저 이름으로 자동 대체
   const userName = useUserStore((state) => state.user?.name) ?? DEFAULT_USER_NAME;
   const trimmedQuery = query.trim();
 
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadPopularKeywords = async () => {
+      try {
+        const keywords = await fetchPopularKeywords();
+
+        if (!isCancelled) {
+          setPopularKeywords(keywords);
+        }
+      } catch (error) {
+        console.error('추천 검색어 조회 실패:', error);
+
+        if (!isCancelled) {
+          setPopularKeywords(mockPopularSearches);
+        }
+      }
+    };
+
+    void loadPopularKeywords();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
   if (trimmedQuery) {
-    const matches = mockPopularSearches.filter((term) => term.includes(trimmedQuery));
+    const normalizedQuery = trimmedQuery.toLocaleLowerCase();
+    const matches = popularKeywords.filter((term) =>
+      term.toLocaleLowerCase().includes(normalizedQuery),
+    );
     if (matches.length === 0) return null;
 
     return (
@@ -54,7 +85,7 @@ export default function SearchDropdown({ query, onSelect }: SearchDropdownProps)
     );
   }
 
-  if (recentSearches.length === 0) return null;
+  if (recentSearches.length === 0 && popularKeywords.length === 0) return null;
 
   return (
     <div className="absolute left-0 right-0 top-full z-10 flex flex-col gap-5 rounded-b-[24px] border border-t-0 border-[#E6E7EB] bg-[#F9FAFC] px-6 pt-4 pb-6 shadow-[0px_0px_10px_0px_rgba(0,0,0,0.1)]">
@@ -67,7 +98,7 @@ export default function SearchDropdown({ query, onSelect }: SearchDropdownProps)
       </div>
 
       <div className="flex flex-wrap items-center gap-4">
-        {mockPopularSearches.map((term, index) => (
+        {popularKeywords.map((term, index) => (
           <Fragment key={term}>
             <button
               type="button"
@@ -78,7 +109,7 @@ export default function SearchDropdown({ query, onSelect }: SearchDropdownProps)
               <span className="text-sm font-bold text-[#7962ED]">{index + 1}</span>
               <span className="text-sm font-medium text-[#0A0C11]">{term}</span>
             </button>
-            {index < mockPopularSearches.length - 1 && <span className="h-3 w-px bg-[#9DA1AC]" />}
+            {index < popularKeywords.length - 1 && <span className="h-3 w-px bg-[#9DA1AC]" />}
           </Fragment>
         ))}
       </div>
