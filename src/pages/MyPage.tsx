@@ -115,6 +115,8 @@ export default function MyPage() {
   const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null);
   const navigate = useNavigate();
   const clearUser = useUserStore((s) => s.clearUser);
+  // 소셜(카카오/구글) 로그인 사용자는 비밀번호가 없으므로 비밀번호 변경 항목을 숨긴다.
+  const isSocialUser = !!useUserStore((s) => s.user?.loginType);
 
   // 로그아웃: 서버에 refreshToken 폐기 요청(accessToken 필요) → 전역 유저 상태 초기화
   // → 저장된 토큰 삭제 → 로그인 페이지로 이동.
@@ -379,22 +381,27 @@ export default function MyPage() {
                         의미가 없고, 비밀번호 변경 필드는 /mypage/edit(EditProfile.tsx)에 이미
                         있으므로 "비밀번호 변경"으로 바꾸고 그 페이지로 연결.
                         (참고: 원래 코드는 onClick이 바깥 button이 아니라 안쪽 span에만 걸려있어
-                        아이콘/여백 클릭 시 반응이 없던 버그가 있었음 — button으로 옮겨서 수정) */}
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between"
-                      onClick={() => navigate('/mypage/edit')}
-                    >
-                      <div className="flex items-center gap-6">
-                        <img src={logOutIcon1} alt="" className="size-8" />
-                        <span className="text-[16px] font-medium leading-6 text-[#747883]">
-                          비밀번호 변경
-                        </span>
-                      </div>
-                      <img src={chevronRightIcon} alt="" className="size-4" />
-                    </button>
+                        아이콘/여백 클릭 시 반응이 없던 버그가 있었음 — button으로 옮겨서 수정)
+                        소셜 로그인 사용자는 비밀번호가 없으므로 이 항목 자체를 숨긴다. */}
+                    {!isSocialUser && (
+                      <>
+                        <button
+                          type="button"
+                          className="flex w-full items-center justify-between"
+                          onClick={() => navigate('/mypage/edit')}
+                        >
+                          <div className="flex items-center gap-6">
+                            <img src={logOutIcon1} alt="" className="size-8" />
+                            <span className="text-[16px] font-medium leading-6 text-[#747883]">
+                              비밀번호 변경
+                            </span>
+                          </div>
+                          <img src={chevronRightIcon} alt="" className="size-4" />
+                        </button>
 
-                    <div className="h-px w-full bg-[#D2D4DA]" />
+                        <div className="h-px w-full bg-[#D2D4DA]" />
+                      </>
+                    )}
 
                     <button
                       type="button"
