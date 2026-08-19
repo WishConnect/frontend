@@ -5,16 +5,22 @@ export type CuratedSort = 'DEADLINE' | 'LATEST';
 export type CuratedViewMode = 'GUEST' | 'ONBOARDING_REQUIRED' | 'PERSONALIZED';
 
 export interface CuratedFeaturedScholarship {
+  section: string;
+
   scholarshipId: number;
   title: string;
   organization: string;
+
   posterUrl: string | null;
   maxAmount: string | null;
+
   deadline: string | null;
   deadlineAt: string | null;
   dDay: number | null;
+
   matchScore: number;
   matchReasons: string[];
+
   eligible: boolean;
   isScrapped: boolean;
 
@@ -23,35 +29,46 @@ export interface CuratedFeaturedScholarship {
 }
 
 export interface CuratedCampusScholarship {
+  section: string;
+
   scholarshipId: number;
   title: string;
   organization: string;
+
   posterUrl: string | null;
   maxAmount: string | null;
+
   deadline: string | null;
   deadlineAt: string | null;
   dDay: number | null;
+
   matchScore: number;
   matchReasons: string[];
+
   eligible: boolean;
   isScrapped: boolean;
 }
 
 export interface CuratedOtherScholarship {
+  section: string;
+
   scholarshipId: number;
   title: string;
   organization: string;
+
   posterUrl: string | null;
   maxAmount: string | null;
+
   deadline: string | null;
   deadlineAt: string | null;
   dDay: number | null;
+
   matchScore: number;
   matchReasons: string[];
+
   eligible: boolean;
   isScrapped: boolean;
-  // 기존 비로그인 카드 디자인 호환용
-  // 현재 백엔드 curated 응답에는 없음
+
   tags?: string[];
 }
 
@@ -71,10 +88,16 @@ export interface CuratedScholarshipParams {
 
 export interface CuratedScholarshipResponse {
   viewMode: CuratedViewMode;
+
+  rankerVersion: string;
+
   featured: CuratedFeaturedScholarship[];
+
   profileCompletionRate: number;
+
   campusScholarships: CuratedCampusScholarship[];
   otherScholarships: CuratedOtherScholarship[];
   ineligibleScholarships: CuratedOtherScholarship[];
+
   pagination: Pagination;
 }
