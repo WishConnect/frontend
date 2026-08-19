@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, type ReactNode, type ChangeEvent } from 'r
 import { useNavigate } from 'react-router-dom';
 //import Header from '../../components/common/Header/Header';
 import Header from '../../components/common/Header/Header';
-import LeftSidebar from '../../components/LeftSidebar';
+import OnboardingStepSidebar from '../../components/onboarding/OnboardingStepSidebar';
 import capIcon from '../../assets/onboarding/graduation-cap.svg';
 import helpIcon from '../../assets/onboarding/circle-question-mark.svg';
 import searchIcon from '../../assets/onboarding/magnifyingglass.svg';
@@ -500,9 +500,8 @@ export default function OnboardingAcademicInfo() {
         <Header logoOnly />
 
         <div className="flex px-[64px]">
-          <aside className="mr-8 shrink-0">
-            <LeftSidebar activeId="mypage" />
-          </aside>
+          {/* 좌측 스텝 사이드바 */}
+          <OnboardingStepSidebar currentStep={1} />
 
           <main className="flex min-w-0 flex-1 items-start pb-16 pt-4">
 
