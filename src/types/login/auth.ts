@@ -188,15 +188,9 @@ export interface SocialLoginRequest extends SocialLoginBase {
   redirectUri: string;
 }
 
-// 네이버만 인가코드와 함께 state를 요구한다 (백엔드 NaverLoginRequest.java: record(code, state)).
-// state는 CSRF 방지용 랜덤값으로, 프론트가 인가 URL 생성 시 만들어 콜백에서 되돌려받은 값을 그대로 전달.
-// 네이버는 토큰 교환에 redirect_uri를 쓰지 않아(NaverApiClient) redirectUri를 보내지 않는다.
-export interface NaverLoginRequest extends SocialLoginBase {
-  state: string;
-}
-
 // 소셜 로그인 응답 안의 user 객체 (기본 User + loginType)
-// 백엔드 LoginType enum 기준: LOCAL/KAKAO/GOOGLE/NAVER 중 소셜 3종.
+// 백엔드 LoginType enum 기준. 프론트는 카카오/구글만 쓰지만(네이버는 2026-08-19 제외),
+// 서버 enum 에는 NAVER 가 남아 있어 응답 타입에서는 그대로 받는다.
 export interface SocialUser {
   userId: string; // uuid
   name: string;
