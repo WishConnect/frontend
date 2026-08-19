@@ -245,7 +245,14 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
           <LeftSidebar activeId="curating" />
 
           {!isOnboarded && (
-            <div className="fixed bottom-[16px] left-[78px] z-10 h-[224px] w-[208px] rounded-[16px] bg-white px-[20px] pt-[20px] pb-[16px] shadow-[0_1px_7px_0_rgba(0,0,0,0.08)]">
+            // 사이드바 안쪽에 좌·우·아래 16px 씩 들여 놓는다(시안 3345:7681: 패널 237x896, 카드 205).
+            //
+            // left 를 주지 않는 이유: LeftSidebar 의 aside 와 같은 방식이다. fixed 인데 left 가 auto 면
+            // 브라우저가 원래 있어야 할 자리(= 이 열의 왼쪽 끝)를 기준으로 잡아 준다. 예전처럼
+            // left-[78px] 로 못 박으면 가운데 정렬 래퍼가 사이드바를 밀 때 카드만 제자리에 남아 어긋났다.
+            //
+            // top 은 사이드바 기하(top-80, h-896)에서 역산했다: 80 + 896 - 16 - 224 = 736.
+            <div className="fixed top-[736px] ml-[16px] z-10 h-[224px] w-[205px] rounded-[16px] bg-white px-[20px] pt-[20px] pb-[16px] shadow-[0_1px_7px_0_rgba(0,0,0,0.08)]">
               <p className="h-[16px] w-[105px] text-[12px] font-medium leading-[16px] text-[#555964]">
                 더 정확한 추천을 위해
               </p>
@@ -261,7 +268,7 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
                   {profileCompletionRate}%
                 </span>
 
-                <div className="mt-[4px] h-[4px] w-[168px] overflow-hidden rounded-[8px] bg-[#E6E7EB]">
+                <div className="mt-[4px] h-[4px] w-full overflow-hidden rounded-[8px] bg-[#E6E7EB]">
                   <div
                     className="h-full rounded-[8px] bg-[#7962ED]"
                     style={{
@@ -274,7 +281,7 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
               <button
                 type="button"
                 onClick={() => navigate('/onboarding')}
-                className="absolute bottom-[16px] left-[20px] flex h-[32px] w-[168px] items-center justify-between rounded-[8px] bg-[#F3F4F6] px-[16px] text-[12px] font-medium leading-[16px] text-[#747883]"
+                className="absolute bottom-[16px] left-[20px] right-[20px] flex h-[32px] items-center justify-between rounded-[8px] bg-[#F3F4F6] px-[16px] text-[12px] font-medium leading-[16px] text-[#747883]"
               >
                 <span className="leading-[16px]">프로필 업데이트</span>
 
