@@ -100,7 +100,7 @@ export default function LoginForm() {
       </div>
 
       <div className="flex items-center justify-between">
-        {/* 아이디 찾기 · 비밀번호 찾기 (Figma 1314:2713, 3px 점으로 구분)
+        {/* 아이디 찾기 · 비밀번호 재설정 (Figma 1314:2713, 3px 점으로 구분)
             아이디 찾기는 2026-08-16에 보안 문제로 잠시 내렸다가 2026-08-17에 되살렸다.
             아이디와 이메일이 별개 값이 됐고(users.login_id 신설) 이메일 인증을 통과해야
             결과가 나오므로, 내렸던 사유(본인 확인 없이 이메일이 노출됨)가 해소됐다. */}
@@ -118,7 +118,7 @@ export default function LoginForm() {
             onClick={() => navigate('/find-password')}
             className="text-base font-medium text-[#747883] underline"
           >
-            비밀번호 찾기
+            비밀번호 재설정
           </button>
         </div>
 

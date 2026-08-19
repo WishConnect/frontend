@@ -13,7 +13,7 @@ import { updatePassword, getMyPageSummary } from '../api/mypage/mypage';
 import { useUserStore } from '../store/user/user';
 import { tokenStorage } from '../utils/token';
 import { formatPhone, getPhoneError } from '../utils/phone';
-import { normalizeRegion } from '../utils/region';
+import { joinRegionLabel, splitRegionLabel } from '../utils/region';
 import type { Region } from '../types/region';
 
 type Gender = 'female' | 'male' | 'none';
@@ -181,10 +181,6 @@ function SelectToggleGroup<T extends string>({
   );
 }
 
-// (normalizeRegion 은 삭제했다) 조회 응답의 region 이 2026-08-19부터 문자열이 아니라
-// Region 객체로 오면서(백엔드 539c0ae) 이름을 목록과 대조해 맞출 필요가 없어졌다.
-// 시군구면 parentName 에 상위 시도가 실려 오므로 어느 시도의 "중구"인지도 바로 알 수 있다.
-
 // 지금은 하드코딩된 기본값이지만, 추후 로그인/API 응답으로 이 객체를 채우면 됩니다.
 const DEFAULT_FORM: ProfileForm = {
   email: 'wishconnect@gmail.com',
@@ -291,7 +287,6 @@ export default function EditProfile() {
         // profile.birthDate가 이미 "yyyy-MM-dd" 전체 날짜로 오므로 그대로 사용.
         // 값이 없으면(신규 유저 등) 올해 1월 1일로 폴백.
         const birthDate = profile.birthDate || `${new Date().getFullYear()}-01-01`;
-        const normalizedRegion = normalizeRegion(profile.region);
 
         setForm((prev) => ({
           ...prev,
@@ -303,10 +298,9 @@ export default function EditProfile() {
           contact: formatPhone(profile.phone ?? ''),
           gender: mapApiValueToGender(profile.gender),
           nationality: mapApiValueToNationality(profile.nationality),
-          // region 은 객체(시군구면 parentName 에 상위 시도) 또는 여전히 문자열로 올 수 있다
-          // (utils/region.ts 주석 참고 — 백엔드 마이그레이션이 엔드포인트마다 다르게 반영됨).
-          region: normalizedRegion?.parentName ?? normalizedRegion?.name ?? '',
-          sigungu: normalizedRegion?.parentName ? normalizedRegion.name : '',
+          // 서버 region 은 객체로도, "서울 중구" 문자열로도 올 수 있다(utils/region.ts 주석 참고).
+          // splitRegionLabel 이 두 포맷을 모두 받아 시도/시군구 칸으로 나눠 담는다.
+          ...splitRegionLabel(profile.region),
         }));
       } catch (err) {
         console.error('프로필 정보 조회 실패:', err);
@@ -421,9 +415,8 @@ export default function EditProfile() {
         phone: form.contact,
         gender: mapGenderToApiValue(form.gender),
         nationality: mapNationalityToApiValue(form.nationality),
-        // 서버는 region 을 문자열 하나로만 받는다. 시군구를 골랐으면 "서울 중구" 로 합쳐 보낸다 —
-        // RegionResolver 가 "시도 시군구" 조합을 가장 먼저 보므로 이 형태가 가장 정확하다.
-        region: form.sigungu ? `${form.region} ${form.sigungu}` : form.region,
+        // 서버는 region 을 문자열 하나로만 받는다. 조회 응답과 같은 형식으로 합쳐 보낸다.
+        region: joinRegionLabel(form.region, form.sigungu),
       });
 
       if (wantsPasswordChange) {

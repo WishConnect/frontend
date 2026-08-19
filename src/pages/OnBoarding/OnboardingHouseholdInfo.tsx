@@ -2,6 +2,8 @@ import { useEffect, useState, type ReactNode, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header/Header';
 import OnboardingStepSidebar from '../../components/onboarding/OnboardingStepSidebar';
+import { useUserStore } from '../../store/user/user';
+import { isSocialUser } from '../../utils/onboarding';
 import heartIcon from '../../assets/onboarding/heart.svg';
 import helpIcon from '../../assets/onboarding/circle-question-mark.svg';
 import { getMyProfile, putHouseholdProfile } from '../../api/onboarding/profile';
@@ -397,6 +399,8 @@ function MultiSelectSection({
 // ------------------------------------------------------------------
 export default function OnboardingHouseholdInfo() {
   const navigate = useNavigate();
+  // 소셜 가입자는 앞에 "기본 정보" 단계가 하나 더 붙어 4단계다(utils/onboarding.ts).
+  const isSocial = isSocialUser(useUserStore((s) => s.user));
   const [incomeLevel, setIncomeLevel] = useState('');
   const [incomeUnknown, setIncomeUnknown] = useState(false);
   const [householdSize, setHouseholdSize] = useState('');
@@ -508,172 +512,171 @@ export default function OnboardingHouseholdInfo() {
 
         <div className="flex px-[64px]">
           {/* 좌측 스텝 사이드바 */}
-          <OnboardingStepSidebar currentStep={2} />
+          <OnboardingStepSidebar current="household" includeBasicStep={isSocial} />
 
           <main className="flex min-w-0 flex-1 items-start pb-16 pt-4">
-
-          {/* 우측 폼 영역 */}
-          <section className="flex flex-1 flex-col">
-            {/* 아이콘 + 도움말 */}
-            <div className="flex w-full items-start justify-between">
-              <div className="flex size-20 items-center justify-center rounded-full bg-[#F9FAFC]">
-                <img src={heartIcon} alt="" className="size-[42px]" />
+            {/* 우측 폼 영역 */}
+            <section className="flex flex-1 flex-col">
+              {/* 아이콘 + 도움말 */}
+              <div className="flex w-full items-start justify-between">
+                <div className="flex size-20 items-center justify-center rounded-full bg-[#F9FAFC]">
+                  <img src={heartIcon} alt="" className="size-[42px]" />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowHelp((v) => !v)}
+                  style={
+                    showHelp
+                      ? { backgroundColor: '#FFFFFF', border: '1px solid #E6E7EB' }
+                      : { backgroundColor: '#F3F4F6', border: '1px solid transparent' }
+                  }
+                  className="relative z-30 flex items-center gap-2 rounded-lg px-6 py-3 text-[12px] font-medium leading-4 text-[#747883]"
+                >
+                  {showHelp ? (
+                    <>
+                      <CloseIcon />
+                      도움말 닫기
+                    </>
+                  ) : (
+                    <>
+                      <img src={helpIcon} alt="" className="size-[18px] shrink-0" />
+                      도움말
+                    </>
+                  )}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowHelp((v) => !v)}
-                style={
-                  showHelp
-                    ? { backgroundColor: '#FFFFFF', border: '1px solid #E6E7EB' }
-                    : { backgroundColor: '#F3F4F6', border: '1px solid transparent' }
-                }
-                className="relative z-30 flex items-center gap-2 rounded-lg px-6 py-3 text-[12px] font-medium leading-4 text-[#747883]"
-              >
-                {showHelp ? (
-                  <>
-                    <CloseIcon />
-                    도움말 닫기
-                  </>
-                ) : (
-                  <>
-                    <img src={helpIcon} alt="" className="size-[18px] shrink-0" />
-                    도움말
-                  </>
-                )}
-              </button>
-            </div>
 
-            {/* 타이틀 */}
-            <div className="mt-4 flex flex-col gap-2">
-              <h1 className="text-[28px] font-bold leading-10 tracking-[-0.28px] text-[#0A0C11]">
-                해당되는 조건과 관심 분야를 선택해 주세요
-              </h1>
-              <p className="text-[16px] font-medium leading-6 text-[#747883]">
-                입력한 정보는 장학금 필터링과 맞춤 추천에 활용돼요.
-              </p>
-            </div>
+              {/* 타이틀 */}
+              <div className="mt-4 flex flex-col gap-2">
+                <h1 className="text-[28px] font-bold leading-10 tracking-[-0.28px] text-[#0A0C11]">
+                  해당되는 조건과 관심 분야를 선택해 주세요
+                </h1>
+                <p className="text-[16px] font-medium leading-6 text-[#747883]">
+                  입력한 정보는 장학금 필터링과 맞춤 추천에 활용돼요.
+                </p>
+              </div>
 
-            {/* 본문 */}
-            <div className="mt-9 flex w-full flex-col gap-16">
-              {/* 가구 정보 */}
-              <div className="flex w-full flex-col gap-4">
-                <h2 className="text-[20px] font-bold leading-7 tracking-[-0.1px] text-[#0A0C11]">
-                  가구 정보
-                </h2>
-                <div className="flex w-full flex-col gap-12">
-                  {/* 소득 분위 / 가구원 수 */}
-                  <div className="flex w-full items-start gap-8">
-                    <div className="flex flex-1 flex-col gap-2">
-                      <FieldLabel>소득 분위</FieldLabel>
-                      <div className="flex w-full items-center gap-2">
+              {/* 본문 */}
+              <div className="mt-9 flex w-full flex-col gap-16">
+                {/* 가구 정보 */}
+                <div className="flex w-full flex-col gap-4">
+                  <h2 className="text-[20px] font-bold leading-7 tracking-[-0.1px] text-[#0A0C11]">
+                    가구 정보
+                  </h2>
+                  <div className="flex w-full flex-col gap-12">
+                    {/* 소득 분위 / 가구원 수 */}
+                    <div className="flex w-full items-start gap-8">
+                      <div className="flex flex-1 flex-col gap-2">
+                        <FieldLabel>소득 분위</FieldLabel>
+                        <div className="flex w-full items-center gap-2">
+                          <SelectField
+                            value={incomeLevel}
+                            onChange={(e) => setIncomeLevel(e.target.value)}
+                            placeholder="선택해 주세요"
+                            options={INCOME_LEVEL_OPTIONS}
+                            disabled={incomeUnknown}
+                          />
+                          <button
+                            type="button"
+                            onClick={handleToggleIncomeUnknown}
+                            aria-pressed={incomeUnknown}
+                            style={{
+                              backgroundColor: '#F9FAFC',
+                              border: `1px solid ${incomeUnknown ? '#7962ED' : '#E6E7EB'}`,
+                              color: incomeUnknown ? '#7962ED' : '#747883',
+                            }}
+                            className="flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg px-6 py-3 text-[16px] font-medium leading-6 transition-colors"
+                          >
+                            모르겠어요
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex flex-1 flex-col gap-2">
+                        <FieldLabel>가구원 수</FieldLabel>
                         <SelectField
-                          value={incomeLevel}
-                          onChange={(e) => setIncomeLevel(e.target.value)}
+                          value={householdSize}
+                          onChange={(e) => setHouseholdSize(e.target.value)}
                           placeholder="선택해 주세요"
-                          options={INCOME_LEVEL_OPTIONS}
-                          disabled={incomeUnknown}
+                          options={HOUSEHOLD_SIZE_OPTIONS}
                         />
-                        <button
-                          type="button"
-                          onClick={handleToggleIncomeUnknown}
-                          aria-pressed={incomeUnknown}
-                          style={{
-                            backgroundColor: '#F9FAFC',
-                            border: `1px solid ${incomeUnknown ? '#7962ED' : '#E6E7EB'}`,
-                            color: incomeUnknown ? '#7962ED' : '#747883',
-                          }}
-                          className="flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg px-6 py-3 text-[16px] font-medium leading-6 transition-colors"
-                        >
-                          모르겠어요
-                        </button>
                       </div>
                     </div>
-                    <div className="flex flex-1 flex-col gap-2">
-                      <FieldLabel>가구원 수</FieldLabel>
-                      <SelectField
-                        value={householdSize}
-                        onChange={(e) => setHouseholdSize(e.target.value)}
-                        placeholder="선택해 주세요"
-                        options={HOUSEHOLD_SIZE_OPTIONS}
-                      />
-                    </div>
+
+                    {/* 가정 형태 */}
+                    <MultiSelectSection
+                      title="가정 형태"
+                      options={HOUSING_TYPE_OPTIONS}
+                      selected={housingTypes}
+                      onToggle={(opt) => toggleInList(housingTypes, setHousingTypes, opt)}
+                      onToggleAll={() =>
+                        toggleAllInList(HOUSING_TYPE_OPTIONS, housingTypes, setHousingTypes)
+                      }
+                    />
+
+                    {/* 본인에게 해당되는 항목 */}
+                    <MultiSelectSection
+                      title="본인에게 해당되는 항목"
+                      options={SELF_STATUS_OPTIONS}
+                      selected={selfStatuses}
+                      onToggle={(opt) => toggleInList(selfStatuses, setSelfStatuses, opt)}
+                      onToggleAll={() =>
+                        toggleAllInList(SELF_STATUS_OPTIONS, selfStatuses, setSelfStatuses)
+                      }
+                    />
                   </div>
+                </div>
 
-                  {/* 가정 형태 */}
+                {/* 어떤 장학금에 관심이 있으신가요? */}
+                <div className="flex w-full flex-col gap-4">
+                  <FieldLabel required>
+                    <span className="text-[20px] font-bold leading-7 tracking-[-0.1px]">
+                      어떤 장학금에 관심이 있으신가요?
+                    </span>
+                  </FieldLabel>
                   <MultiSelectSection
-                    title="가정 형태"
-                    options={HOUSING_TYPE_OPTIONS}
-                    selected={housingTypes}
-                    onToggle={(opt) => toggleInList(housingTypes, setHousingTypes, opt)}
-                    onToggleAll={() =>
-                      toggleAllInList(HOUSING_TYPE_OPTIONS, housingTypes, setHousingTypes)
-                    }
-                  />
-
-                  {/* 본인에게 해당되는 항목 */}
-                  <MultiSelectSection
-                    title="본인에게 해당되는 항목"
-                    options={SELF_STATUS_OPTIONS}
-                    selected={selfStatuses}
-                    onToggle={(opt) => toggleInList(selfStatuses, setSelfStatuses, opt)}
-                    onToggleAll={() =>
-                      toggleAllInList(SELF_STATUS_OPTIONS, selfStatuses, setSelfStatuses)
-                    }
+                    title="관심분야"
+                    options={INTEREST_OPTIONS}
+                    selected={interests}
+                    onToggle={(opt) => toggleInList(interests, setInterests, opt)}
+                    onToggleAll={() => toggleAllInList(INTEREST_OPTIONS, interests, setInterests)}
                   />
                 </div>
               </div>
 
-              {/* 어떤 장학금에 관심이 있으신가요? */}
-              <div className="flex w-full flex-col gap-4">
-                <FieldLabel required>
-                  <span className="text-[20px] font-bold leading-7 tracking-[-0.1px]">
-                    어떤 장학금에 관심이 있으신가요?
-                  </span>
-                </FieldLabel>
-                <MultiSelectSection
-                  title="관심분야"
-                  options={INTEREST_OPTIONS}
-                  selected={interests}
-                  onToggle={(opt) => toggleInList(interests, setInterests, opt)}
-                  onToggleAll={() => toggleAllInList(INTEREST_OPTIONS, interests, setInterests)}
-                />
+              {/* 제출 에러 메시지 */}
+              {submitError && (
+                <p className="mt-6 text-right text-[14px] font-medium leading-5 text-[#FA5862]">
+                  {submitError}
+                </p>
+              )}
+
+              {/* 하단 버튼 */}
+              <div className="mt-16 flex w-full items-center justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={handlePrev}
+                  style={{ backgroundColor: '#F3F4F6', border: '1px solid transparent' }}
+                  className="flex items-center gap-4 rounded-lg py-4 pl-4 pr-8 text-[20px] font-medium leading-7 tracking-[-0.1px] text-[#747883]"
+                >
+                  <ChevronLeftIcon />
+                  이전
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={isSubmitting}
+                  style={{
+                    backgroundImage:
+                      'linear-gradient(115.029deg, rgb(121, 98, 237) 30.662%, rgb(189, 185, 249) 105.21%)',
+                    opacity: isSubmitting ? 0.6 : 1,
+                  }}
+                  className="flex items-center gap-4 rounded-lg py-4 pl-8 pr-4 text-[20px] font-medium leading-7 tracking-[-0.1px] text-white"
+                >
+                  {isSubmitting ? '저장 중...' : '다음 단계로'}
+                  <ChevronRightIcon />
+                </button>
               </div>
-            </div>
-
-            {/* 제출 에러 메시지 */}
-            {submitError && (
-              <p className="mt-6 text-right text-[14px] font-medium leading-5 text-[#FA5862]">
-                {submitError}
-              </p>
-            )}
-
-            {/* 하단 버튼 */}
-            <div className="mt-16 flex w-full items-center justify-end gap-4">
-              <button
-                type="button"
-                onClick={handlePrev}
-                style={{ backgroundColor: '#F3F4F6', border: '1px solid transparent' }}
-                className="flex items-center gap-4 rounded-lg py-4 pl-4 pr-8 text-[20px] font-medium leading-7 tracking-[-0.1px] text-[#747883]"
-              >
-                <ChevronLeftIcon />
-                이전
-              </button>
-              <button
-                type="button"
-                onClick={handleNext}
-                disabled={isSubmitting}
-                style={{
-                  backgroundImage:
-                    'linear-gradient(115.029deg, rgb(121, 98, 237) 30.662%, rgb(189, 185, 249) 105.21%)',
-                  opacity: isSubmitting ? 0.6 : 1,
-                }}
-                className="flex items-center gap-4 rounded-lg py-4 pl-8 pr-4 text-[20px] font-medium leading-7 tracking-[-0.1px] text-white"
-              >
-                {isSubmitting ? '저장 중...' : '다음 단계로'}
-                <ChevronRightIcon />
-              </button>
-            </div>
-          </section>
+            </section>
           </main>
         </div>
 
