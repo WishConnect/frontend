@@ -7,10 +7,11 @@ export interface MyPageSummary {
   email: string;
   // 실제 응답 필드명은 birthYear가 아니라 birthDate. 값이 없으면 null.
   birthDate: string | null;
-  // 2026-08-19 API 개편으로 문자열("서울")에서 지역 객체로 스펙이 바뀜.
-  // 같은 모양을 여기 따로 적으면 types/region.ts 와 둘로 갈라지므로 Region 을 그대로 쓴다.
-  // 화면에 뿌릴 땐 utils/region.ts 의 formatRegionLabel 로 "서울 중구" 형태를 만든다.
-  region: Region | null;
+  // 2026-08-19 API 개편으로 문자열("서울 중구")에서 지역 객체로 스펙이 바뀔 예정이었지만,
+  // 이 엔드포인트(GET /users/me)는 실제로는 아직 이전 문자열 포맷을 그대로 준다(같은 날 확인).
+  // 어느 쪽이 와도 깨지지 않도록 문자열도 함께 허용한다 — 화면에 뿌릴 땐 utils/region.ts 의
+  // formatRegionLabel(내부에서 normalizeRegion으로 포맷을 통일)로 "서울 중구" 형태를 만든다.
+  region: Region | string | null;
   profileCompletionRate: number;
   scrappedCount: number;
   applicationCount: number;
