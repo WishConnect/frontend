@@ -171,18 +171,27 @@ export default function WritePage() {
   // 완료
   const handleComplete = async () => {
     try {
-      const questionId = questionIds[step2Category];
-      if (questionId) {
-        await putAnswer(applicationId, questionId, {
-          action: 'confirm',
-          userContent: drafts[step2Category] ?? '',
-        });
-      }
-      navigate('/');
+        let lastResponse;
+
+        for (let idx = 0; idx < questionIds.length; idx++) {
+            const questionId = questionIds[idx];
+            if (!questionId) continue;
+
+            lastResponse = await putAnswer(applicationId, questionId, {
+                action: 'confirm',
+                userContent: drafts[idx] ?? '',
+            });
+        }
+
+        if (lastResponse?.data?.applicationCompleted) {
+            navigate('/');
+        } else {
+            console.error('일부 문항이 완료되지 않았습니다.');
+        }
     } catch (error) {
-      console.error('완료 처리 실패:', error);
+        console.error('완료 처리 실패:', error);
     }
-  };
+};
 
   return (
     <div className="w-[1440px] min-h-screen font-['Pretendard']">
