@@ -12,6 +12,7 @@ import LeftSidebar from '../../components/LeftSidebar';
 import UpdateRight from '../../assets/icons/UpdateRight.svg';
 
 import { fetchCuratedScholarships } from '../../api/Curation/Curated';
+import { postScholarshipEvents } from '../../api/Curation/Events';
 import { scrapScholarship, unscrapScholarship } from '../../api/Curation/Scrap';
 import { useUserStore } from '../../store/user/user';
 import Button from '../../components/Button/Button';
@@ -21,7 +22,13 @@ import type {
   CuratedCampusScholarship,
   CuratedFeaturedScholarship,
   CuratedOtherScholarship,
+  CuratedViewMode,
 } from '../../types/Curation/Curated';
+
+type ClickableScholarship =
+  | CuratedFeaturedScholarship
+  | CuratedCampusScholarship
+  | CuratedOtherScholarship;
 
 interface MemberCurationPageProps {
   isLoggedIn: boolean;
@@ -43,6 +50,8 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
   const [currentFeaturedIndex, setCurrentFeaturedIndex] = useState(0);
 
   const [profileCompletionRate, setProfileCompletionRate] = useState(0);
+  const [viewMode, setViewMode] = useState<CuratedViewMode>('PERSONALIZED');
+  const [rankerVersion, setRankerVersion] = useState('');
 
   const [campusScholarships, setCampusScholarships] = useState<CuratedCampusScholarship[]>([]);
 
@@ -87,6 +96,8 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
          */
         const featured = data.featured ?? [];
 
+        setViewMode(data.viewMode);
+        setRankerVersion(data.rankerVersion);
         setTotalFeaturedCount(featured.length);
         setFeaturedScholarships(featured.slice(0, 5));
         setCurrentFeaturedIndex(0);
@@ -178,8 +189,25 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
     setCurrentFeaturedIndex(index - 1);
   };
 
-  const handleScholarshipDetailClick = (scholarshipId: number) => {
-    navigate(`/curation/${scholarshipId}`, {
+  const handleScholarshipDetailClick = (
+    scholarship: ClickableScholarship,
+    position: number,
+  ) => {
+    void postScholarshipEvents([
+      {
+        scholarshipId: scholarship.scholarshipId,
+        eventType: 'CLICK',
+        position,
+        matchScore: scholarship.matchScore,
+        viewMode,
+        section: scholarship.section,
+        rankerVersion,
+      },
+    ]).catch((error) => {
+      console.error('장학금 클릭 기록 실패:', error);
+    });
+
+    navigate(`/curation/${scholarship.scholarshipId}`, {
       state: {
         profileCompletionRate,
       },
@@ -326,12 +354,12 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
                       transform: `translateX(-${currentFeaturedIndex * SLIDE_WIDTH}px)`,
                     }}
                   >
-                    {featuredScholarships.map((scholarship) => (
+                    {featuredScholarships.map((scholarship, index) => (
                       <div key={scholarship.scholarshipId} className="w-[1043px] shrink-0">
                         <RecommendCard
                           scholarship={scholarship}
                           onDetailClick={() =>
-                            handleScholarshipDetailClick(scholarship.scholarshipId)
+                            handleScholarshipDetailClick(scholarship, index + 1)
                           }
                           onScrapClick={handleScrapClick}
                           onPrev={handleFeaturedPrev}
@@ -441,6 +469,7 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
                 scholarships={
                   ineligibleScholarships.length > 0 ? ineligibleScholarships : otherScholarships
                 }
+                onDetailClick={handleScholarshipDetailClick}
               />
             </LockedSection>
           </div>

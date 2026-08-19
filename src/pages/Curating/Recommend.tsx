@@ -12,11 +12,13 @@ import DdayStatus from '../../components/DdayStatus';
 import Pagination from '../../components/common/Pagination/Pagination';
 import DetailPost from '../../components/Curation/GuestPost.svg';
 import { fetchCuratedScholarships } from '../../api/Curation/Curated';
+import { postScholarshipEvents } from '../../api/Curation/Events';
 
 import type {
   CuratedCampusScholarship,
   CuratedFeaturedScholarship,
   CuratedOtherScholarship,
+  CuratedViewMode,
 } from '../../types/Curation/Curated';
 
 const ITEMS_PER_PAGE = 6;
@@ -35,6 +37,8 @@ export default function RecommendedScholarshipPage() {
   const [scholarships, setScholarships] = useState<RecommendedScholarship[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [viewMode, setViewMode] = useState<CuratedViewMode>('PERSONALIZED');
+  const [rankerVersion, setRankerVersion] = useState('');
 
   const [sortOption, setSortOption] = useState<SortOption>('마감 임박순');
   const [isSortOpen, setIsSortOpen] = useState(false);
@@ -66,6 +70,9 @@ export default function RecommendedScholarshipPage() {
           navigate('/curation', { replace: true });
           return;
         }
+
+        setViewMode(data.viewMode);
+        setRankerVersion(data.rankerVersion);
 
         /*
          * curated API가 섹션별로 배열을 나눠주므로
@@ -113,6 +120,24 @@ export default function RecommendedScholarshipPage() {
       isCancelled = true;
     };
   }, [currentPage, sortOption, navigate]);
+
+  const handleScholarshipClick = (scholarship: RecommendedScholarship, position: number) => {
+    void postScholarshipEvents([
+      {
+        scholarshipId: scholarship.scholarshipId,
+        eventType: 'CLICK',
+        position,
+        matchScore: scholarship.matchScore,
+        viewMode,
+        section: scholarship.section,
+        rankerVersion,
+      },
+    ]).catch((error) => {
+      console.error('장학금 클릭 기록 실패:', error);
+    });
+
+    navigate(`/curation/${scholarship.scholarshipId}`);
+  };
 
   return (
     <div className="min-h-[1024px] w-[1440px] bg-white font-['Pretendard']">
@@ -203,10 +228,15 @@ export default function RecommendedScholarshipPage() {
             <>
               {/* 장학금 카드 */}
               <div className="mt-[32px] grid grid-cols-3 gap-x-[32px] gap-y-[32px]">
-                {scholarships.map((scholarship) => (
+                {scholarships.map((scholarship, index) => (
                   <article
                     key={scholarship.scholarshipId}
-                    onClick={() => navigate(`/curation/${scholarship.scholarshipId}`)}
+                    onClick={() =>
+                      handleScholarshipClick(
+                        scholarship,
+                        (currentPage - 1) * ITEMS_PER_PAGE + index + 1,
+                      )
+                    }
                     className="relative h-[460px] w-[326px] cursor-pointer overflow-hidden rounded-[16px] border border-[#E6E7EB]"
                   >
                     {scholarship.posterUrl ? (

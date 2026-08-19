@@ -9,7 +9,7 @@ import type { CuratedCampusScholarship } from '../../types/Curation/Curated';
 
 interface SchoolScholarshipSectionProps {
   scholarships: CuratedCampusScholarship[];
-  onDetailClick: (scholarshipId: number) => void;
+  onDetailClick: (scholarship: CuratedCampusScholarship, position: number) => void;
 }
 
 export default function SchoolScholarshipSection({
@@ -31,11 +31,11 @@ export default function SchoolScholarshipSection({
   return (
     <section className="flex w-[1043px] flex-col gap-[24px]">
       <div className="grid grid-cols-3 gap-x-[32px] gap-y-[16px]">
-        {visibleScholarships.map((scholarship) => (
+        {visibleScholarships.map((scholarship, index) => (
           <SchoolScholarshipCard
             key={scholarship.scholarshipId}
             scholarship={scholarship}
-            onClick={() => onDetailClick(scholarship.scholarshipId)}
+            onClick={() => onDetailClick(scholarship, index + 1)}
           />
         ))}
       </div>

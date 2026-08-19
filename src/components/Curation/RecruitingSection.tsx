@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import ChevronDown from '../../assets/icons/ChevronDown.svg';
 import ChevronUp from '../../assets/icons/ChevronUp.svg';
@@ -12,20 +11,18 @@ import type { CuratedOtherScholarship } from '../../types/Curation/Curated';
 
 interface RecruitingSectionProps {
   scholarships: CuratedOtherScholarship[];
+  onDetailClick: (scholarship: CuratedOtherScholarship, position: number) => void;
 }
 
-export default function RecruitingSection({ scholarships }: RecruitingSectionProps) {
-  const navigate = useNavigate();
-
+export default function RecruitingSection({
+  scholarships,
+  onDetailClick,
+}: RecruitingSectionProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [loadingId, setLoadingId] = useState<number | null>(null);
 
   // 사용자가 화면에서 변경한 스크랩 상태만 따로 저장
   const [scrapOverrides, setScrapOverrides] = useState<Record<number, boolean>>({});
-
-  const handleDetailClick = (scholarshipId: number) => {
-    navigate(`/curation/${scholarshipId}`);
-  };
 
   const handleScrap = async (scholarshipId: number, currentScrapped: boolean) => {
     if (loadingId !== null) {
@@ -75,7 +72,7 @@ export default function RecruitingSection({ scholarships }: RecruitingSectionPro
       </div>
 
       <div className="flex flex-col">
-        {visibleScholarships.map((scholarship) => {
+        {visibleScholarships.map((scholarship, index) => {
           const isScrapped = scrapOverrides[scholarship.scholarshipId] ?? scholarship.isScrapped;
 
           const isLoading = loadingId === scholarship.scholarshipId;
@@ -91,10 +88,10 @@ export default function RecruitingSection({ scholarships }: RecruitingSectionPro
               key={scholarship.scholarshipId}
               role="button"
               tabIndex={0}
-              onClick={() => handleDetailClick(scholarship.scholarshipId)}
+              onClick={() => onDetailClick(scholarship, index + 1)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
-                  handleDetailClick(scholarship.scholarshipId);
+                  onDetailClick(scholarship, index + 1);
                 }
               }}
               className="flex h-[64px] cursor-pointer items-center border-b border-[#D2D4DA] pt-[20px] pb-[20px]"
