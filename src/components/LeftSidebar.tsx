@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom';
+import { useUserStore } from '../store/user/user';
 
 type MenuId = 'curating' | 'archiving' | 'insight' | 'mypage';
 
@@ -73,6 +74,9 @@ const FADE_MS = 300;
 export default function LeftSidebar({ activeId: initialActiveId }: LeftSidebarProps = {}) {
     const [activeId, setActiveId] = useState<MenuId>(initialActiveId ?? MENU_ITEMS[0].id);
     const navigate = useNavigate();
+    const isLoggedIn = useUserStore((s) => s.isLoggedIn);
+    // 비로그인 상태에서는 마이페이지로 갈 방법이 없어야 하므로 메뉴 자체에서 뺀다.
+    const menuItems = isLoggedIn ? MENU_ITEMS : MENU_ITEMS.filter((item) => item.id !== 'mypage');
    const getPath = (id: MenuId) => {
         switch (id) {
             case 'curating' : return '/curation';
@@ -82,7 +86,9 @@ export default function LeftSidebar({ activeId: initialActiveId }: LeftSidebarPr
         }
     }
 
-    const activeIndex = MENU_ITEMS.findIndex(item => item.id === activeId);
+    // 비로그인 상태에서 activeId="mypage"로 진입하는 것처럼 목록에 없는 id가 오면
+    // -1이 되어 하이라이트 바가 화면 밖으로 밀려나므로 0으로 방어한다.
+    const activeIndex = Math.max(menuItems.findIndex(item => item.id === activeId), 0);
 
     const handleNavigate = (id: MenuId) => {
         if (id === activeId) return;
@@ -140,7 +146,7 @@ export default function LeftSidebar({ activeId: initialActiveId }: LeftSidebarPr
                         }}
                     />
 
-                    {MENU_ITEMS.map((item) => (
+                    {menuItems.map((item) => (
                         <SidebarItem
                             key={item.id}
                             item={item}
