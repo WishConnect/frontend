@@ -2,13 +2,12 @@
 // 흐름: 버튼 클릭 → 여기서 만든 인가 URL로 이동 → 제공자가 code를 붙여 콜백으로 돌려보냄
 //      → SocialCallbackPage가 그 code를 서버(/auth/{provider}/login)로 전달.
 
-export type SocialProvider = 'kakao' | 'google' | 'naver';
+export type SocialProvider = 'kakao' | 'google';
 
 // 각 제공자의 로그인(인가) 페이지 주소.
 const AUTHORIZE_URLS: Record<SocialProvider, string> = {
   kakao: 'https://kauth.kakao.com/oauth/authorize',
   google: 'https://accounts.google.com/o/oauth2/v2/auth',
-  naver: 'https://nid.naver.com/oauth2.0/authorize',
 };
 
 // 브라우저에 노출돼도 되는 공개 식별자(Client ID). 카카오는 REST API 키를 사용한다.
@@ -16,7 +15,6 @@ const AUTHORIZE_URLS: Record<SocialProvider, string> = {
 const CLIENT_IDS: Record<SocialProvider, string | undefined> = {
   kakao: import.meta.env.VITE_KAKAO_CLIENT_ID,
   google: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-  naver: import.meta.env.VITE_NAVER_CLIENT_ID,
 };
 
 // 구글은 요청할 정보 범위(scope)를 명시해야 이메일/이름을 받을 수 있다.
@@ -28,7 +26,6 @@ const SCOPES: Partial<Record<SocialProvider, string>> = {
 export const PROVIDER_LABELS: Record<SocialProvider, string> = {
   kakao: '카카오',
   google: '구글',
-  naver: '네이버',
 };
 
 // 콜백 주소. 서버 설정(KAKAO_REDIRECT_URI 등)이 "프론트도메인/auth/{provider}/callback" 규약이라
@@ -38,7 +35,8 @@ export function getRedirectUri(provider: SocialProvider): string {
   return `${window.location.origin}/auth/${provider}/callback`;
 }
 
-// state: CSRF 방지용 일회성 랜덤값. 네이버는 필수(백엔드가 검증), 나머지도 붙여두면 안전하다.
+// state: CSRF 방지용 일회성 랜덤값. 필수는 아니지만 붙여두면 위조된 콜백을 걸러낼 수 있다.
+// (네이버가 이 값을 필수로 요구했었는데, 네이버 연동은 2026-08-19에 제외했다.)
 // sessionStorage에 보관했다가 콜백에서 돌아온 값과 비교한다(탭을 닫으면 자동 소멸).
 const STATE_STORAGE_KEY = 'oauth_state';
 

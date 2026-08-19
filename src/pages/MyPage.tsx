@@ -17,6 +17,7 @@ import { tokenStorage } from '../utils/token';
 import { logout } from '../api/login/auth';
 import { getMyPageSummary, deleteMyAccount } from '../api/mypage/mypage';
 import type { MyPageSummary } from '../types/mypage/mypage';
+import { formatRegionLabel } from '../utils/region';
 
 // API 응답을 받아오기 전/실패했을 때, 그리고 온보딩 미완료로 추천기준이 없을 때 보여줄 기본값
 const DEFAULT_USER_PROFILE = {
@@ -74,7 +75,10 @@ function mapSummaryToView(summary: MyPageSummary): UserProfileView {
   return {
     name: summary.name,
     birthYear: extractBirthYear(summary.birthDate),
-    region: summary.region?.trim() || '',
+    // region 이 2026-08-19부터 문자열이 아니라 객체로 온다(백엔드 539c0ae).
+    // name 만 쓰면 "중구 거주"가 되는데 중구는 6개 시도에 있어 어디인지 알 수 없다.
+    // 그래서 상위 시도까지 붙여 "서울 중구 거주"로 보여준다(시도만 저장했으면 "서울 거주").
+    region: formatRegionLabel(summary.region),
     grade: extractGradeNumber(criteria?.grade ?? null),
     gpa: criteria?.gpa ?? 0,
     gpaMax: 4.5,

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, type ReactNode, type ChangeEvent } from 'r
 import { useNavigate } from 'react-router-dom';
 //import Header from '../../components/common/Header/Header';
 import Header from '../../components/common/Header/Header';
-import LeftSidebar from '../../components/LeftSidebar';
+import OnboardingStepSidebar from '../../components/onboarding/OnboardingStepSidebar';
 import capIcon from '../../assets/onboarding/graduation-cap.svg';
 import helpIcon from '../../assets/onboarding/circle-question-mark.svg';
 import searchIcon from '../../assets/onboarding/magnifyingglass.svg';
@@ -282,11 +282,11 @@ function SelectField({
   options: string[];
 }) {
   return (
-    <div className="flex w-full items-center gap-6 rounded-lg bg-[#F9FAFC] py-3 pl-6 pr-3">
+    <div className="relative flex w-full items-center rounded-lg bg-[#F9FAFC] py-3 pl-6 pr-3">
       <select
         value={value}
         onChange={onChange}
-        className={`w-full flex-1 appearance-none bg-transparent text-[16px] font-medium leading-6 focus:outline-none ${
+        className={`w-full appearance-none bg-transparent pr-8 text-[16px] font-medium leading-6 focus:outline-none ${
           value ? 'text-[#0A0C11]' : 'text-[#9DA1AC]'
         }`}
       >
@@ -299,7 +299,9 @@ function SelectField({
           </option>
         ))}
       </select>
-      <ChevronDownIcon />
+      <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+        <ChevronDownIcon />
+      </div>
     </div>
   );
 }
@@ -500,9 +502,8 @@ export default function OnboardingAcademicInfo() {
         <Header logoOnly />
 
         <div className="flex px-[64px]">
-          <aside className="mr-8 shrink-0">
-            <LeftSidebar activeId="mypage" />
-          </aside>
+          {/* 좌측 스텝 사이드바 */}
+          <OnboardingStepSidebar currentStep={1} />
 
           <main className="flex min-w-0 flex-1 items-start pb-16 pt-4">
 

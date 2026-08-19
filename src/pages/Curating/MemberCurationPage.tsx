@@ -37,6 +37,9 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
     [],
   );
 
+  // 지원 가능한 전체 featured 장학금 개수
+  const [totalFeaturedCount, setTotalFeaturedCount] = useState(0);
+
   const [currentFeaturedIndex, setCurrentFeaturedIndex] = useState(0);
 
   const [profileCompletionRate, setProfileCompletionRate] = useState(0);
@@ -53,6 +56,7 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
   const [isScrapLoading, setIsScrapLoading] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState('');
+
   const SLIDE_WIDTH = 1043;
 
   const isOnboarded = Boolean(user?.onboardingCompleted);
@@ -74,7 +78,17 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
 
         if (isCancelled) return;
 
-        setFeaturedScholarships((data.featured ?? []).slice(0, 5));
+        /*
+         * PERSONALIZED의 featured는
+         * 지원 가능한 전체 장학금 배열.
+         *
+         * 전체 개수는 따로 저장하고,
+         * 메인 캐러셀에는 앞 5개만 보여준다.
+         */
+        const featured = data.featured ?? [];
+
+        setTotalFeaturedCount(featured.length);
+        setFeaturedScholarships(featured.slice(0, 5));
         setCurrentFeaturedIndex(0);
 
         setProfileCompletionRate(data.profileCompletionRate);
@@ -87,7 +101,9 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
         console.error('맞춤 장학금 조회 실패:', error);
 
         setFeaturedScholarships([]);
+        setTotalFeaturedCount(0);
         setCurrentFeaturedIndex(0);
+
         setProfileCompletionRate(0);
         setCampusScholarships([]);
         setOtherScholarships([]);
@@ -137,6 +153,7 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
       return prev + 1;
     });
   };
+
   useEffect(() => {
     if (featuredScholarships.length === 0) {
       return;
@@ -156,6 +173,7 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
       window.clearInterval(interval);
     };
   }, [featuredScholarships.length]);
+
   const handleFeaturedDotClick = (index: number) => {
     setCurrentFeaturedIndex(index - 1);
   };
@@ -322,6 +340,7 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
                         />
                       </div>
                     ))}
+
                     {isOnboarded && (
                       <div className="w-[1043px] shrink-0">
                         <div
@@ -333,6 +352,7 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
                             }
 
                             const cardRect = event.currentTarget.getBoundingClientRect();
+
                             const cardCenterX = cardRect.left + cardRect.width / 2;
 
                             if (event.clientX < cardCenterX) {
@@ -350,7 +370,8 @@ export default function MemberCurationPage({ isLoggedIn }: MemberCurationPagePro
                             </h2>
 
                             <p className="h-[24px] whitespace-nowrap text-center text-[16px] font-medium leading-[24px] text-[#555964]">
-                              {user?.name ?? '회원'}님이 지원가능한 장학금을 더 확인해보세요.
+                              {user?.name ?? '회원'}님이 지원 가능한 {totalFeaturedCount}종의
+                              장학금을 더 확인해보세요.
                             </p>
 
                             <Button

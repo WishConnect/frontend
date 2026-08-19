@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header/Header';
-import LeftSidebar from '../../components/LeftSidebar';
+import OnboardingStepSidebar from '../../components/onboarding/OnboardingStepSidebar';
 import partyPopperIcon from '../../assets/onboarding/party-popper.svg';
 import graduationCapIcon from '../../assets/onboarding/graduation-cap.svg';
 import { completeOnboarding } from '../../api/onboarding/profile';
@@ -107,9 +107,8 @@ export default function OnboardingComplete() {
         <Header logoOnly />
 
         <div className="flex px-[64px]">
-          <aside className="mr-8 shrink-0">
-            <LeftSidebar activeId="mypage" />
-          </aside>
+          {/* 좌측 스텝 사이드바 */}
+          <OnboardingStepSidebar currentStep={3} />
 
           <main className="flex min-w-0 flex-1 items-start pb-16 pt-4">
             {/* 우측 영역 */}

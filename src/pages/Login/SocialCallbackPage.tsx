@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { isAxiosError } from 'axios';
-import { googleLogin, kakaoLogin, naverLogin } from '../../api/login/social';
+import { googleLogin, kakaoLogin } from '../../api/login/social';
 import { useUserStore } from '../../store/user/user';
 import { tokenStorage } from '../../utils/token';
 import { consumeStoredState, getRedirectUri, PROVIDER_LABELS } from '../../utils/oauth';
@@ -34,7 +34,7 @@ export default function SocialCallbackPage() {
       const storedState = consumeStoredState();
 
       const isSupported = (value?: string): value is SocialProvider =>
-        value === 'kakao' || value === 'google' || value === 'naver';
+        value === 'kakao' || value === 'google';
 
       if (!isSupported(provider)) {
         setErrorMessage('지원하지 않는 로그인 방식입니다.');
@@ -66,11 +66,8 @@ export default function SocialCallbackPage() {
 
         if (provider === 'kakao') {
           data = await kakaoLogin({ code, redirectUri });
-        } else if (provider === 'google') {
-          data = await googleLogin({ code, redirectUri });
         } else {
-          // 네이버만 state를 함께 보낸다(백엔드에서 재검증).
-          data = await naverLogin({ code, state: returnedState });
+          data = await googleLogin({ code, redirectUri });
         }
 
         // 기본 로그인(LoginForm)과 동일하게 토큰/유저를 저장한다.
