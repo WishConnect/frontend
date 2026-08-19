@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Header from "../components/common/Header/Header";
 import TextField1 from "../components/TextField1";
 import Button from "../components/Button/Button";
@@ -11,6 +11,7 @@ import { getApiErrorMessage } from '../utils/apiError';
 import { getPasswordError } from '../utils/password';
 import { tokenStorage } from '../utils/token';
 import { useUserStore } from '../store/user/user';
+import { getRegions } from '../api/region';
 import type {
     AgreementType,
     Gender as ApiGender,
@@ -44,13 +45,6 @@ const BIRTH_YEAR_OPTIONS = Array.from(
     { length: CURRENT_YEAR - 14 - 1950 + 1 },
     (_, index) => `${CURRENT_YEAR - 14 - index}년`,
 );
-
-// 거주 지역 선택지(17개 시도). 백엔드가 "서울특별시"→"서울" 식으로 바꿔서 조회하므로 정식 명칭으로 보낸다.
-const REGION_OPTIONS = [
-    '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시',
-    '울산광역시', '세종특별자치시', '경기도', '강원특별자치도', '충청북도', '충청남도',
-    '전북특별자치도', '전라남도', '경상북도', '경상남도', '제주특별자치도',
-];
 
 // 안내문구 색상: 일반 안내(회색) / 성공(초록) / 실패(빨강)
 const MESSAGE_TONE_CLASS: Record<StatusMessage['tone'], string> = {
@@ -96,6 +90,8 @@ export default function SignPage() {
     const [phone, setPhone] = useState('');
     const [birthYear, setBirthYear] = useState('');
     const [region, setRegion] = useState('');
+    const [regionOptions, setRegionOptions] = useState<string[]>([]);
+    const [isLoadingRegions, setIsLoadingRegions] = useState(true);
     const [gender, setGender] = useState<Gender | null>(null);
     const [nationality, setNationality] = useState<Nationality | null>(null);
 
@@ -109,6 +105,22 @@ export default function SignPage() {
 
     // 이메일 인증(중복확인 → 코드발송 → 코드확인) 상태와 동작
     const verification = useEmailVerification(email);
+
+    useEffect(() => {
+        const fetchRegions = async () => {
+            try {
+                const response = await getRegions();
+                setRegionOptions(response.data.data.map(({ name }) => name));
+            } catch (error) {
+                console.error('거주 지역 목록 조회 실패:', error);
+                setSubmitError('거주 지역 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
+            } finally {
+                setIsLoadingRegions(false);
+            }
+        };
+
+        fetchRegions();
+    }, []);
 
     const terms = [
         { id: 1, text: "[필수] 이용약관 동의" },
@@ -470,10 +482,10 @@ export default function SignPage() {
                                 거주 지역 <span className="text-[#FA5862] font-[500]">*</span>
                             </div>
                             <SelectDropdown
-                                options={REGION_OPTIONS}
+                                options={regionOptions}
                                 value={region}
                                 onChange={setRegion}
-                                placeholder="선택해 주세요"
+                                placeholder={isLoadingRegions ? "거주 지역을 불러오는 중..." : "선택해 주세요"}
                                 width="595px"
                                 className="h-[48px]"
                             />

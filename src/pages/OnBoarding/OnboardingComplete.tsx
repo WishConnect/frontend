@@ -102,8 +102,8 @@ export default function OnboardingComplete() {
   }, [navigate, setUser]);
 
   return (
-    <div className="relative left-1/2 min-h-screen w-[1440px] -ml-[50vw] bg-white text-left font-['Pretendard',sans-serif]">
-      <div className="mx-auto w-full">
+    <div className="relative left-1/2 w-screen -ml-[50vw] min-h-screen bg-white text-left font-['Pretendard',sans-serif]">
+      <div className="mx-auto w-full max-w-[1440px]">
         <Header logoOnly />
 
         <div className="flex px-[64px]">
@@ -112,77 +112,78 @@ export default function OnboardingComplete() {
           </aside>
 
           <main className="flex min-w-0 flex-1 items-start pb-16 pt-4">
+            {/* 우측 영역 */}
+            <section className="flex flex-1 flex-col items-center pt-[38px]">
+              {/* 폭죽 아이콘 */}
+              <div className="flex size-40 items-center justify-center rounded-full bg-[#F4F4FE]">
+                <img src={partyPopperIcon} alt="" className="size-[81px]" />
+              </div>
 
-          {/* 우측 영역 */}
-          <section className="flex flex-1 flex-col items-center pt-[38px]">
-            {/* 폭죽 아이콘 */}
-            <div className="flex size-40 items-center justify-center rounded-full bg-[#F4F4FE]">
-              <img src={partyPopperIcon} alt="" className="size-[81px]" />
-            </div>
+              {/* 완료 텍스트 */}
+              <div className="mt-12 flex w-[473px] flex-col items-center gap-2 text-center">
+                <h1 className="w-full text-[28px] font-bold leading-10 tracking-[-0.28px] text-[#0A0C11]">
+                  입력이 완료되었어요!
+                </h1>
+                <p className="w-full text-[20px] font-medium leading-7 tracking-[-0.1px] text-[#555964]">
+                  잠시만 기다려 주세요.
+                </p>
+                <p className="w-full text-[16px] font-medium leading-6 text-[#747883]">
+                  나에게 맞는 장학금을 찾고 있어요.
+                  <br />
+                  맞춤 추천 결과는 다음 화면에서 확인하실 수 있어요.
+                </p>
+              </div>
 
-            {/* 완료 텍스트 */}
-            <div className="mt-12 flex w-[473px] flex-col items-center gap-2 text-center">
-              <h1 className="w-full text-[28px] font-bold leading-10 tracking-[-0.28px] text-[#0A0C11]">
-                입력이 완료되었어요!
-              </h1>
-              <p className="w-full text-[20px] font-medium leading-7 tracking-[-0.1px] text-[#555964]">
-                잠시만 기다려 주세요.
-              </p>
-              <p className="w-full text-[16px] font-medium leading-6 text-[#747883]">
-                나에게 맞는 장학금을 찾고 있어요.
-                <br />
-                맞춤 추천 결과는 다음 화면에서 확인하실 수 있어요.
-              </p>
-            </div>
-
-            {/* 활용 안내 카드 */}
-            <div className="mt-[54px] flex w-full flex-col gap-2 rounded-2xl bg-[#F9FAFC] px-8 py-6">
-              <p className="text-[20px] font-bold leading-7 tracking-[-0.1px] text-[#0A0C11]">
-                입력한 정보는 이렇게 활용돼요.
-              </p>
-              <div className="flex h-40 w-full items-center">
-                <div className="flex h-full flex-1 flex-col items-center justify-center gap-2">
-                  <div className="flex size-20 items-center justify-center rounded-full">
-                    <img src={graduationCapIcon} alt="" className="size-12" />
+              {/* 활용 안내 카드 */}
+              <div className="mt-[54px] flex w-full flex-col gap-2 rounded-2xl bg-[#F9FAFC] px-8 py-6">
+                <p className="text-[20px] font-bold leading-7 tracking-[-0.1px] text-[#0A0C11]">
+                  입력한 정보는 이렇게 활용돼요.
+                </p>
+                <div className="flex h-40 w-full items-center">
+                  <div className="flex h-full flex-1 flex-col items-center justify-center gap-2">
+                    <div className="flex size-20 items-center justify-center rounded-full">
+                      <img src={graduationCapIcon} alt="" className="size-12" />
+                    </div>
+                    <p className="text-center text-[16px] font-medium leading-6 text-[#747883]">
+                      지원 자격을 확인해
+                      <br />
+                      추천 가능한 장학금 선별
+                    </p>
                   </div>
-                  <p className="text-center text-[16px] font-medium leading-6 text-[#747883]">
-                    지원 자격을 확인해
-                    <br />
-                    추천 가능한 장학금 선별
-                  </p>
-                </div>
-                <div className="flex h-full flex-1 flex-col items-center justify-center gap-2 border-x border-[#E6E7EB]">
-                  <div className="flex size-20 items-center justify-center rounded-full">
-                    <FileTextIcon />
+                  <div className="flex h-full flex-1 flex-col items-center justify-center gap-2 border-x border-[#E6E7EB]">
+                    <div className="flex size-20 items-center justify-center rounded-full">
+                      <FileTextIcon />
+                    </div>
+                    <p className="text-center text-[16px] font-medium leading-6 text-[#747883]">
+                      나의 조건과 우선순위를 반영해
+                      <br />
+                      맞춤 장학금 추천
+                    </p>
                   </div>
-                  <p className="text-center text-[16px] font-medium leading-6 text-[#747883]">
-                    나의 조건과 우선순위를 반영해
-                    <br />
-                    맞춤 장학금 추천
-                  </p>
-                </div>
-                <div className="flex h-full flex-1 flex-col items-center justify-center gap-2">
-                  <div className="flex size-20 items-center justify-center rounded-full">
-                    <MonitorCheckIcon />
+                  <div className="flex h-full flex-1 flex-col items-center justify-center gap-2">
+                    <div className="flex size-20 items-center justify-center rounded-full">
+                      <MonitorCheckIcon />
+                    </div>
+                    <p className="text-center text-[16px] font-medium leading-6 text-[#747883]">
+                      놓치기 쉬운 장학금까지
+                      <br />
+                      폭넓게 큐레이션
+                    </p>
                   </div>
-                  <p className="text-center text-[16px] font-medium leading-6 text-[#747883]">
-                    놓치기 쉬운 장학금까지
-                    <br />
-                    폭넓게 큐레이션
-                  </p>
                 </div>
               </div>
-            </div>
 
-            {/* 준비 중 텍스트 / 에러 메시지 — 카드 다음, 맨 아래 */}
-            {error ? (
-              <p className="mt-[76px] text-[16px] font-medium leading-6 text-[#FA5862]">{error}</p>
-            ) : (
-              <p className="mt-[76px] text-[16px] font-medium leading-6 text-[#747883]">
-                추천 결과를 준비 중이에요...
-              </p>
-            )}
-          </section>
+              {/* 준비 중 텍스트 / 에러 메시지 — 카드 다음, 맨 아래 */}
+              {error ? (
+                <p className="mt-[76px] text-[16px] font-medium leading-6 text-[#FA5862]">
+                  {error}
+                </p>
+              ) : (
+                <p className="mt-[76px] text-[16px] font-medium leading-6 text-[#747883]">
+                  추천 결과를 준비 중이에요...
+                </p>
+              )}
+            </section>
           </main>
         </div>
       </div>

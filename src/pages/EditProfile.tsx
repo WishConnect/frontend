@@ -8,9 +8,11 @@ import {
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.svg';
 import { putBasicProfile, getMyProfile } from '../api/onboarding/profile';
+import { getRegions } from '../api/region';
 import { updatePassword, getMyPageSummary } from '../api/mypage/mypage';
 import { useUserStore } from '../store/user/user';
 import { tokenStorage } from '../utils/token';
+import type { Region } from '../types/region';
 
 type Gender = 'female' | 'male' | 'none';
 type Nationality = 'domestic' | 'foreign';
@@ -174,37 +176,10 @@ function SelectToggleGroup<T extends string>({
   );
 }
 
-// ------------------------------------------------------------------
-// 거주 지역: 화면엔 정식 명칭("서울특별시")을 보여주되, 서버로는 축약형
-// 코드("서울")를 보낸다. GET /api/v1/users/me/profile 응답의 region이
-// 실제로 "서울" 같은 축약형으로 오는 걸 확인함 (PUT도 동일 형식 기대).
-// ------------------------------------------------------------------
-const REGION_OPTIONS: { code: string; label: string }[] = [
-  { code: '서울', label: '서울특별시' },
-  { code: '부산', label: '부산광역시' },
-  { code: '대구', label: '대구광역시' },
-  { code: '인천', label: '인천광역시' },
-  { code: '광주', label: '광주광역시' },
-  { code: '대전', label: '대전광역시' },
-  { code: '울산', label: '울산광역시' },
-  { code: '세종', label: '세종특별자치시' },
-  { code: '경기', label: '경기도' },
-  { code: '강원', label: '강원특별자치도' },
-  { code: '충북', label: '충청북도' },
-  { code: '충남', label: '충청남도' },
-  { code: '전북', label: '전북특별자치도' },
-  { code: '전남', label: '전라남도' },
-  { code: '경북', label: '경상북도' },
-  { code: '경남', label: '경상남도' },
-  { code: '제주', label: '제주특별자치도' },
-];
-
-// GET 응답의 region이 이 code 목록 안에 있는지 확인하고, 없으면(예: 정식
-// 명칭으로 오거나 빈 값이면) 첫 번째 옵션으로 폴백한다.
-function normalizeRegion(region: string | null | undefined): string {
-  if (!region) return REGION_OPTIONS[0].code;
-  const matched = REGION_OPTIONS.find((r) => r.code === region || r.label === region);
-  return matched ? matched.code : REGION_OPTIONS[0].code;
+// 이전에 저장된 "서울" 같은 축약형도 API의 정식 명칭과 매칭한다.
+function normalizeRegion(region: string | null | undefined, regions: Region[]): string {
+  if (!region) return '';
+  return regions.find(({ name }) => name === region || name.startsWith(region))?.name ?? region;
 }
 
 // 지금은 하드코딩된 기본값이지만, 추후 로그인/API 응답으로 이 객체를 채우면 됩니다.
@@ -218,7 +193,7 @@ const DEFAULT_FORM: ProfileForm = {
   contact: '',
   gender: 'female',
   nationality: 'domestic',
-  region: REGION_OPTIONS[0].code,
+  region: '',
 };
 
 // ------------------------------------------------------------------
@@ -272,7 +247,26 @@ export default function EditProfile() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [regions, setRegions] = useState<Region[]>([]);
+  const [isLoadingRegions, setIsLoadingRegions] = useState(true);
+  const [regionLoadError, setRegionLoadError] = useState<string | null>(null);
   const clearUser = useUserStore((s) => s.clearUser);
+
+  useEffect(() => {
+    const fetchRegions = async () => {
+      try {
+        const response = await getRegions();
+        setRegions(response.data.data);
+      } catch (err) {
+        console.error('거주 지역 목록 조회 실패:', err);
+        setRegionLoadError('거주 지역 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
+      } finally {
+        setIsLoadingRegions(false);
+      }
+    };
+
+    fetchRegions();
+  }, []);
 
   // 화면 진입 시 실제 유저 프로필을 불러와서 폼에 채워넣음.
   // getMyProfile(GET /users/me/profile)에서 이름/생년월일/연락처/성별/국적/지역을,
@@ -296,7 +290,7 @@ export default function EditProfile() {
           contact: profile.phone,
           gender: mapApiValueToGender(profile.gender),
           nationality: mapApiValueToNationality(profile.nationality),
-          region: normalizeRegion(profile.region),
+          region: profile.region ?? '',
         }));
       } catch (err) {
         console.error('프로필 정보 조회 실패:', err);
@@ -308,6 +302,12 @@ export default function EditProfile() {
 
     fetchProfile();
   }, []);
+
+  // 프로필에 저장된 기존 축약 지역명을, 조회한 지역 마스터의 정식 명칭으로 맞춘다.
+  useEffect(() => {
+    if (regions.length === 0) return;
+    setForm((prev) => ({ ...prev, region: normalizeRegion(prev.region, regions) }));
+  }, [regions]);
 
   const updateField =
     (field: keyof ProfileForm) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -553,11 +553,15 @@ export default function EditProfile() {
                     <select
                       value={form.region}
                       onChange={updateField('region')}
+                      disabled={isLoadingRegions || regions.length === 0}
                       className="w-full flex-1 appearance-none bg-transparent text-[16px] font-medium leading-6 text-[#555964] focus:outline-none"
                     >
-                      {REGION_OPTIONS.map((region) => (
-                        <option key={region.code} value={region.code}>
-                          {region.label}
+                      <option value="">
+                        {isLoadingRegions ? '거주 지역을 불러오는 중...' : '선택해 주세요'}
+                      </option>
+                      {regions.map((region) => (
+                        <option key={region.regionId} value={region.name}>
+                          {region.name}
                         </option>
                       ))}
                     </select>
@@ -566,6 +570,11 @@ export default function EditProfile() {
                   <p className="text-[14px] font-medium leading-5 text-[#747883]">
                     ※ 장학금 추천 시 거주 지역 기준이 활용될 수 있어요.
                   </p>
+                  {regionLoadError && (
+                    <p className="text-[14px] font-medium leading-5 text-[#FA5862]">
+                      {regionLoadError}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
