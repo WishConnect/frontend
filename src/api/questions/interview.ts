@@ -2,10 +2,21 @@ import axios from '../axios';
 
 export type InterviewRequirement = 'REQUIRED' | 'CONDITIONAL' | 'NOT_REQUIRED' | null;
 
+export interface InterviewGuideStep {
+    stepOrder: number;
+    title: string;
+    description: string;
+}
+
 export interface InterviewQuestion {
+    questionId: number;
     displayOrder: number;
     questionText: string;
     intent: string;
+    answerTip: string;
+    sampleAnswer: string;
+    sampleAnswerPersonalized: boolean;
+    guideSteps: InterviewGuideStep[];
 }
 
 export interface InterviewQuestionsData {
