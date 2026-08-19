@@ -549,12 +549,15 @@ export default function EditProfile() {
               <div className="flex flex-1 flex-col items-start gap-2">
                 <FieldLabel required>거주 지역</FieldLabel>
                 <div className="flex w-full flex-col items-start gap-2">
-                  <div className="relative flex h-12 w-full items-center rounded-lg bg-[#F9FAFC] pl-6 pr-3">
+                  <div className="relative flex h-12 w-full items-center rounded-lg bg-[#F9FAFC]">
+                    {/* select를 박스 전체(화살표 영역 포함)에 절대 위치로 깔아서, 화살표를
+                        클릭해도 select 바깥이라 안 열리던 문제를 없앤다. 화살표 아이콘은
+                        pointer-events-none이라 클릭이 바로 아래 select로 그대로 전달된다. */}
                     <select
                       value={form.region}
                       onChange={updateField('region')}
                       disabled={isLoadingRegions || regions.length === 0}
-                      className="w-full flex-1 appearance-none bg-transparent text-[16px] font-medium leading-6 text-[#555964] focus:outline-none"
+                      className="absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-lg bg-transparent pl-6 pr-12 text-[16px] font-medium leading-6 text-[#555964] focus:outline-none disabled:cursor-default"
                     >
                       <option value="">
                         {isLoadingRegions ? '거주 지역을 불러오는 중...' : '선택해 주세요'}
@@ -565,7 +568,7 @@ export default function EditProfile() {
                         </option>
                       ))}
                     </select>
-                    <ChevronDownIcon className="pointer-events-none size-6 shrink-0 text-[#9DA1AC]" />
+                    <ChevronDownIcon className="pointer-events-none absolute right-3 size-6 shrink-0 text-[#9DA1AC]" />
                   </div>
                   <p className="text-[14px] font-medium leading-5 text-[#747883]">
                     ※ 장학금 추천 시 거주 지역 기준이 활용될 수 있어요.
