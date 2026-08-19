@@ -1,6 +1,7 @@
 import Button from '../Button/Button';
 
 import type { CuratedCampusScholarship } from '../../types/Curation/Curated';
+import { formatScholarshipAmount } from '../../utils/scholarshipAmount';
 
 interface SchoolScholarshipCardProps {
   scholarship: CuratedCampusScholarship;
@@ -8,7 +9,7 @@ interface SchoolScholarshipCardProps {
 }
 
 export default function SchoolCard({ scholarship, onClick }: SchoolScholarshipCardProps) {
-  const amountText = scholarship.maxAmount ?? '금액 정보 없음';
+  const amountText = formatScholarshipAmount(scholarship.title, scholarship.maxAmount);
 
   const deadlineText = scholarship.deadline ? `${scholarship.deadline} 마감` : '마감일 정보 없음';
 

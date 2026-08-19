@@ -28,6 +28,7 @@ import { scrapScholarship, unscrapScholarship } from '../../api/Curation/Scrap';
 import { useUserStore } from '../../store/user/user';
 import { postStartApplication } from '../../api/archiving/start';
 import { getArchive } from '../../api/archiving/archive';
+import { formatScholarshipAmount } from '../../utils/scholarshipAmount';
 
 import type {
   ScholarshipDetailResponse,
@@ -301,7 +302,7 @@ export default function Detail() {
     },
     {
       label: '지원금액',
-      value: detail.summary.supportAmount,
+      value: formatScholarshipAmount(detail.title, detail.summary.supportAmount),
     },
     {
       label: '선발인원',
