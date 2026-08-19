@@ -47,7 +47,7 @@ export default function InsightPage1() {
   const navigate = useNavigate();
 
   const [articles, setArticles] = useState<InsightArticle[]>([]);
-  //const [popularTags, setPopularTags] = useState<string[]>([]);
+  const [popularTags, setPopularTags] = useState<string[]>([]);
 
   const [selectedCategory, setSelectedCategory] = useState<InsightCategory>('ACCEPTED');
   const [sortOrder, setSortOrder] = useState<InsightSort>('latest');
@@ -82,14 +82,14 @@ export default function InsightPage1() {
         });
 
         setArticles(data.articles);
-        //setPopularTags(data.popularTags);
+        setPopularTags(data.popularTags);
         setTotalCount(data.pagination.totalCount);
         setTotalPages(data.pagination.totalPages);
       } catch (error) {
         console.error('인사이트 목록 조회 실패:', error);
 
         setArticles([]);
-        //setPopularTags([]);
+        setPopularTags([]);
         setTotalCount(0);
         setTotalPages(0);
       }
@@ -365,7 +365,7 @@ export default function InsightPage1() {
                     인기 태그
                   </span>
                 </div>
-                {/*
+
                 <div className="mt-[16px] mr-[30px] mb-[16px] flex w-[237px] flex-wrap gap-[8px] pl-[21px]">
                   {popularTags.map((tag) => (
                     <button
@@ -382,7 +382,6 @@ export default function InsightPage1() {
                     </button>
                   ))}
                 </div>
-                */}
               </section>
 
               {/* 참고하면 좋아요 */}

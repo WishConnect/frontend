@@ -13,6 +13,7 @@ export async function fetchCuratedScholarships(
   const response = await api.get<ApiResponse<CuratedScholarshipResponse>>('/scholarships/curated', {
     params: {
       category: params.category,
+      sort: params.sort,
       page: params.page ?? 1,
       size: params.size ?? 10,
     },

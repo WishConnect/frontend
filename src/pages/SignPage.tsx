@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Header from "../components/common/Header/Header";
 import TextField1 from "../components/TextField1";
 import Button from "../components/Button/Button";
@@ -9,6 +9,10 @@ import { signup } from '../api/login/signup';
 import { formatRemainingTime, useEmailVerification, type StatusMessage } from '../hooks/useEmailVerification';
 import { getApiErrorMessage } from '../utils/apiError';
 import { getPasswordError } from '../utils/password';
+import { getLoginIdError, normalizeLoginId, LOGIN_ID_RULE_TEXT } from '../utils/loginId';
+import { formatPhone, getPhoneError } from '../utils/phone';
+import { checkLoginIdAvailable } from '../api/login/loginId';
+import { getRegions } from '../api/common/region';
 import { tokenStorage } from '../utils/token';
 import { useUserStore } from '../store/user/user';
 import { getRegions } from '../api/region';
@@ -39,19 +43,79 @@ const AGREEMENT_TYPE_BY_ID: Record<number, AgreementType> = {
     4: 'AGE_14',
 };
 
-// 출생년도 선택지: 만 14세 이상만 가입 가능(약관)이므로 올해-14년부터 1950년까지.
-const CURRENT_YEAR = new Date().getFullYear();
+// 생년월일 선택지. 백엔드가 birthYear(연도)에서 birthDate(날짜)로 바뀌어 연·월·일을 다 받는다.
+//
+// 만 14세 이상만 가입할 수 있으므로(약관 필수 동의 항목), 고를 수 있는 가장 늦은 생일은
+// "오늘로부터 14년 전의 같은 날짜"다. 연도만 받던 시절엔 올해-14년까지 열어두는 게 최선이었지만,
+// 이제 날짜를 받으니 그 해의 생일이 지났는지까지 정확히 가른다.
+// (예: 오늘이 2026-08-17이면 2012-08-17까지 가능, 2012-08-18 이후는 아직 만 13세)
+const TODAY = new Date();
+const MAX_BIRTH_YEAR = TODAY.getFullYear() - 14;
+const MAX_BIRTH_MONTH = TODAY.getMonth() + 1; // getMonth()는 0부터라 +1
+const MAX_BIRTH_DAY = TODAY.getDate();
+
 const BIRTH_YEAR_OPTIONS = Array.from(
-    { length: CURRENT_YEAR - 14 - 1950 + 1 },
-    (_, index) => `${CURRENT_YEAR - 14 - index}년`,
+    { length: MAX_BIRTH_YEAR - 1950 + 1 },
+    (_, index) => `${MAX_BIRTH_YEAR - index}년`,
 );
 
-// 안내문구 색상: 일반 안내(회색) / 성공(초록) / 실패(빨강)
+// 가입 가능 연령 안내. 경계에 걸린 사람이 "왜 이 달은 없지?" 하지 않도록 문구로 알려준다.
+const BIRTH_DATE_RULE_TEXT = `※ 만 14세 이상만 가입할 수 있어요.`;
+
+// 제출 직전 한 번 더 비교할 기준값. 'YYYY-MM-DD'는 사전순이 곧 날짜순이라 문자열 비교로 충분하다.
+const MAX_BIRTH_DATE = `${MAX_BIRTH_YEAR}-${String(MAX_BIRTH_MONTH).padStart(2, '0')}-${String(MAX_BIRTH_DAY).padStart(2, '0')}`;
+
+// "2004년" → 2004 처럼 뒤에 붙은 단위를 떼고 숫자만 꺼낸다.
+function toNumber(option: string): number {
+    return Number.parseInt(option, 10);
+}
+
+// 그 달의 마지막 날. Date의 day에 0을 주면 "전달의 마지막 날"이 나오는 성질을 쓴다.
+// 윤년(2월 29일)도 이 계산이 알아서 처리한다.
+function getDaysInMonth(year: number, month: number): number {
+    return new Date(year, month, 0).getDate();
+}
+
+// 거주 지역 선택지 대체본(17개 시도).
+// 평소엔 GET /regions 로 서버 마스터를 받아 쓰고, 그 호출이 실패했을 때만 이 목록을 쓴다.
+// 지역을 못 고르면 가입 자체가 막히므로 빈 목록으로 두지 않는다.
+// 백엔드가 "서울특별시"→"서울"로 바꿔서 조회하므로(normalizeRegionName) 정식 명칭이어도 저장된다.
+const REGION_FALLBACK_OPTIONS = [
+    '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시',
+    '울산광역시', '세종특별자치시', '경기도', '강원특별자치도', '충청북도', '충청남도',
+    '전북특별자치도', '전라남도', '경상북도', '경상남도', '제주특별자치도',
+];
+
+// 안내문구 색상: 일반 안내(회색) / 확인 완료(보라, 시안 1457:4958) / 성공(초록) / 실패(빨강)
 const MESSAGE_TONE_CLASS: Record<StatusMessage['tone'], string> = {
     info: 'text-[#747883]',
+    brand: 'text-[#7962ED]',
     success: 'text-[#00BF8A]',
     error: 'text-[#FF4D4F]',
 };
+
+// 시안의 􀆅 자리. SF Symbols라 그대로 못 쓰고 같은 모양의 인라인 SVG로 대체했다.
+// 색은 stroke="currentColor"라 문구 색(MESSAGE_TONE_CLASS)을 그대로 따라간다.
+function CheckMarkIcon() {
+    return (
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+            <path d="M2.5 7.5L5.5 10.5L11.5 3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+}
+
+/**
+ * 입력창 아래 안내 한 줄. 상태 문구(색·체크표시)와 기본 안내문구를 한 곳에서 처리한다.
+ * 아이디·이메일·인증코드 세 곳이 같은 모양이라 컴포넌트로 묶었다.
+ */
+function StatusLine({ message, fallback }: { message: StatusMessage | null; fallback: string }) {
+    return (
+        <div className={`flex items-center gap-[4px] text-[14px] font-[500] ${message ? MESSAGE_TONE_CLASS[message.tone] : 'text-[#747883]'}`}>
+            {message?.icon === 'check' && <CheckMarkIcon />}
+            <span>{message?.text ?? fallback}</span>
+        </div>
+    );
+}
 
 // 약관 동의 체크박스 아이콘.
 // 원래 SignPage 안(렌더 함수 내부)에 선언돼 있었는데, 그러면 렌더할 때마다 새 컴포넌트로 취급돼
@@ -82,6 +146,7 @@ export default function SignPage() {
     const setUser = useUserStore((state) => state.setUser);
 
     // 입력값
+    const [loginId, setLoginId] = useState('');
     const [email, setEmail] = useState('');
     const [code, setCode] = useState('');
     const [password, setPassword] = useState('');
@@ -89,11 +154,20 @@ export default function SignPage() {
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [birthYear, setBirthYear] = useState('');
+    const [birthMonth, setBirthMonth] = useState('');
+    const [birthDay, setBirthDay] = useState('');
     const [region, setRegion] = useState('');
     const [regionOptions, setRegionOptions] = useState<string[]>([]);
     const [isLoadingRegions, setIsLoadingRegions] = useState(true);
     const [gender, setGender] = useState<Gender | null>(null);
     const [nationality, setNationality] = useState<Nationality | null>(null);
+
+    // 거주 지역 자동완성. 서버 목록(GET /regions)을 마운트 때 한 번 받아두고,
+    // 입력할 때마다 그 안에서 걸러 보여준다. 전공명 검색과 달리 항목이 17개뿐이라
+    // 글자마다 서버를 부를 이유가 없어 요청은 1회, 필터는 화면에서 한다.
+    const [regionOptions, setRegionOptions] = useState<string[]>(REGION_FALLBACK_OPTIONS);
+    const [showRegionDropdown, setShowRegionDropdown] = useState(false);
+    const regionBoxRef = useRef<HTMLDivElement>(null);
 
     // 비밀번호 표시 여부
     const [showPassword, setShowPassword] = useState(false);
@@ -103,24 +177,139 @@ export default function SignPage() {
     const [submitError, setSubmitError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // 아이디 중복확인 상태. 이메일과 달리 인증 단계가 없어서 훅 없이 여기서 관리한다.
+    const [isLoginIdChecked, setIsLoginIdChecked] = useState(false);
+    const [isCheckingLoginId, setIsCheckingLoginId] = useState(false);
+    const [loginIdMessage, setLoginIdMessage] = useState<StatusMessage | null>(null);
+
     // 이메일 인증(중복확인 → 코드발송 → 코드확인) 상태와 동작
     const verification = useEmailVerification(email);
 
+    // 거주 지역 목록 조회. 실패해도 화면을 막지 않고 대체 목록(REGION_FALLBACK_OPTIONS)을 그대로 쓴다.
     useEffect(() => {
-        const fetchRegions = async () => {
-            try {
-                const response = await getRegions();
-                setRegionOptions(response.data.data.map(({ name }) => name));
-            } catch (error) {
+        let isMounted = true;
+
+        getRegions()
+            .then((regions) => {
+                if (isMounted && regions.length > 0) {
+                    setRegionOptions(regions.map((item) => item.name));
+                }
+            })
+            .catch((error) => {
                 console.error('거주 지역 목록 조회 실패:', error);
-                setSubmitError('거주 지역 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
-            } finally {
-                setIsLoadingRegions(false);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    // 월 선택지. 가입 가능한 마지막 해(올해-14년)를 고른 경우엔 생일이 지난 달까지만 열어둔다.
+    // 그 위 연도는 이미 만 14세가 넘으므로 12개월 전부 고를 수 있다.
+    const birthMonthOptions = useMemo(() => {
+        const lastMonth = toNumber(birthYear) === MAX_BIRTH_YEAR ? MAX_BIRTH_MONTH : 12;
+        return Array.from({ length: lastMonth }, (_, index) => `${index + 1}월`);
+    }, [birthYear]);
+
+    // 일(日) 선택지는 연·월에 따라 달라진다(2월 28/29일, 30일까지인 달).
+    // 연도나 월을 아직 안 골랐으면 31일까지 보여주고, 고르는 순간 실제 말일로 좁힌다.
+    // 경계가 되는 해·달(예: 2012년 8월)이면 오늘 날짜까지만 — 그 뒤는 아직 만 14세가 안 됐다.
+    const birthDayOptions = useMemo(() => {
+        const year = birthYear ? toNumber(birthYear) : null;
+        const month = birthMonth ? toNumber(birthMonth) : null;
+        let lastDay = year && month ? getDaysInMonth(year, month) : 31;
+        if (year === MAX_BIRTH_YEAR && month === MAX_BIRTH_MONTH) {
+            lastDay = Math.min(lastDay, MAX_BIRTH_DAY);
+        }
+        return Array.from({ length: lastDay }, (_, index) => `${index + 1}일`);
+    }, [birthYear, birthMonth]);
+
+    // 이미 고른 값이 목록에서 사라지는 경우를 정리한다.
+    //   - 3월 31일을 고른 뒤 월을 2월로 → 일 비움
+    //   - 2005년 12월을 고른 뒤 연도를 경계 연도(예: 2012년)로 → 월·일 비움
+    // 안 지우면 화면엔 12월이 보이는데 목록엔 없는, 실제로 못 고를 값이 남는다.
+    useEffect(() => {
+        if (birthMonth && !birthMonthOptions.includes(birthMonth)) {
+            setBirthMonth('');
+            setBirthDay('');
+            return;
+        }
+        if (birthDay && !birthDayOptions.includes(birthDay)) {
+            setBirthDay('');
+        }
+    }, [birthMonth, birthMonthOptions, birthDay, birthDayOptions]);
+
+    // 서버에 보낼 생년월일. 셋 다 골랐을 때만 'YYYY-MM-DD'로 만든다(백엔드 LocalDate 형식).
+    const birthDate = useMemo(() => {
+        if (!birthYear || !birthMonth || !birthDay) return '';
+        const year = toNumber(birthYear);
+        const month = String(toNumber(birthMonth)).padStart(2, '0');
+        const day = String(toNumber(birthDay)).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }, [birthYear, birthMonth, birthDay]);
+
+    // 입력한 글자가 들어간 지역만 남긴다. 아무것도 안 쳤으면 전체를 보여준다(드롭다운처럼 쓰라고).
+    const filteredRegions = useMemo(() => {
+        const keyword = region.trim();
+        if (!keyword) return regionOptions;
+        return regionOptions.filter((name) => name.includes(keyword));
+    }, [region, regionOptions]);
+
+    // 목록 바깥을 누르면 닫는다. 열려 있을 때만 리스너를 건다.
+    useEffect(() => {
+        if (!showRegionDropdown) return;
+
+        const handleClickOutside = (e: MouseEvent) => {
+            if (!regionBoxRef.current?.contains(e.target as Node)) {
+                setShowRegionDropdown(false);
             }
         };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showRegionDropdown]);
 
-        fetchRegions();
-    }, []);
+    // 아이디를 고치면 이전 중복확인 결과를 반드시 무효화한다.
+    // 안 그러면 A로 확인받고 B로 바꿔 제출하는 우회가 생겨, 서버가 다시 막지 않으면 중복이 통과한다.
+    const handleLoginIdChange = (value: string) => {
+        setLoginId(value);
+        setIsLoginIdChecked(false);
+        setLoginIdMessage(null);
+    };
+
+    const handleLoginIdCheck = async () => {
+        const ruleError = getLoginIdError(loginId);
+        if (ruleError) {
+            setLoginIdMessage({ text: ruleError, tone: 'error' });
+            return;
+        }
+
+        setIsCheckingLoginId(true);
+        try {
+            const available = await checkLoginIdAvailable(loginId);
+            if (available) {
+                setIsLoginIdChecked(true);
+                // 이메일 쪽 "사용할 수 있는 이메일이에요."와 같은 모양(보라 + 체크)으로 맞춘다.
+                setLoginIdMessage({ text: '사용할 수 있는 아이디예요.', tone: 'brand', icon: 'check' });
+            } else {
+                setIsLoginIdChecked(false);
+                setLoginIdMessage({ text: '이미 사용 중인 아이디예요.', tone: 'error' });
+            }
+        } catch (error) {
+            setIsLoginIdChecked(false);
+            setLoginIdMessage({
+                text: getApiErrorMessage(error, '아이디 확인에 실패했어요. 잠시 후 다시 시도해 주세요.'),
+                tone: 'error',
+            });
+        } finally {
+            setIsCheckingLoginId(false);
+        }
+    };
+
+    // 비어 있거나 조회 중일 때만 잠근다.
+    // 한 번 확인했다고 잠그지 않는 이유: 이메일과 달리 아이디는 인증 절차가 없어서 되돌릴 방법이 없다.
+    // 확인 후 마음이 바뀌어 다른 아이디를 넣어보는 건 흔한 일이고, 몇 번을 눌러도 GET 조회라 부담도 없다.
+    // 규칙 위반은 버튼을 막지 않고 눌렀을 때 사유를 알려준다(버튼이 왜 안 눌리는지 모르는 것보다 낫다).
+    const isLoginIdButtonDisabled = !loginId.trim() || isCheckingLoginId;
 
     const terms = [
         { id: 1, text: "[필수] 이용약관 동의" },
@@ -172,6 +361,16 @@ export default function SignPage() {
     const handleSubmit = async () => {
         setSubmitError('');
 
+        // 아이디는 화면 순서상 맨 위라 검증도 먼저 한다.
+        const loginIdError = getLoginIdError(loginId);
+        if (loginIdError) {
+            setSubmitError(loginIdError);
+            return;
+        }
+        if (!isLoginIdChecked) {
+            setSubmitError('아이디 중복 확인을 먼저 해주세요.');
+            return;
+        }
         if (!verification.isVerified) {
             setSubmitError('이메일 인증을 먼저 완료해 주세요.');
             return;
@@ -189,12 +388,20 @@ export default function SignPage() {
             setSubmitError('이름을 입력해 주세요.');
             return;
         }
-        if (!birthYear) {
-            setSubmitError('출생년도를 선택해 주세요.');
+        // 연·월·일 중 하나라도 비면 birthDate가 만들어지지 않는다.
+        if (!birthDate) {
+            setSubmitError('생년월일을 선택해 주세요.');
             return;
         }
-        if (!phone.trim()) {
-            setSubmitError('연락처를 입력해 주세요.');
+        // 목록에서 이미 막고 있지만, 자정을 넘겨 기준일이 하루 밀리는 경우까지 생각해 한 번 더 본다.
+        if (birthDate > MAX_BIRTH_DATE) {
+            setSubmitError('만 14세 이상만 가입할 수 있어요.');
+            return;
+        }
+        // 서버가 연락처를 검증하지 않으므로(@NotBlank뿐) 형식은 여기서 걸러야 한다.
+        const phoneError = getPhoneError(phone);
+        if (phoneError) {
+            setSubmitError(phoneError);
             return;
         }
         if (!gender) {
@@ -205,14 +412,22 @@ export default function SignPage() {
             setSubmitError('국적을 선택해 주세요.');
             return;
         }
-        if (!region) {
+        if (!region.trim()) {
             setSubmitError('거주 지역을 선택해 주세요.');
+            return;
+        }
+        // 자유 입력이라 오타가 그대로 넘어갈 수 있다. 서버는 이름으로 지역 테이블을 찾는데
+        // 못 찾으면 오류 없이 빈 값으로 저장하므로("서울시" 같은 오타), 목록에 있는 값만 통과시킨다.
+        if (!regionOptions.includes(region.trim())) {
+            setSubmitError('거주 지역은 목록에서 선택해 주세요.');
             return;
         }
 
         setIsSubmitting(true);
         try {
             const data = await signup({
+                // 서버가 소문자로 낮춰 저장하므로 중복확인 때와 같은 값으로 맞춰 보낸다.
+                loginId: normalizeLoginId(loginId),
                 email,
                 password,
                 name: name.trim(),
@@ -224,9 +439,9 @@ export default function SignPage() {
                 })),
                 // 아래 3개는 화면에선 필수(*)라 위 검증을 통과하면 항상 값이 있다.
                 // 다만 백엔드에선 선택 항목이라 타입상 optional이므로 빈 값 방어는 남겨둔다.
-                birthYear: birthYear ? Number.parseInt(birthYear, 10) : undefined,
+                birthDate,
                 nationality: nationality ? NATIONALITY_TO_API[nationality] : undefined,
-                region: region || undefined,
+                region: region.trim() || undefined,
             });
 
             // 1. 토큰 저장 (이후 axios 요청 인터셉터가 자동으로 Bearer 첨부)
@@ -261,6 +476,40 @@ export default function SignPage() {
                 </div>
 
                 <div className="flex flex-col gap-[48px]">
+                    {/* 아이디: 로그인 식별자라 폼 맨 위에 둔다. 레이아웃은 이메일 행과 동일(입력 + 140px 버튼) */}
+                    <div className="flex flex-col gap-[12px]">
+                        <div className="text-[15px] font-[600] text-[#10131A] flex gap-[4px]">
+                            아이디 <span className="text-[#FA5862] font-[500]">*</span>
+                        </div>
+                        <div className="flex gap-[16px]">
+                            <TextField1
+                                placeholder="아이디를 입력하세요"
+                                width="1070px"
+                                className='flex-1 h-[48px] [&_textarea]:h-[24px]'
+                                value={loginId}
+                                onChange={handleLoginIdChange}
+                                maxLength={20}
+                                /* 확인 뒤에도 잠그지 않는다. 다른 아이디를 넣어보려면 고칠 수 있어야 하고,
+                                   고치는 순간 handleLoginIdChange가 확인 결과를 무효로 되돌린다. */
+                            />
+                            <Button
+                                variant={isLoginIdButtonDisabled ? 'disabled' : 'primary'}
+                                width='140px'
+                                paddingLeft='16px'
+                                paddingRight='16px'
+                                className='!text-[16px]'
+                                disabled={isLoginIdButtonDisabled}
+                                onClick={handleLoginIdCheck}
+                            >
+                                {/* 라벨은 항상 "중복 확인". 확인 여부는 아래 문구(✓ 사용할 수 있는 아이디예요)로 알린다.
+                                    "확인 완료"로 바꾸면 다시 누를 수 있는 버튼인데도 끝난 것처럼 보인다. */}
+                                중복 확인
+                            </Button>
+                        </div>
+                        {/* 확인 결과가 없을 땐 규칙을 안내한다. 눌러보고 나서야 규칙을 아는 것보다 낫다. */}
+                        <StatusLine message={loginIdMessage} fallback={`※ ${LOGIN_ID_RULE_TEXT}`} />
+                    </div>
+
                     <div className="flex flex-col gap-[12px]">
                         <div className="text-[15px] font-[600] text-[#10131A] flex gap-[4px]">
                             이메일 주소 <span className="text-[#FA5862] font-[500]">*</span>
@@ -287,9 +536,7 @@ export default function SignPage() {
                             </Button>
                         </div>
                         {/* 단계별 안내: 중복 확인 결과 / 코드 발송 안내 / 실패 사유 */}
-                        <div className={`text-[14px] font-[500] ${verification.emailMessage ? MESSAGE_TONE_CLASS[verification.emailMessage.tone] : 'text-[#747883]'}`}>
-                            {verification.emailMessage?.text ?? '※ 이메일 중복을 확인해주세요.'}
-                        </div>
+                        <StatusLine message={verification.emailMessage} fallback="※ 이메일 중복을 확인해주세요." />
                     </div>
 
                     <div className="flex flex-col gap-[12px]">
@@ -324,9 +571,10 @@ export default function SignPage() {
                                 인증하기
                             </Button>
                         </div>
-                        <div className={`text-[14px] font-[500] ${verification.codeMessage ? MESSAGE_TONE_CLASS[verification.codeMessage.tone] : 'text-[#747883]'}`}>
-                            {verification.codeMessage?.text ?? '※ 인증코드를 받지 못하셨다면 위의 재발송 버튼을 눌러주세요.'}
-                        </div>
+                        <StatusLine
+                            message={verification.codeMessage}
+                            fallback="※ 인증코드를 받지 못하셨다면 위의 재발송 버튼을 눌러주세요."
+                        />
                     </div>
 
                     <div className="grid grid-cols-2 gap-[24px]">
@@ -399,16 +647,37 @@ export default function SignPage() {
                         </div>
                         <div className="flex flex-col gap-[12px]">
                             <div className="text-[15px] font-[600] text-[#10131A] flex gap-[4px]">
-                                출생년도 <span className="text-[#FA5862] font-[500]">*</span>
+                                생년월일 <span className="text-[#FA5862] font-[500]">*</span>
                             </div>
-                            <SelectDropdown
-                                options={BIRTH_YEAR_OPTIONS}
-                                value={birthYear}
-                                onChange={setBirthYear}
-                                placeholder="선택해 주세요"
-                                width="595px"
-                                className="h-[48px]"
-                            />
+                            {/* 시안(1457:4958)은 한 칸짜리 드롭다운이지만 날짜를 한 목록에 다 넣을 수는 없어서
+                                같은 595px 폭 안에서 연·월·일 셋으로 나눴다(193px×3 + 8px 간격×2 = 595px). */}
+                            <div className="flex gap-[8px]">
+                                <SelectDropdown
+                                    options={BIRTH_YEAR_OPTIONS}
+                                    value={birthYear}
+                                    onChange={setBirthYear}
+                                    placeholder="년"
+                                    width="193px"
+                                    className="h-[48px]"
+                                />
+                                <SelectDropdown
+                                    options={birthMonthOptions}
+                                    value={birthMonth}
+                                    onChange={setBirthMonth}
+                                    placeholder="월"
+                                    width="193px"
+                                    className="h-[48px]"
+                                />
+                                <SelectDropdown
+                                    options={birthDayOptions}
+                                    value={birthDay}
+                                    onChange={setBirthDay}
+                                    placeholder="일"
+                                    width="193px"
+                                    className="h-[48px]"
+                                />
+                            </div>
+                            <span className="text-[#747883] text-[14px] font-[500]">{BIRTH_DATE_RULE_TEXT}</span>
                         </div>
                     </div>
 
@@ -417,12 +686,16 @@ export default function SignPage() {
                             <div className="text-[15px] font-[600] text-[#10131A] flex gap-[4px]">
                                 연락처 <span className="text-[#FA5862] font-[500]">*</span>
                             </div>
+                            {/* 숫자만 받고 하이픈은 자동으로 넣는다(010-1234-5678).
+                                하이픈을 직접 치거나 통째로 붙여넣어도 같은 표기로 정리된다. */}
                             <TextField1
                                 placeholder="연락처를 입력해 주세요"
                                 width="595px"
                                 className={'h-[48px] [&_textarea]:h-[24px]'}
                                 value={phone}
-                                onChange={setPhone}
+                                onChange={(value) => setPhone(formatPhone(value))}
+                                inputMode="numeric"
+                                maxLength={13}
                             />
                         </div>
                         <div className="flex flex-col gap-[12px]">
@@ -481,14 +754,42 @@ export default function SignPage() {
                             <div className="text-[15px] font-[600] text-[#10131A] flex gap-[4px]">
                                 거주 지역 <span className="text-[#FA5862] font-[500]">*</span>
                             </div>
-                            <SelectDropdown
-                                options={regionOptions}
-                                value={region}
-                                onChange={setRegion}
-                                placeholder={isLoadingRegions ? "거주 지역을 불러오는 중..." : "선택해 주세요"}
-                                width="595px"
-                                className="h-[48px]"
-                            />
+                            {/* 전공명 검색과 같은 방식: 입력하면 서버에서 받은 지역 목록이 좁혀진다.
+                                자유 입력이라 오타가 나면 저장이 안 되므로, 제출 때 목록에 있는 값인지 확인한다. */}
+                            <div className="relative" ref={regionBoxRef}>
+                                <TextField1
+                                    placeholder="거주 지역을 입력해 주세요"
+                                    width="595px"
+                                    className="h-[48px] [&_textarea]:h-[24px]"
+                                    value={region}
+                                    onChange={(value) => {
+                                        setRegion(value);
+                                        setShowRegionDropdown(true);
+                                    }}
+                                    onFocus={() => setShowRegionDropdown(true)}
+                                />
+                                {/* 목록 모양은 같은 화면의 출생년도(SelectDropdown)와 맞췄다.
+                                    높이는 시도 17개가 최대라 400px(약 8개)까지 열어두고 나머지는 스크롤 — 240px면
+                                    5개만 보여서 "지역이 몇 개 없나?"로 읽힌다. */}
+                                {showRegionDropdown && filteredRegions.length > 0 && (
+                                    <ul className="absolute left-0 top-[calc(100%+4px)] z-20 max-h-[400px] w-full overflow-y-auto rounded-lg border border-[#E5E7EB] bg-white py-[8px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                                        {filteredRegions.map((name) => (
+                                            <li key={name}>
+                                                <button
+                                                    type="button"
+                                                    className={`w-full px-6 py-3 text-left font-['Pretendard'] text-[16px] font-medium leading-6 hover:bg-[#F4F4FE] ${name === region.trim() ? 'bg-[#F4F4FE] text-[#7962ED]' : 'text-[#0A0C11]'}`}
+                                                    onClick={() => {
+                                                        setRegion(name);
+                                                        setShowRegionDropdown(false);
+                                                    }}
+                                                >
+                                                    {name}
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
                             <span className="text-[#747883] text-[14px] font-[500]">※ 장학금 추천 시 거주 지역 기준이 활용될 수 있어요.</span>
                         </div>
                     </div>

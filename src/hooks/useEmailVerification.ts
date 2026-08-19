@@ -14,10 +14,24 @@ import { getApiErrorMessage } from '../utils/apiError';
 export type EmailVerificationStep = 'idle' | 'available' | 'sent' | 'verified';
 
 // 안내문구는 색이 달라야 해서 성격을 같이 들고 다닌다.
+//   info    회색 안내
+//   brand   보라(#7962ED). 시안에서 "사용할 수 있는 이메일이에요."가 이 색이다
+//   success 초록
+//   error   빨강
+// icon: 'check'면 문구 앞에 체크 표시를 붙인다(시안의 􀆅 자리).
 export interface StatusMessage {
   text: string;
-  tone: 'info' | 'success' | 'error';
+  tone: 'info' | 'brand' | 'success' | 'error';
+  icon?: 'check';
 }
+
+// 이메일 중복 확인을 통과한 뒤 계속 보여줄 문구. 인증까지 끝나도 이 줄은 그대로 남아야 해서
+// (시안 1457:4958이 "사용 가능한 이메일" + "인증코드 확인됨"을 동시에 보여준다) 상수로 뺐다.
+const EMAIL_AVAILABLE_MESSAGE: StatusMessage = {
+  text: '사용할 수 있는 이메일이에요.',
+  tone: 'brand',
+  icon: 'check',
+};
 
 // 서버 application.yml의 cooldown-seconds와 같은 값. 이 시간 안에 재발송하면 429가 난다.
 const RESEND_COOLDOWN_SECONDS = 60;
@@ -75,10 +89,7 @@ export function useEmailVerification(email: string) {
       const available = await checkEmailAvailable(email);
       if (available) {
         setStep('available');
-        setEmailMessage({
-          text: '사용할 수 있는 이메일이에요. 인증코드를 발송해 주세요.',
-          tone: 'success',
-        });
+        setEmailMessage(EMAIL_AVAILABLE_MESSAGE);
       } else {
         setStep('idle');
         setEmailMessage({ text: '이미 가입된 이메일입니다.', tone: 'error' });
@@ -131,8 +142,11 @@ export function useEmailVerification(email: string) {
         setStep('verified');
         setSecondsLeft(0);
         setResendCooldown(0);
-        setCodeMessage({ text: '이메일 인증이 완료되었어요.', tone: 'success' });
-        setEmailMessage(null);
+        setCodeMessage({ text: '인증코드가 확인됐어요.', tone: 'info', icon: 'check' });
+        // 인증이 끝나면 이메일 줄을 비웠었는데, 그러면 기본 문구인
+        // "※ 이메일 중복을 확인해주세요."가 다시 떠서 아직 확인 안 한 것처럼 보였다.
+        // 시안대로 "사용할 수 있는 이메일이에요."를 남긴다.
+        setEmailMessage(EMAIL_AVAILABLE_MESSAGE);
       } catch (error) {
         setCodeMessage({
           text: getApiErrorMessage(error, '인증코드 확인에 실패했습니다.'),

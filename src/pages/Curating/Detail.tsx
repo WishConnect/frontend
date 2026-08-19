@@ -13,17 +13,20 @@ import DetailScrap from '../../assets/icons/DetailScrap.svg';
 import Scrap from '../../assets/icons/Scrap.svg';
 import PaperPlane from '../../assets/icons/PaperPlane.svg';
 import ShareCheck from '../../assets/icons/ShareCheck.svg';
+import Report from '../../assets/icons/Report.svg';
 import Button from '../../components/Button/Button';
 import Header from '../../components/common/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar';
 import DdayStatus from '../../components/DdayStatus';
+import ReportModal from '../Curating/Report';
+import ReportSuccessModal from './ReportSuccess';
 
+import DetailPost from '../../components/Curation/DetailPost.svg';
 import { fetchScholarshipDetail } from '../../api/Curation/Detail';
 import { scrapScholarship, unscrapScholarship } from '../../api/Curation/Scrap';
 import { useUserStore } from '../../store/user/user';
 import { postStartApplication } from '../../api/archiving/start';
 import { getArchive } from '../../api/archiving/archive';
-
 
 import type {
   ScholarshipDetailResponse,
@@ -187,6 +190,8 @@ export default function Detail() {
   const [isScrapped, setIsScrapped] = useState(false);
   const [isScrapLoading, setIsScrapLoading] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isReportSuccessOpen, setIsReportSuccessOpen] = useState(false);
 
   // 아카이빙 api 재사용
   const [applicationStatus, setApplicationStatus] = useState<ApplicationStatus>('NOT_STARTED');
@@ -226,16 +231,14 @@ export default function Detail() {
     void loadDetail();
   }, [id]);
 
-   useEffect(() => {
+  useEffect(() => {
     if (!isLoggedIn || !id) return;
 
     const loadApplicationStatus = async () => {
       try {
         const data = await getArchive({ page: 1, size: 100 });
 
-        const matched = data.items.find(
-          (item) => String(item.scholarshipId) === String(id),
-        );
+        const matched = data.items.find((item) => String(item.scholarshipId) === String(id));
 
         if (matched) {
           setApplicationStatus(matched.applicationStatus as ApplicationStatus);
@@ -282,8 +285,13 @@ export default function Detail() {
   //   detailWithApplication.applicationStatus ?? 'NOT_STARTED';
 
   // const applicationId = detailWithApplication.applicationId ?? null;
+  const resolvedApplicationStatus: ApplicationStatus =
+    detail.selection?.essayRequirement === 'NOT_REQUIRED' ? 'NOT_REQUIRED' : applicationStatus;
 
-  const applicationBannerContent = getApplicationBannerContent(isLoggedIn, applicationStatus);
+  const applicationBannerContent = getApplicationBannerContent(
+    isLoggedIn,
+    resolvedApplicationStatus,
+  );
   const leftInfo = [
     {
       label: '지원대상',
@@ -393,6 +401,19 @@ export default function Detail() {
     }
   };
 
+  const handleReport = () => {
+    setIsReportModalOpen(true);
+  };
+
+  const handleReportSubmit = async ({ reasons }: { reasons: string[]; etcText: string }) => {
+    console.log('신고 접수 (API 연동 전):', {
+      scholarshipId: detail.scholarshipId,
+      reasons,
+    });
+    // await axios.post(`/curation/${detail.scholarshipId}/report`, { reasons });
+    alert('신고가 접수되었습니다. 확인 후 빠르게 반영하겠습니다.');
+  };
+
   const handleApplicationButtonClick = async () => {
     if (!isLoggedIn) {
       navigate('/login', {
@@ -467,6 +488,18 @@ export default function Detail() {
           </div>
         </div>
       )}
+      {isReportModalOpen && (
+        <ReportModal
+          scholarshipId={detail.scholarshipId}
+          onClose={() => setIsReportModalOpen(false)}
+          onSubmit={handleReportSubmit}
+          onSuccess={() => {
+            setIsReportModalOpen(false);
+            setIsReportSuccessOpen(true);
+          }}
+        />
+      )}
+      {isReportSuccessOpen && <ReportSuccessModal onClose={() => setIsReportSuccessOpen(false)} />}
       <div className="flex">
         <div className="relative ml-[64px] w-[237px] shrink-0">
           <LeftSidebar activeId="curating" />
@@ -538,6 +571,15 @@ export default function Detail() {
                 <img src={PaperPlane} alt="" />
                 <span>공유하기</span>
               </button>
+
+              <button
+                type="button"
+                onClick={handleReport}
+                className="flex h-[32px] w-[101px] items-center justify-center gap-[4px] rounded-[20px] bg-[#F3F4F6] px-[16px] text-[14px] leading-[20px] font-medium text-[#747883]"
+              >
+                <img src={Report} alt="" />
+                <span>신고하기</span>
+              </button>
             </div>
 
             {/* 장학금 이름 */}
@@ -605,19 +647,33 @@ export default function Detail() {
 
           {/* 포스터 / 장학금 요약 */}
           <div className="mt-[52px] flex gap-[32px]">
-            <div className="h-[432px] w-[326px] overflow-hidden rounded-[16px] bg-[#F3F4F6]">
-              {detail.posterUrl ? (
-                <img
-                  src={detail.posterUrl}
-                  alt={detail.title}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-[14px] text-[#747883]">
-                  등록된 포스터가 없습니다.
-                </div>
+            {/* 포스터 + 출처 */}
+            <div className="w-[326px] shrink-0">
+              <div className="h-[432px] w-[326px] overflow-hidden rounded-[16px] bg-[#F3F4F6]">
+                {detail.posterUrl ? (
+                  <img
+                    src={detail.posterUrl}
+                    alt={detail.title}
+                    className="block h-full w-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src={DetailPost}
+                    alt=""
+                    className="block h-full w-full scale-[1.08] object-cover object-center"
+                  />
+                )}
+              </div>
+
+              {/* 실제 포스터가 있을 때만 출처 표시 */}
+              {detail.posterUrl && (
+                <p className="mt-[8px] h-[16px] text-[12px] font-medium leading-[16px] text-[#9DA1AC]">
+                  출처 · {detail.organization}
+                </p>
               )}
             </div>
+
+            {/* 장학금 요약 */}
 
             <div className="flex h-[432px] w-[685px] flex-col rounded-[16px] bg-[#F9FAFC] px-[40px] py-[32px]">
               <h2 className="shrink-0 text-[28px] font-bold leading-[40px]">장학금 요약 정보</h2>

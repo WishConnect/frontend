@@ -7,19 +7,22 @@ import AuthTextField from '../../components/findAccount/AuthTextField';
 import CodeInput from '../../components/findAccount/CodeInput';
 import StepNavButtons from '../../components/findAccount/StepNavButtons';
 import Button from '../../components/Button/Button';
-import {
-  checkEmailAvailable,
-  sendVerificationCode,
-  verifyEmailCode,
-} from '../../api/login/email';
+import { findLoginId, requestLoginIdCode } from '../../api/login/findLoginId';
 import { getApiErrorMessage } from '../../utils/apiError';
 
 // 아이디 찾기: Figma 2462:4599(이메일) / 4696(이름) / 4748·4870(인증번호) / 4946(결과)
 //
-// ⚠️ 백엔드에 "아이디 찾기" 전용 엔드포인트가 없다(auth 전체가 password 2종 + email 3종 + signup/login/social뿐).
-//    그리고 User 엔티티에 아이디 필드 자체가 없어서 로그인 식별자는 email 하나다.
-//    그래서 "아이디 = 이메일"로 보고, 이메일 소유를 인증코드로 확인한 뒤 그 이메일을 아이디로 보여준다.
-//    (디자인 시안의 'wishconnect' 같은 별도 아이디 개념은 서버에 존재하지 않음)
+// 이력: 2026-08-16에 보안 문제로 로그인 화면에서 내렸다가 2026-08-17에 되살렸다.
+//   - 내렸던 이유: 그때는 아이디가 곧 이메일이라("아이디 찾기 = 남의 이메일 알아내기"),
+//     게다가 이름+전화번호로 찾는 방식이라 본인 확인 없이 계정 존재 여부가 새어나갔다.
+//   - 되살린 근거: 백엔드에 users.login_id가 생겨 아이디와 이메일이 별개 값이 됐고(2026-08-17),
+//     이 화면은 **이메일 인증코드 확인을 통과해야** 결과를 보여주므로 본인만 자기 아이디를 본다.
+//
+// 2026-08-18: 전용 API가 생겨(api-server ba7fcb8) 회원가입용 이메일 인증을 빌려 쓰던 걸 걷어냈다.
+//   - 이름을 서버가 실제로 대조한다(이메일만 알아도 남의 아이디를 볼 수 없다).
+//   - 코드 확인과 아이디 조회가 /auth/login-id/find 한 번으로 합쳐졌다.
+//   - 1단계의 가입 여부 확인(checkEmailAvailable)은 뺐다. 서버가 계정 존재 여부를 일부러 숨기는데
+//     화면에서 "가입 이력이 없는 이메일이에요"를 띄우면 그게 그대로 계정 조회기가 된다.
 
 type Step = 'email' | 'name' | 'code' | 'done';
 
@@ -34,6 +37,7 @@ export default function FindIdPage() {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
+  const [loginId, setLoginId] = useState(''); // 서버에서 받아온 찾은 아이디
 
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -46,32 +50,18 @@ export default function FindIdPage() {
     return () => clearInterval(timerId);
   }, [resendCooldown]);
 
-  // 1단계: 이메일이 실제 가입된 계정인지 확인한다.
-  // check API는 "가입 가능(available=true)"을 돌려주므로, 아이디 찾기에선 false여야 계정이 있는 것이다.
-  const handleEmailNext = async () => {
+  // 1단계: 이메일 형식만 본다.
+  // 가입 여부는 서버에 묻지 않는다(위 주석 참고 — 계정 존재 여부가 새는 걸 막으려고 뺐다).
+  const handleEmailNext = () => {
     if (!EMAIL_PATTERN.test(email.trim())) {
       setError('이메일 형식을 확인해 주세요.');
       return;
     }
-
-    setIsLoading(true);
     setError('');
-    try {
-      const available = await checkEmailAvailable(email.trim());
-      if (available) {
-        setError('가입 이력이 없는 이메일이에요. 다시 확인해 주세요.');
-        return;
-      }
-      setStep('name');
-    } catch (err) {
-      setError(getApiErrorMessage(err, '이메일 확인 중 문제가 발생했습니다.'));
-    } finally {
-      setIsLoading(false);
-    }
+    setStep('name');
   };
 
-  // 2단계: 이름을 받고 인증코드를 보낸다.
-  // ⚠️ 이름을 서버와 대조하는 API가 없어 화면 단계로만 존재한다(입력 여부만 확인).
+  // 2단계: 이름을 받고 인증코드를 보낸다. 이름은 서버가 이메일과 함께 대조한다.
   const handleNameNext = async () => {
     if (!name.trim()) {
       setError('이름을 입력해 주세요.');
@@ -84,7 +74,7 @@ export default function FindIdPage() {
     setIsLoading(true);
     setError('');
     try {
-      await sendVerificationCode(email.trim());
+      await requestLoginIdCode(email.trim(), name.trim());
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
       setCode('');
       setStep('code');
@@ -96,7 +86,7 @@ export default function FindIdPage() {
     }
   };
 
-  // 3단계: 인증코드 확인. 통과하면 이메일 소유가 증명된 것으로 본다.
+  // 3단계: 코드 확인과 아이디 조회가 한 번의 호출로 끝난다.
   // 검사·전송 모두 인자로 받은 값을 쓴다. CodeInput의 onComplete는 state 반영 전에 호출되므로
   // code state를 읽으면 6자리를 다 채워도 5자리가 잡혀 서버에도 잘린 코드가 나간다.
   const handleCodeNext = async (submittedCode: string) => {
@@ -108,10 +98,12 @@ export default function FindIdPage() {
     setIsLoading(true);
     setError('');
     try {
-      await verifyEmailCode(email.trim(), submittedCode);
+      // 아이디를 못 받아오면 결과 화면으로 넘기지 않는다. 빈 칸을 보여주느니 사유를 알리는 게 낫다.
+      // 코드가 틀렸을 때와 이메일·이름이 계정과 다를 때가 서버에서 같은 응답이라 안내도 하나다.
+      setLoginId(await findLoginId(email.trim(), name.trim(), submittedCode));
       setStep('done');
     } catch (err) {
-      setError(getApiErrorMessage(err, '인증코드 확인에 실패했습니다.'));
+      setError(getApiErrorMessage(err, '인증에 실패했어요. 입력한 정보와 인증번호를 확인해 주세요.'));
     } finally {
       setIsLoading(false);
     }
@@ -229,13 +221,13 @@ export default function FindIdPage() {
               </div>
             }
           >
-            {/* 찾은 아이디 표시. 아이디 = 로그인에 쓰는 이메일 */}
+            {/* 찾은 아이디 표시. 이메일과 별개인 로그인 아이디(users.login_id) */}
             <div className="relative flex h-[64px] w-[596px] items-center rounded-[8px] border border-[#D2D4DA] bg-white">
               <div className="ml-[24px] flex size-[40px] shrink-0 items-center justify-center rounded-full bg-[#F4F4FE]">
                 <MdPerson size={20} className="text-[#7962ED]" />
               </div>
               <span className="ml-[12px] truncate text-[20px] font-medium leading-[28px] tracking-[-0.005em] text-[#555964]">
-                {email}
+                {loginId}
               </span>
             </div>
           </AuthCard>
