@@ -15,6 +15,7 @@ import { checkLoginIdAvailable } from '../api/login/loginId';
 import { getRegions } from '../api/common/region';
 import { tokenStorage } from '../utils/token';
 import { useUserStore } from '../store/user/user';
+import { getRegions } from '../api/region';
 import type {
     AgreementType,
     Gender as ApiGender,
@@ -156,6 +157,8 @@ export default function SignPage() {
     const [birthMonth, setBirthMonth] = useState('');
     const [birthDay, setBirthDay] = useState('');
     const [region, setRegion] = useState('');
+    const [regionOptions, setRegionOptions] = useState<string[]>([]);
+    const [isLoadingRegions, setIsLoadingRegions] = useState(true);
     const [gender, setGender] = useState<Gender | null>(null);
     const [nationality, setNationality] = useState<Nationality | null>(null);
 
