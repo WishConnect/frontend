@@ -1,4 +1,4 @@
-import type { RegionItem } from '../common/region';
+import type { Region } from '../region';
 
 // STEP1 요청 body
 export interface BasicProfileRequest {
@@ -52,7 +52,7 @@ export interface FullProfile {
   gender: string;
   nationality: string;
   // 2026-08-19부터 문자열이 아니라 객체로 온다(시군구면 상위 시도까지). 저장된 지역이 없으면 null.
-  region: RegionItem | null;
+  region: Region | null;
   profileCompletionRate: number;
   onboardingCompleted: boolean;
   academic: {

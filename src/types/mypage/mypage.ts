@@ -1,4 +1,4 @@
-import type { RegionItem } from '../common/region';
+import type { Region } from '../region';
 
 // GET /users/me 응답 data — 마이페이지 첫 화면용 사용자 요약 정보
 export interface MyPageSummary {
@@ -9,7 +9,7 @@ export interface MyPageSummary {
   birthDate: string | null;
   // 2026-08-19부터 문자열이 아니라 객체로 온다(시군구면 상위 시도까지).
   // 화면에 뿌릴 땐 utils/region.ts 의 formatRegionLabel 로 "서울 중구" 형태를 만든다.
-  region: RegionItem | null;
+  region: Region | null;
   profileCompletionRate: number;
   scrappedCount: number;
   applicationCount: number;
