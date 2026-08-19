@@ -1,3 +1,5 @@
+import type { Region } from '../region';
+
 // STEP1 요청 body
 export interface BasicProfileRequest {
   name: string;
@@ -49,8 +51,10 @@ export interface FullProfile {
   phone: string;
   gender: string;
   nationality: string;
-  // 시군구까지 저장했으면 "서울 중구", 시도만이면 "서울" 형식. 저장된 지역이 없으면 null.
-  region: string | null;
+  // 2026-08-19부터 문자열이 아니라 객체로 올 예정이었지만(시군구면 상위 시도까지),
+  // 같은 날 GET /users/me가 실제로는 아직 이전 문자열 포맷을 주는 게 확인돼 이 엔드포인트도
+  // 안심할 수 없다. 저장된 지역이 없으면 null. utils/region.ts의 normalizeRegion으로 통일해서 쓴다.
+  region: Region | string | null;
   profileCompletionRate: number;
   onboardingCompleted: boolean;
   academic: {

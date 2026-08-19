@@ -9,6 +9,7 @@ import Down from '../../assets/icons/CategoryDown.svg';
 import Up from '../../assets/icons/CategoryUp.svg';
 
 import { fetchScholarshipSearch } from '../../api/Curation/Search';
+import { formatScholarshipAmount } from '../../utils/scholarshipAmount';
 
 import type {
   ScholarshipSearchItem,
@@ -43,7 +44,7 @@ const convertToRowData = (scholarship: ScholarshipSearchItem): SearchScholarship
     tags: scholarship.tags,
     isScrapped: scholarship.isScrapped,
     summary: {
-      amount: scholarship.maxAmount,
+      amount: formatScholarshipAmount(scholarship.title, scholarship.maxAmount),
       organization: scholarship.organization,
       applicationPeriod: scholarship.applicationPeriod,
     },

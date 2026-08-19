@@ -7,6 +7,7 @@ import ScrapDisable from '../../assets/icons/ScrapDiasbled.svg';
 import Scrap from '../../assets/icons/Scrap.svg';
 import DdayStatus from '../DdayStatus';
 import MainPost from './MainPost.svg';
+import { formatScholarshipAmount } from '../../utils/scholarshipAmount';
 
 import type { CuratedFeaturedScholarship } from '../../types/Curation/Curated';
 
@@ -30,6 +31,7 @@ export default function RecommendCard({
   const isScrapped = scholarship.isScrapped;
   const tags = scholarship.tags ?? [];
   const matchReasons = scholarship.matchReasons ?? [];
+  const amountText = formatScholarshipAmount(scholarship.title, scholarship.maxAmount);
 
   const handleCardClick = (event: MouseEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
@@ -76,7 +78,7 @@ export default function RecommendCard({
         )}
 
         <p className="mt-[24px] text-[16px] font-semibold leading-[24px] text-[#555964]">
-          {scholarship.maxAmount ?? '금액 정보 없음'} |{' '}
+          {amountText} |{' '}
           {scholarship.deadline ? `${scholarship.deadline} 마감` : '마감일 정보 없음'}
         </p>
 
@@ -90,9 +92,12 @@ export default function RecommendCard({
           이 장학금을 추천하는 이유
         </h3>
 
-        <div className="mt-[12px] flex flex-col gap-[8px]">
-          {matchReasons.map((reason) => (
-            <span key={reason} className="text-[14px] font-medium leading-[20px] text-[#555964]">
+        <div className="mt-[12px] grid grid-flow-col grid-rows-4 gap-x-[20px] gap-y-[8px]">
+          {matchReasons.map((reason, index) => (
+            <span
+              key={`${reason}-${index}`}
+              className="whitespace-nowrap text-[14px] font-medium leading-[20px] text-[#555964]"
+            >
               ✓ {reason}
             </span>
           ))}

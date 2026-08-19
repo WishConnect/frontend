@@ -1,3 +1,5 @@
+import type { Region } from '../region';
+
 // GET /users/me 응답 data — 마이페이지 첫 화면용 사용자 요약 정보
 export interface MyPageSummary {
   userId: string;
@@ -5,9 +7,11 @@ export interface MyPageSummary {
   email: string;
   // 실제 응답 필드명은 birthYear가 아니라 birthDate. 값이 없으면 null.
   birthDate: string | null;
-  // 시군구까지 저장했으면 "서울 중구", 시도만이면 "서울" 형식의 문자열.
-  // (2026-08-19 하루 사이 객체로 바뀌었다가 되돌아왔다 — utils/region.ts 주석 참고)
-  region: string | null;
+  // 2026-08-19 API 개편으로 문자열("서울 중구")에서 지역 객체로 스펙이 바뀔 예정이었지만,
+  // 이 엔드포인트(GET /users/me)는 실제로는 아직 이전 문자열 포맷을 그대로 준다(같은 날 확인).
+  // 어느 쪽이 와도 깨지지 않도록 문자열도 함께 허용한다 — 화면에 뿌릴 땐 utils/region.ts 의
+  // formatRegionLabel(내부에서 normalizeRegion으로 포맷을 통일)로 "서울 중구" 형태를 만든다.
+  region: Region | string | null;
   profileCompletionRate: number;
   scrappedCount: number;
   applicationCount: number;

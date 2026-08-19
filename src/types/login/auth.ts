@@ -10,6 +10,8 @@ export interface LoginRequest {
 }
 
 // 로그인 응답 안의 user 객체 (전역 userStore에 저장하는 유저 정보)
+// loginType은 일반(LOCAL) 로그인 응답엔 없고 소셜 로그인(SocialUser) 응답에만 실려 온다.
+// 스토어 타입을 User로 통일해 쓰므로 여기 옵셔널로 선언해야 소셜 유저의 loginType을 읽을 수 있다.
 export interface User {
   userId: string; // uuid
   name: string;

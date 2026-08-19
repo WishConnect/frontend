@@ -17,6 +17,7 @@ import { tokenStorage } from '../utils/token';
 import { logout } from '../api/login/auth';
 import { getMyPageSummary, deleteMyAccount } from '../api/mypage/mypage';
 import type { MyPageSummary } from '../types/mypage/mypage';
+import { formatRegionLabel } from '../utils/region';
 
 // API 응답을 받아오기 전/실패했을 때, 그리고 온보딩 미완료로 추천기준이 없을 때 보여줄 기본값
 const DEFAULT_USER_PROFILE = {
@@ -74,8 +75,8 @@ function mapSummaryToView(summary: MyPageSummary): UserProfileView {
   return {
     name: summary.name,
     birthYear: extractBirthYear(summary.birthDate),
-    // 서버가 "서울 중구"(시군구까지) 또는 "서울"(시도만) 형식으로 준다. 그대로 쓴다.
-    region: summary.region?.trim() ?? '',
+    // 서버가 "서울 중구"/"서울" 문자열로도, 지역 객체로도 줄 수 있어 한 줄 문자열로 통일해서 쓴다.
+    region: formatRegionLabel(summary.region),
     grade: extractGradeNumber(criteria?.grade ?? null),
     gpa: criteria?.gpa ?? 0,
     gpaMax: 4.5,
@@ -112,6 +113,8 @@ export default function MyPage() {
   const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null);
   const navigate = useNavigate();
   const clearUser = useUserStore((s) => s.clearUser);
+  // 소셜(카카오/구글) 로그인 사용자는 비밀번호가 없으므로 비밀번호 변경 항목을 숨긴다.
+  const isSocialUser = !!useUserStore((s) => s.user?.loginType);
 
   // 로그아웃: 서버에 refreshToken 폐기 요청(accessToken 필요) → 전역 유저 상태 초기화
   // → 저장된 토큰 삭제 → 로그인 페이지로 이동.
@@ -376,22 +379,27 @@ export default function MyPage() {
                         의미가 없고, 비밀번호 변경 필드는 /mypage/edit(EditProfile.tsx)에 이미
                         있으므로 "비밀번호 변경"으로 바꾸고 그 페이지로 연결.
                         (참고: 원래 코드는 onClick이 바깥 button이 아니라 안쪽 span에만 걸려있어
-                        아이콘/여백 클릭 시 반응이 없던 버그가 있었음 — button으로 옮겨서 수정) */}
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between"
-                      onClick={() => navigate('/mypage/edit')}
-                    >
-                      <div className="flex items-center gap-6">
-                        <img src={logOutIcon1} alt="" className="size-8" />
-                        <span className="text-[16px] font-medium leading-6 text-[#747883]">
-                          비밀번호 변경
-                        </span>
-                      </div>
-                      <img src={chevronRightIcon} alt="" className="size-4" />
-                    </button>
+                        아이콘/여백 클릭 시 반응이 없던 버그가 있었음 — button으로 옮겨서 수정)
+                        소셜 로그인 사용자는 비밀번호가 없으므로 이 항목 자체를 숨긴다. */}
+                    {!isSocialUser && (
+                      <>
+                        <button
+                          type="button"
+                          className="flex w-full items-center justify-between"
+                          onClick={() => navigate('/mypage/edit')}
+                        >
+                          <div className="flex items-center gap-6">
+                            <img src={logOutIcon1} alt="" className="size-8" />
+                            <span className="text-[16px] font-medium leading-6 text-[#747883]">
+                              비밀번호 변경
+                            </span>
+                          </div>
+                          <img src={chevronRightIcon} alt="" className="size-4" />
+                        </button>
 
-                    <div className="h-px w-full bg-[#D2D4DA]" />
+                        <div className="h-px w-full bg-[#D2D4DA]" />
+                      </>
+                    )}
 
                     <button
                       type="button"
