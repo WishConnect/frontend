@@ -1,7 +1,6 @@
 import api from '../axios';
 import type { ApiResponse } from '../../types/api';
 import type {
-  NaverLoginRequest,
   SocialLoginRequest,
   SocialLoginResponseData,
 } from '../../types/login/auth';
@@ -19,12 +18,5 @@ export async function kakaoLogin(body: SocialLoginRequest): Promise<SocialLoginR
 // 실패 코드: 400 INVALID_GOOGLE_CODE / 400 INVALID_REDIRECT_URI / 401 GOOGLE_TOKEN_FAILED.
 export async function googleLogin(body: SocialLoginRequest): Promise<SocialLoginResponseData> {
   const res = await api.post<ApiResponse<SocialLoginResponseData>>('/auth/google/login', body);
-  return res.data.data;
-}
-
-// 네이버 소셜 로그인. 카카오/구글과 달리 code + state를 함께 보낸다.
-// 실패 코드: 400 INVALID_NAVER_CODE / 400 INVALID_NAVER_STATE.
-export async function naverLogin(body: NaverLoginRequest): Promise<SocialLoginResponseData> {
-  const res = await api.post<ApiResponse<SocialLoginResponseData>>('/auth/naver/login', body);
   return res.data.data;
 }

@@ -100,7 +100,17 @@ export default function FindIdPage() {
     try {
       // 아이디를 못 받아오면 결과 화면으로 넘기지 않는다. 빈 칸을 보여주느니 사유를 알리는 게 낫다.
       // 코드가 틀렸을 때와 이메일·이름이 계정과 다를 때가 서버에서 같은 응답이라 안내도 하나다.
-      setLoginId(await findLoginId(email.trim(), name.trim(), submittedCode));
+      const foundLoginId = await findLoginId(email.trim(), name.trim(), submittedCode);
+
+      // 인증은 통과했는데 아이디가 비어 있는 경우. 2026-08-16 이전에 가입한 계정은 login_id가
+      // NULL이라(마이그레이션에 백필이 없었다) 여기까지 와서 빈 값이 온다. 그냥 넘기면
+      // "아이디를 찾았어요." 아래에 빈 칸만 뜬다.
+      if (!foundLoginId) {
+        setError('이 계정에는 아이디가 등록돼 있지 않아요. 소셜 로그인을 이용하거나 문의해 주세요.');
+        return;
+      }
+
+      setLoginId(foundLoginId);
       setStep('done');
     } catch (err) {
       setError(getApiErrorMessage(err, '인증에 실패했어요. 입력한 정보와 인증번호를 확인해 주세요.'));

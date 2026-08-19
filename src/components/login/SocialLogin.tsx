@@ -1,17 +1,16 @@
 import { useState } from 'react';
 import kakaoIcon from '../../assets/social/kakao.svg';
-import naverIcon from '../../assets/social/naver.svg';
 import googleIcon from '../../assets/social/google.png';
 import { buildAuthorizeUrl } from '../../utils/oauth';
 import type { SocialProvider } from '../../utils/oauth';
 
 const SOCIAL_PROVIDERS: { id: SocialProvider; name: string; icon: string }[] = [
   { id: 'kakao', name: '카카오', icon: kakaoIcon },
-  { id: 'naver', name: '네이버', icon: naverIcon },
   { id: 'google', name: '구글', icon: googleIcon },
 ];
 
-// 간편 로그인: 구분선 + 카카오/네이버/구글 버튼
+// 간편 로그인: 구분선 + 카카오/구글 버튼
+// 네이버는 연동이 어려워 2026-08-19에 제외하기로 결정했다.
 // 클릭하면 해당 제공자의 인가 페이지로 이동하고, 로그인 후 /auth/{provider}/callback 으로 돌아온다.
 export default function SocialLogin() {
   const [errorMessage, setErrorMessage] = useState('');

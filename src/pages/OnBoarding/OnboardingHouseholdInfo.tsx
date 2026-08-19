@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header/Header';
-import LeftSidebar from '../../components/LeftSidebar';
+import OnboardingStepSidebar from '../../components/onboarding/OnboardingStepSidebar';
 import heartIcon from '../../assets/onboarding/heart.svg';
 import helpIcon from '../../assets/onboarding/circle-question-mark.svg';
 import { getMyProfile, putHouseholdProfile } from '../../api/onboarding/profile';
@@ -507,9 +507,8 @@ export default function OnboardingHouseholdInfo() {
         <Header logoOnly />
 
         <div className="flex px-[64px]">
-          <aside className="mr-8 shrink-0">
-            <LeftSidebar activeId="mypage" />
-          </aside>
+          {/* 좌측 스텝 사이드바 */}
+          <OnboardingStepSidebar currentStep={2} />
 
           <main className="flex min-w-0 flex-1 items-start pb-16 pt-4">
 
