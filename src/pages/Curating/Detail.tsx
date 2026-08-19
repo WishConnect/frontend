@@ -489,7 +489,9 @@ export default function Detail() {
       )}
       {isInquiryModalOpen && (
         <InquiryModal
-          scholarshipId={detail.scholarshipId}
+          // 서버는 문의 대상을 자유 텍스트로 받는다(scholarshipId 를 받지 않음).
+          // 상세에서 열었으니 어떤 장학금인지 미리 채워 준다.
+          defaultTarget={detail.title}
           onClose={() => setIsInquiryModalOpen(false)}
           onSuccess={() => {
             setIsInquiryModalOpen(false);
