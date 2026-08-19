@@ -1,4 +1,4 @@
-import { useEffect, useState, useImperativeHandle, forwardRef } from "react";
+import { useEffect, useState, useImperativeHandle, forwardRef, useRef } from "react";
 import TextField2 from "../../components/TextField2";
 import { postInterviewAnswer, type InterviewQuestionItem } from '../../api/write/step1/Interview';
 import type { ApplicationQuestion } from '../../api/archiving/view';
@@ -36,10 +36,19 @@ const Step1 = forwardRef<Step1Handle, Step1Props>(function Step1({
     const [stateByCategory, setStateByCategory] = useState<Record<number, CategoryState>>({});
     const currentQuestion = questions[selectedCategory];
     const current = stateByCategory[selectedCategory];
+    const stateByCategoryRef = useRef(stateByCategory);
+    stateByCategoryRef.current = stateByCategory;
 
-    const completedCount = questionCategories.filter(
-        (_, idx) => stateByCategory[idx]?.isComplete
-    ).length;
+    const isCategoryComplete = (idx: number): boolean => {
+        const cat = stateByCategory[idx];
+        if (cat) {
+            if (cat.questions.length === 0) return false;
+            return cat.questions.every((q) => (cat.answers[q.stepOrder] ?? '').trim().length > 0);
+        }
+        return questions[idx]?.currentStep !== undefined && questions[idx].currentStep !== 'STEP_1';
+    };
+
+    const completedCount = questionCategories.filter((_, idx) => isCategoryComplete(idx)).length;
 
     useEffect(() => {
         if (!currentQuestion || stateByCategory[selectedCategory]) return;
@@ -76,10 +85,6 @@ const Step1 = forwardRef<Step1Handle, Step1Props>(function Step1({
                         isSaving: false,
                     },
                 }));
-
-                if (res.data.isInterviewComplete) {
-                    onProgressChange(selectedCategory, true);
-                }
             })
             .catch((err) => {
                 console.error('인터뷰 질문 불러오기 실패:', err);
@@ -97,6 +102,12 @@ const Step1 = forwardRef<Step1Handle, Step1Props>(function Step1({
             });
     }, [selectedCategory, currentQuestion, applicationId]);
 
+    useEffect(() => {
+        questionCategories.forEach((_, idx) => {
+            onProgressChange(idx, isCategoryComplete(idx));
+        });
+    }, [stateByCategory, questions]);
+
     const handleAnswerInput = (stepOrder: number, value: string) => {
         setStateByCategory((prev) => {
             const cat = prev[selectedCategory];
@@ -111,14 +122,16 @@ const Step1 = forwardRef<Step1Handle, Step1Props>(function Step1({
         });
     };
 
-    const saveCurrentCategory = async () => {
-        if (!current || !currentQuestion || current.isSaving) return;
+    const saveCategory = async (categoryIdx: number) => {
+        const cat = stateByCategoryRef.current[categoryIdx];
+        const q = questions[categoryIdx];
+        if (!cat || !q || cat.isSaving) return;
 
-        const changedAnswers = current.questions
-            .map((q) => ({
-                stepOrder: q.stepOrder,
-                answerText: (current.answers[q.stepOrder] ?? '').trim(),
-                originalText: q.answerText ?? '',
+        const changedAnswers = cat.questions
+            .map((question) => ({
+                stepOrder: question.stepOrder,
+                answerText: (cat.answers[question.stepOrder] ?? '').trim(),
+                originalText: question.answerText ?? '',
             }))
             .filter((a) => a.answerText.length > 0 && a.answerText !== a.originalText)
             .map(({ stepOrder, answerText }) => ({ stepOrder, answerText }));
@@ -127,22 +140,21 @@ const Step1 = forwardRef<Step1Handle, Step1Props>(function Step1({
 
         setStateByCategory((prev) => ({
             ...prev,
-            [selectedCategory]: { ...prev[selectedCategory], isSaving: true },
+            [categoryIdx]: { ...prev[categoryIdx], isSaving: true },
         }));
 
         try {
-            const res = await postInterviewAnswer(applicationId, currentQuestion.questionId, changedAnswers);
-
+            const res = await postInterviewAnswer(applicationId, q.questionId, changedAnswers);
             if (!res.success || !res.data) return;
 
             const refreshedAnswers: Record<number, string> = {};
-            res.data.questions.forEach((q) => {
-                refreshedAnswers[q.stepOrder] = q.answerText ?? '';
+            res.data.questions.forEach((question) => {
+                refreshedAnswers[question.stepOrder] = question.answerText ?? '';
             });
 
             setStateByCategory((prev) => ({
                 ...prev,
-                [selectedCategory]: {
+                [categoryIdx]: {
                     questions: res.data.questions,
                     answers: refreshedAnswers,
                     canGenerateDraft: res.data.canGenerateDraft,
@@ -151,15 +163,27 @@ const Step1 = forwardRef<Step1Handle, Step1Props>(function Step1({
                     isSaving: false,
                 },
             }));
-
-            onProgressChange(selectedCategory, res.data.isInterviewComplete);
         } catch (error) {
             console.error('답변 저장 실패:', error);
             setStateByCategory((prev) => ({
                 ...prev,
-                [selectedCategory]: { ...prev[selectedCategory], isSaving: false },
+                [categoryIdx]: { ...prev[categoryIdx], isSaving: false },
             }));
             throw error;
+        }
+    };
+
+    const saveCurrentCategory = async () => {
+        await saveCategory(selectedCategory);
+    };
+
+    const handleCategoryChange = async (nextIdx: number) => {
+        if (nextIdx === selectedCategory) return;
+        const prevIdx = selectedCategory;
+        setSelectedCategory(nextIdx);
+        try {
+            await saveCategory(prevIdx);
+        } catch {
         }
     };
 
@@ -181,7 +205,7 @@ const Step1 = forwardRef<Step1Handle, Step1Props>(function Step1({
                     {questionCategories.map((category, idx) => (
                         <button
                             key={idx}
-                            onClick={() => setSelectedCategory(idx)}
+                            onClick={() => handleCategoryChange(idx)}
                             className={`w-[204px] h-[48px] pl-[13px] flex items-center rounded-[8px] border text-[14px] font-[500] transition-colors ${
                                 selectedCategory === idx
                                     ? 'border-[#BDB9F9] bg-[##7962ED0D] text-[#320095]'
@@ -189,7 +213,7 @@ const Step1 = forwardRef<Step1Handle, Step1Props>(function Step1({
                             }`}
                         >
                             {idx + 1}. {category}
-                            {stateByCategory[idx]?.isComplete && ' ✓'}
+                            {isCategoryComplete(idx) && ' ✓'}
                         </button>
                     ))}
                     <button className='w-[204px] h-[32px] flex justify-center items-center rounded-[8px] gap-[4px] border border-[#E6E7E8] text-[12px] font-[500] text-[#747883]'>

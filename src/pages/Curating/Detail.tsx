@@ -29,6 +29,7 @@ import { useUserStore } from '../../store/user/user';
 import { postStartApplication } from '../../api/archiving/start';
 import { getArchive } from '../../api/archiving/archive';
 import { formatScholarshipAmount } from '../../utils/scholarshipAmount';
+import { generateApplicationQuestions } from '../../api/write/step1/generate';
 
 import type {
   ScholarshipDetailResponse,
@@ -416,7 +417,6 @@ export default function Detail() {
 
     if (applicationId) {
       if (applicationStatus === 'COMPLETED') {
-        // 임시 경로
         navigate(`/complete/${applicationId}`, {
           state: {
             scholarshipId: detail.scholarshipId,
@@ -436,7 +436,7 @@ export default function Detail() {
       return;
     }
 
-    try {
+   try {
       const cleanId = Number(String(detail.scholarshipId).replace('sch-', ''));
 
       const response = await postStartApplication({
@@ -445,6 +445,14 @@ export default function Detail() {
 
       if (response.success && response.data) {
         const newApplicationId = response.data.applicationId;
+
+        // 지원서 생성 직후, STEP1 인터뷰 시작 전에만 호출 가능한 API.
+        // 실패해도 기본 문항으로 작성 진행 가능하니 흐름을 막지 않음.
+        try {
+          await generateApplicationQuestions(newApplicationId);
+        } catch (genError) {
+          console.error('맞춤 문항 생성 실패, 기본 문항으로 진행:', genError);
+        }
 
         navigate(`/write/${newApplicationId}`, {
           state: {
@@ -457,15 +465,6 @@ export default function Detail() {
     } catch (error) {
       console.error('지원서 생성 실패:', error);
     }
-
-    // navigate('/write', {
-    //   state: {
-    //     scholarshipId: detail.scholarshipId,
-    //     scholarshipTitle: detail.title,
-    //     applicationId,
-    //     applicationStatus,
-    //   },
-    // });
   };
 
   return (
