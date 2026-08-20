@@ -9,6 +9,7 @@ import Step2 from './Step2';
 import Step3 from './Step3';
 import { getApplicationDetail, type ApplicationQuestion } from '../../api/archiving/view';
 import { putAnswer } from '../../api/write/step2/answer';
+import { getArchive } from '../../api/archiving/archive';
 
 export default function WritePage() {
   const tips = [
@@ -88,6 +89,25 @@ export default function WritePage() {
   const [, setAnswers] = useState<Record<number, Record<number, string>>>({});
   const [drafts, setDrafts] = useState<Record<number, string>>({});
   const [progressByCategory, setProgressByCategory] = useState<Record<number, boolean>>({});
+
+  const [deadline, setDeadline] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDeadline = async () => {
+        try {
+            const data = await getArchive({ page: 1, size: 100 });
+            const matched = data.items.find(
+                (item) => item.applicationId === applicationId
+            );
+            if (matched) {
+                setDeadline(matched.deadline);
+            }
+        } catch (error) {
+            console.error('신청기간 조회 실패:', error);
+        }
+    };
+    fetchDeadline();
+}, [applicationId]);
 
   useEffect(() => {
     const fetchApplicationData = async () => {
@@ -264,8 +284,7 @@ export default function WritePage() {
                 <span>신청기간</span>
                 <span>•</span>
 
-                {/* 데이터 서버에서 받아야함 */}
-                <span>2026.05.01 - 2026.05.31</span>
+                <span>{deadline ? `~ ${deadline.slice(0, 10).replaceAll('-', '.')}` : '정보 없음'}</span>
               </div>
             </div>
 
