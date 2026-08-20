@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header/Header';
 import OnboardingStepSidebar from '../../components/onboarding/OnboardingStepSidebar';
 import { putBasicProfile } from '../../api/onboarding/profile';
-import { getRegions } from '../../api/region';
+import { getRegions, getRegionChildren } from '../../api/region';
+import { joinRegionLabel } from '../../utils/region';
 import type { Region } from '../../types/region';
 import { formatPhone, getPhoneError } from '../../utils/phone';
 
@@ -218,8 +219,11 @@ export default function OnboardingBasicInfo() {
   const [gender, setGender] = useState<Gender | null>(null);
   const [nationality, setNationality] = useState<Nationality | null>(null);
   const [region, setRegion] = useState('');
+  const [sigungu, setSigungu] = useState('');
 
   const [regions, setRegions] = useState<Region[]>([]);
+  const [sigunguOptions, setSigunguOptions] = useState<string[]>([]);
+  const [sigunguError, setSigunguError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -239,6 +243,40 @@ export default function OnboardingBasicInfo() {
       isMounted = false;
     };
   }, []);
+
+  // 시도를 고르면 이전에 고른 시군구와 목록을 먼저 비운다(다른 시도의 구가 남아 보이지 않게).
+  const handleSelectSido = (value: string) => {
+    setRegion(value);
+    setSigungu('');
+    setSigunguOptions([]);
+    setSigunguError(null);
+  };
+
+  // 시군구(2단계). 시도 이름만 알고 있으므로 목록에서 regionId 를 찾아 children 을 부른다.
+  useEffect(() => {
+    if (!region) return;
+
+    const selected = regions.find((item) => item.name === region);
+    if (!selected) return;
+
+    let isMounted = true;
+
+    getRegionChildren(selected.regionId)
+      .then((response) => {
+        if (isMounted) setSigunguOptions(response.data.data.map((item) => item.name));
+      })
+      .catch((err) => {
+        console.error('시군구 목록 조회 실패:', err);
+        // 시군구는 선택 항목이라, 못 불러와도 시도만으로 다음 단계로 넘어갈 수 있게 안내만 남긴다.
+        if (isMounted) {
+          setSigunguError('시군구 목록을 불러오지 못했어요. 시도만 선택해도 계속할 수 있어요.');
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [region, regions]);
 
   // 만 14세가 되는 날을 넘지 않도록 연도 상한을 잡는다.
   const yearOptions = useMemo(() => {
@@ -307,7 +345,8 @@ export default function OnboardingBasicInfo() {
         phone: phone.trim(),
         gender: GENDER_TO_API[gender],
         nationality: NATIONALITY_TO_API[nationality],
-        region,
+        // 서버는 region 을 문자열 하나로 받는다. 시군구까지 골랐으면 "서울 중구"로 합쳐 보낸다.
+        region: joinRegionLabel(region, sigungu),
       });
       navigate('/onboarding');
     } catch (err) {
@@ -415,13 +454,32 @@ export default function OnboardingBasicInfo() {
 
                 <div className="flex flex-col gap-3">
                   <FieldLabel required>거주 지역</FieldLabel>
-                  <SelectField
-                    value={region}
-                    onChange={(e) => setRegion(e.target.value)}
-                    placeholder="선택해 주세요"
-                    options={regions.map((item) => item.name)}
-                    disabled={regions.length === 0}
-                  />
+                  {/* 시도 → 시군구 2단계. 시군구는 선택 항목이라 시도만 골라도 다음으로 넘어간다. */}
+                  <div className="flex w-full items-start gap-3">
+                    <div className="flex-1">
+                      <SelectField
+                        value={region}
+                        onChange={(e) => handleSelectSido(e.target.value)}
+                        placeholder="시도를 선택해 주세요"
+                        options={regions.map((item) => item.name)}
+                        disabled={regions.length === 0}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <SelectField
+                        value={sigungu}
+                        onChange={(e) => setSigungu(e.target.value)}
+                        placeholder={region ? '시군구를 선택해 주세요' : '시도를 먼저 선택해 주세요'}
+                        options={sigunguOptions}
+                        disabled={!region || sigunguOptions.length === 0}
+                      />
+                    </div>
+                  </div>
+                  {sigunguError && (
+                    <p className="text-[14px] font-medium leading-5 text-[#FA5862]">
+                      {sigunguError}
+                    </p>
+                  )}
                   <p className="text-[14px] font-medium leading-5 text-[#747883]">
                     ※ 장학금 추천 시 거주 지역 기준이 활용될 수 있어요.
                   </p>
