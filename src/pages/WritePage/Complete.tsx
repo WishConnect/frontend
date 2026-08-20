@@ -6,6 +6,7 @@ import Tag from "../../components/Tag";
 import { getApplicationDetail, type ApplicationQuestion } from '../../api/archiving/view';
 import { getApplications } from '../../api/archiving/list';
 import { getInterviewQuestions, postInterviewQuestions, type InterviewQuestion, type InterviewRequirement } from '../../api/questions/interview';
+import { getArchive } from '../../api/archiving/archive';
 
 
 {/* 지원서 */}
@@ -173,6 +174,29 @@ export default function Complete() {
   const [interviewEvidence, setInterviewEvidence] = useState<string | null>(null);
   const [isInterviewLoaded, setIsInterviewLoaded] = useState(false);
 
+  const [deadline, setDeadline] = useState<string | null>(null);
+
+  useEffect(() => {
+      const fetchArchiveInfo = async () => {
+          try {
+              const data = await getArchive({ page: 1, size: 100 });
+              const matched = data.items.find(
+                  (item) => item.applicationId === applicationId
+              );
+              if (matched) {
+                  if (!scholarshipId) {
+                      setScholarshipId(matched.scholarshipId);
+                  }
+                  setDeadline(matched.deadline);
+              }
+          } catch (error) {
+              console.error('마감일 조회 실패:', error);
+          }
+      };
+
+      fetchArchiveInfo();
+  }, [applicationId]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -327,8 +351,9 @@ export default function Complete() {
                     </div>
                 </div>
               <div className="flex items-center text-[#555964] font-[600] text-[16px] gap-[8px] flex">
-                <span>신청기간</span><span>•</span><span>정보 없음</span>
-              </div>
+                <span>신청기간</span><span>•</span>
+                <span>{deadline ? `~ ${deadline.slice(0, 10).replaceAll('-', '.')}` : '정보 없음'}</span>
+            </div>
             </div>
           </div>
 
