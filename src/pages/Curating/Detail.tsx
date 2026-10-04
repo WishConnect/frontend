@@ -415,6 +415,16 @@ export default function Detail() {
       return;
     }
 
+    if (resolvedApplicationStatus === 'NOT_REQUIRED') {
+      if (!detail.detailUrl) {
+        alert('장학금 신청 홈페이지 주소가 없습니다.');
+        return;
+      }
+
+      window.open(detail.detailUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
     if (applicationId) {
       if (applicationStatus === 'COMPLETED') {
         navigate(`/complete/${applicationId}`, {
@@ -436,7 +446,7 @@ export default function Detail() {
       return;
     }
 
-   try {
+    try {
       const cleanId = Number(String(detail.scholarshipId).replace('sch-', ''));
 
       const response = await postStartApplication({
