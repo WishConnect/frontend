@@ -140,9 +140,9 @@ export default function RecommendCard({
       </div>
 
       <div className="h-[528px] w-[545px] overflow-hidden rounded-r-[16px] bg-[#F3F4F6]">
-        {scholarship.thumbnailUrl ? (
+        {scholarship.posterUrl ? (
           <img
-            src={scholarship.thumbnailUrl}
+            src={scholarship.posterUrl}
             alt={scholarship.title}
             className="block h-full w-full object-cover object-center"
           />
