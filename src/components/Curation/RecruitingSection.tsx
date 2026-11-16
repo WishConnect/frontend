@@ -80,7 +80,7 @@ export default function RecruitingSection({
 
           const amountText = formatScholarshipAmount(scholarship.title, scholarship.maxAmount);
 
-          const deadlineText = scholarship.deadline ?? '상시';
+          const deadlineText = scholarship.deadline ?? '마감일 정보 없음';
 
           const dDayText = scholarship.dDay !== null ? `D-${scholarship.dDay}` : '';
 

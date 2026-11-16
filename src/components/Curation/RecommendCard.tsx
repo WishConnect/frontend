@@ -58,7 +58,7 @@ export default function RecommendCard({
       className="flex h-[528px] w-[1043px] gap-[32px] rounded-[16px] pl-[56px] shadow-[0px_4px_20px_0px_rgba(0,0,0,0.1)]"
     >
       <div className="flex h-[528px] w-[410px] flex-col pt-[48px] pb-[42px]">
-        <DdayStatus days={scholarship.dDay ?? 0} />
+        <DdayStatus days={scholarship.dDay} />
 
         <h2 className="mt-[24px] text-[28px] font-bold leading-[36px] text-[#10131A]">
           {scholarship.title}

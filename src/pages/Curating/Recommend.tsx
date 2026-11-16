@@ -255,7 +255,7 @@ export default function RecommendedScholarshipPage() {
 
                     <div className="absolute bottom-0 left-0 min-h-[144px] w-full rounded-t-[16px] bg-white px-[24px] py-[24px]">
                       <div className="flex h-[32px] w-[278px] items-center gap-[8px]">
-                        <DdayStatus days={scholarship.dDay ?? 0} />
+                        <DdayStatus days={scholarship.dDay} />
 
                         <span className="text-[12px] font-medium leading-[16px] text-[#747883]">
                           {scholarship.deadline ? `${scholarship.deadline} 마감` : '마감일 미정'}

@@ -38,7 +38,7 @@ const convertToRowData = (scholarship: ScholarshipSearchItem): SearchScholarship
   return {
     id: String(scholarship.scholarshipId),
     title: scholarship.title,
-    days: scholarship.dDay,
+    days: scholarship.deadline === '미정' ? null : scholarship.dDay,
     deadline: scholarship.deadline,
     recruitStatus: scholarship.recruitStatus,
     tags: scholarship.tags,
