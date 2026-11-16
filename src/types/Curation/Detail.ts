@@ -4,7 +4,7 @@ export interface ApiResponse<T> {
   message: string | null;
 }
 
-export type ScholarshipStatus = 'OPEN' | 'CLOSED' | 'UPCOMING';
+export type ScholarshipStatus = 'OPEN' | 'CLOSED' | 'UPCOMING' | 'ALWAYS_OPEN';
 
 export type SelectionScheduleStatus = 'CLOSED' | 'UPCOMING' | 'CURRENT';
 export type RequirementStatus = 'REQUIRED' | 'CONDITIONAL' | 'NOT_REQUIRED';
@@ -36,6 +36,7 @@ export interface ScholarshipSelectionSchedule {
   step: string;
   date: string | null;
   status: SelectionScheduleStatus;
+  note?: string | null;
 }
 
 export interface ScholarshipRequiredDocument {

@@ -602,9 +602,12 @@ export default function Detail() {
 
                 {/* 마감 정보 */}
                 <div className="mt-[12px] flex h-[32px] w-[402px] items-center gap-[8px]">
-                  <DdayStatus days={detail.dDay ?? 0} />
-
-                  <span className="flex h-[20px] items-center text-[#555964]">•</span>
+                  {detail.dDay != null && (
+                    <>
+                      <DdayStatus days={detail.dDay} status={detail.status} />
+                      <span className="flex h-[20px] items-center text-[#555964]">•</span>
+                    </>
+                  )}
 
                   <span className="flex h-[20px] items-center whitespace-nowrap text-[16px] font-semibold leading-[20px] text-[#555964]">
                     {formatDeadline(detail.deadline)}
@@ -746,20 +749,20 @@ export default function Detail() {
           </div>
 
           {/* 선발 일정 */}
-          <section className="relative mt-[52px] h-[278px] w-[1043px] rounded-[16px] border border-[#D2D4DA]">
-            <h2 className="absolute left-[32px] top-[32px] h-[32px] w-[88px] whitespace-nowrap text-[24px] font-bold leading-[32px]">
+          <section className="mt-[52px] min-h-[278px] w-[1043px] rounded-[16px] border border-[#D2D4DA] p-[32px]">
+            <h2 className="text-[24px] font-bold leading-[32px]">
               선발 일정
             </h2>
 
             {detail.selectionSchedule.length > 0 ? (
-              <div className="absolute left-[154px] top-[71px] flex items-start gap-[147px]">
-                {detail.selectionSchedule.slice(0, 4).map((schedule, index) => (
+              <div className="mt-[8px] grid grid-cols-4 items-start gap-x-[16px] gap-y-[24px]">
+                {detail.selectionSchedule.map((schedule, index) => (
                   <div
                     key={`${schedule.step}-${index}`}
-                    className="flex w-[80px] shrink-0 flex-col items-center"
+                    className="flex min-w-0 flex-col items-center text-center"
                   >
                     <img
-                      src={scheduleIcons[index]}
+                      src={scheduleIcons[index] ?? Final}
                       alt={schedule.step}
                       className="h-[80px] w-[80px] shrink-0"
                     />
@@ -776,6 +779,12 @@ export default function Detail() {
                       {formatScheduleDate(schedule.date, schedule.step)}
                     </p>
 
+                    {schedule.note && (
+                      <p className="mt-[4px] break-words text-[14px] leading-[20px] text-[#747883]">
+                        {schedule.note}
+                      </p>
+                    )}
+
                     <p className="whitespace-nowrap text-[14px] font-medium leading-[20px] text-[#747883]">
                       {getScheduleStatusText(schedule.status as SelectionScheduleStatus)}
                     </p>
@@ -783,7 +792,7 @@ export default function Detail() {
                 ))}
               </div>
             ) : (
-              <div className="flex h-full items-center justify-center text-[14px] text-[#747883]">
+              <div className="flex min-h-[148px] items-center justify-center text-[14px] text-[#747883]">
                 등록된 선발 일정이 없습니다.
               </div>
             )}

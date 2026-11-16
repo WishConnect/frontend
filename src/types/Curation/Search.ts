@@ -3,7 +3,7 @@ import type { ApiResponse } from '../api';
 export type SortOption = '마감 임박순' | '최신순' | '높은 금액순' | '저장한 장학금';
 
 export type SortParam = 'deadline' | 'latest' | 'amount';
-export type RecruitStatus = 'OPEN' | 'CLOSED';
+export type RecruitStatus = 'OPEN' | 'UPCOMING' | 'CLOSED';
 
 export interface ScholarshipSearchItem {
   scholarshipId: number;
@@ -12,7 +12,7 @@ export interface ScholarshipSearchItem {
   applicationPeriod: string;
   maxAmount: string;
   deadline: string;
-  dDay: number;
+  dDay: number | null;
   recruitStatus: RecruitStatus;
   tags: string[];
   isScrapped: boolean;
@@ -44,7 +44,7 @@ export interface ScholarshipSearchParams {
 export interface SearchScholarshipRowData {
   id: string;
   title: string;
-  days: number;
+  days: number | null;
   deadline: string;
   recruitStatus: RecruitStatus;
   tags: string[];

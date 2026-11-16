@@ -50,9 +50,12 @@ export default function SearchScholarshipRow({ scholarship }: SearchScholarshipR
     <article className="flex h-[144px] w-full border-b border-[#D2D4DA] last:border-b-0">
       <div className="flex w-[600px] flex-col justify-center pl-[32px]">
         <div className="flex items-center gap-[8px]">
-          <DdayStatus days={scholarship.days} />
-
-          <span className="text-[14px] font-medium text-[#747883]">•</span>
+          {scholarship.days !== null && (
+            <>
+              <DdayStatus days={scholarship.days} status={scholarship.recruitStatus} />
+              <span className="text-[14px] font-medium text-[#747883]">•</span>
+            </>
+          )}
 
           <span className="text-[14px] font-medium text-[#747883]">
             {scholarship.summary.organization}

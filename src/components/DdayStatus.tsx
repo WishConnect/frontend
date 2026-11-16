@@ -1,14 +1,21 @@
 interface DdayStatusProps {
-  days: number;
+  days: number | null;
+  status?: 'OPEN' | 'UPCOMING' | 'ALWAYS_OPEN' | 'CLOSED' | null;
 }
 
 type StatusColor = 'red' | 'yellow' | 'gray' | 'purple';
 
-export default function DdayStatus({ days }: DdayStatusProps) {
+export default function DdayStatus({ days, status }: DdayStatusProps) {
+  if (days == null || !Number.isFinite(days)) return null;
+
   const getStatus = (): { color: StatusColor; text: string; label: string } => {
     // 마감
-    if (days < 0) {
+    if (status === 'CLOSED' || days < 0) {
       return { color: 'gray', text: '마감', label: '마감' };
+    }
+
+    if (status === 'UPCOMING') {
+      return { color: 'gray', text: '모집 예정', label: days === 0 ? 'D-day' : `D-${days}` };
     }
 
     // 오늘 마감
